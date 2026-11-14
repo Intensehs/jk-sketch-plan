@@ -4,6 +4,7 @@
 <title>JK Sketch Plan</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16365c">
+<script>/* Theme: apply the saved theme before first paint (no flash) */try{if(JSON.parse(localStorage.getItem("jksp_theme")||"null")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -271,6 +272,50 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #fxBar .tb{width:auto;height:40px;min-width:36px}
 #tools .rph{flex:0 0 auto}
 @media (max-width:600px){#tabs{min-width:92px;margin-left:6px}#tbar{flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}#tbar::-webkit-scrollbar{display:none}.tb,#top .tb{min-width:32px;flex:0 0 auto}}
+/* ===== Classic dark theme (vintage charcoal + brass). Light theme above is unchanged and the default. ===== */
+[data-theme=dark]{--ink:#e8e2d6;--ink2:#bdb3a2;--ink3:#8c8273;--line:#3a352f;--bg:#1d1b19;--acc:#c9a45c;--accs:#3a3226;--brand:#7a4e2d;--ok:#7fa36a;--bad:#d0705a;color-scheme:dark}
+html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)}
+[data-theme=dark] #top,[data-theme=dark] #v3top{background:#22201e;color:var(--ink);border-bottom-color:#3a352f;box-shadow:inset 0 -1px 0 rgba(201,164,92,.18)}
+[data-theme=dark] #bmark{background:#7a4e2d;color:#f3e6c8;box-shadow:inset 0 0 0 1px #c9a45c}
+[data-theme=dark] #brand b{color:#efe7d6;font-family:Georgia,"Times New Roman",serif;letter-spacing:.3px}
+[data-theme=dark] .tab{color:var(--ink2)}[data-theme=dark] .tab:hover{color:var(--ink)}[data-theme=dark] .tab.on{color:#d9b46a;border-bottom-color:#c9a45c}
+[data-theme=dark] .tb,[data-theme=dark] #top .tb,[data-theme=dark] #fxBar .tb{color:var(--ink2)}
+[data-theme=dark] .tb:hover,[data-theme=dark] #tools .tool:hover,[data-theme=dark] #tools .tool.act:hover,[data-theme=dark] .cb:hover{background:#2f2b27;color:var(--ink)}
+[data-theme=dark] .tb.on,[data-theme=dark] #tools .tool.on,[data-theme=dark] #v3rail .tool.on{background:#3a3226;color:#e0bd72;box-shadow:inset 0 0 0 1px #6b5733}
+[data-theme=dark] #tools,[data-theme=dark] #v3rail{background:#1d1b19;border-right-color:#3a352f}
+[data-theme=dark] #tools .tool,[data-theme=dark] #v3rail .tool{color:var(--ink2)}
+[data-theme=dark] .rph{color:#8c7a5a;border-top-color:#3a352f}
+[data-theme=dark] #stage{background:#1a1a1a}
+[data-theme=dark] #ctx,[data-theme=dark] #fxBar{background:rgba(34,32,30,.95);border-color:#4a433a;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+[data-theme=dark] .cb,[data-theme=dark] #ctx .cb{color:var(--ink)}
+[data-theme=dark] .cb.on{background:#3a3226;color:#e0bd72;border-color:#6b5733}
+[data-theme=dark] .cb.lvb,[data-theme=dark] .tsbox{background:#262320;border-color:#3a352f}
+[data-theme=dark] .tsel,[data-theme=dark] .pf input,[data-theme=dark] .pf select,[data-theme=dark] .fld input,[data-theme=dark] .fld select,[data-theme=dark] .impl select,[data-theme=dark] textarea{background:#171615;color:var(--ink);border-color:#4a433a}
+[data-theme=dark] .pf input:focus,[data-theme=dark] .pf select:focus,[data-theme=dark] .tsel:focus{outline-color:#6b5733;border-color:#c9a45c}
+[data-theme=dark] #props{background:#22201e;border-left-color:#3a352f;box-shadow:-12px 0 28px rgba(0,0,0,.5)}
+[data-theme=dark] .pf{border-bottom-color:#2f2b27}
+[data-theme=dark] .sb{background:#262320;border-color:#4a433a;color:var(--ink)}[data-theme=dark] .sb.pri{background:#8a6a35;border-color:#c9a45c;color:#f6ecd6}
+[data-theme=dark] #info{background:rgba(34,32,30,.92);color:var(--ink2);border-color:#3a352f}[data-theme=dark] #info b{color:var(--ink)}
+[data-theme=dark] #hint,[data-theme=dark] #v3hint{background:rgba(18,18,18,.82);color:#e8e2d6}
+[data-theme=dark] #toast{background:rgba(42,39,36,.97);color:#efe7d6;border:1px solid #6b5733}
+[data-theme=dark] #tip{background:#2a2724;color:#efe7d6;border:1px solid #4a433a}
+[data-theme=dark] #modal{background:rgba(0,0,0,.6)}
+[data-theme=dark] .mbox{background:#22201e;color:var(--ink);border:1px solid #4a433a;box-shadow:0 24px 48px rgba(0,0,0,.6)}
+[data-theme=dark] .mt{color:#efe7d6;font-family:Georgia,"Times New Roman",serif}
+[data-theme=dark] .ms,[data-theme=dark] .fld,[data-theme=dark] .file small,[data-theme=dark] .pf label{color:var(--ink2)}
+[data-theme=dark] .bb,[data-theme=dark] .kp button{background:#2f2b27;color:var(--ink)}
+[data-theme=dark] .bb.pri{background:#7a4e2d;color:#f6ecd6}[data-theme=dark] .bb.ok{background:#56703f;color:#f1f0e4}
+[data-theme=dark] .bb.del{background:#3d2420;color:#e39a87}[data-theme=dark] .bb.on{background:#3a3226;color:#e0bd72;outline-color:#c9a45c}
+[data-theme=dark] .bb:disabled{opacity:.45}
+[data-theme=dark] .lf{background:#171615;color:var(--ink);border-color:#4a433a}[data-theme=dark] .lf.on{background:#3a2a1c;border-color:#c9a45c}
+[data-theme=dark] .file{border-color:#3a352f;background:#262320}
+[data-theme=dark] .imperr{background:#3d2420;border-color:#6e3a2e;color:#f0b4a3}
+[data-theme=dark] .impsum{background:#263022;border-color:#3f5234;color:#dfe8cf}
+[data-theme=dark] .implay{border-color:#3a352f}
+[data-theme=dark] #impCv{background:#f7f3ea!important;border-color:#4a433a!important}
+[data-theme=dark] #v3d{background:#1a1a1a}
+[data-theme=dark] .vs{background:#2a2724;border-color:#4a433a;color:var(--ink)}[data-theme=dark] .vc.on,[data-theme=dark] .vs.on{background:#c9a45c;color:#1a1a1a;border-color:#c9a45c}
+[data-theme=dark] ::-webkit-scrollbar{background:#1a1a1a}[data-theme=dark] ::-webkit-scrollbar-thumb{background:#4a433a;border-radius:6px}
 </style></head><body>
 <div id="app">
  <div id="top">
@@ -290,6 +335,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
   <button class="tb" id="bProps" title="Properties" data-tip="Properties">__props__<span>Props</span></button>
   <button class="tb" id="bFocus" title="Focus mode (full-screen canvas)" data-tip="Focus mode">__focus__<span>Focus</span></button>
   <button class="tb" id="bImport" title="Import IFC / DXF (from Revit)" data-tip="Import">__import__<span>Import</span></button>
+  <button class="tb" id="bTheme" title="Theme" data-tip="Theme"><span>Dark</span></button>
   <button class="tb" id="bMenu" title="Menu" data-tip="Menu">__menu__<span>Menu</span></button>
   </div>
  </div>
@@ -331,6 +377,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 /*__V3D__*/
 /*__V13__*/
 /*__IMP__*/
+/*__THEME__*/
 </script>
 <script>if("serviceWorker" in navigator&&location.protocol!=="file:")window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script>
 </body></html>
