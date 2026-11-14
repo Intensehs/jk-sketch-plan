@@ -316,6 +316,17 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 [data-theme=dark] #v3d{background:#1a1a1a}
 [data-theme=dark] .vs{background:#2a2724;border-color:#4a433a;color:var(--ink)}[data-theme=dark] .vc.on,[data-theme=dark] .vs.on{background:#c9a45c;color:#1a1a1a;border-color:#c9a45c}
 [data-theme=dark] ::-webkit-scrollbar{background:#1a1a1a}[data-theme=dark] ::-webkit-scrollbar-thumb{background:#4a433a;border-radius:6px}
+/* Stage: Modify - Select tool: quick-action context menu (light + dark via theme variables) */
+#cxm{position:fixed;z-index:30;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(15,23,42,.18);padding:4px;width:max-content;max-width:min(230px,calc(100vw - 8px))}
+#cxm .cxh{font-size:10.5px;font-weight:650;color:var(--ink2);padding:2px 6px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid var(--line);margin-bottom:3px}
+#cxm .cxb{display:flex;flex-wrap:wrap;gap:1px}
+#cxm .cxi{width:54px;height:44px;border:0;background:transparent;color:var(--ink2);border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:0}
+#cxm .cxi svg{width:17px;height:17px}
+#cxm .cxi span{font-size:9.5px;font-weight:550;line-height:1.05;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cxm .cxi:hover{background:var(--accs);color:var(--acc)}
+#cxm .cxi.del{color:var(--bad)}
+[data-theme=dark] #cxm{background:#22201e;border-color:#4a433a;box-shadow:0 12px 30px rgba(0,0,0,.55)}
+[data-theme=dark] #cxm .cxi:hover{background:#3a3226;color:#e0bd72}
 </style></head><body>
 <div id="app">
  <div id="top">
@@ -4192,6 +4203,50 @@ THEME.sun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 if(typeof applyStyle==="function"){var _thApply=applyStyle;applyStyle=function(){var r=_thApply.apply(this,arguments);try{if(themeIsDark()&&T3&&T3.scene&&!document.getElementById("v3d").classList.contains("cad")){T3.scene.background=new THREE.Color("#2a2724");if(T3.scene.fog)T3.scene.fog.color=new THREE.Color("#2a2724")}}catch(e){}return r}}
 function themeInit(){themeHookCanvas();var b=document.getElementById("bTheme");if(b&&!b.__th){b.__th=1;b.onclick=function(){themeApply(themeIsDark()?"light":"dark",true)}}themeApply(themeIsDark()?"dark":"light",false)}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",themeInit);else setTimeout(themeInit,0);
+
+/* Stage: Modify - Select tool: quick-action context menu. Opens at the exact tap / click point on a selected object
+   (only with the Select tool; never while drawing). Every button calls the same function as the toolbar / option bar. */
+var CXM={el:null,down:null,ptrs:{}};
+function cxmClose(){if(CXM.el){CXM.el.remove();CXM.el=null}}
+function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k=one?one.k:null;
+ function add(id,icon,label,fn){A.push({id:id,icon:icon,label:label,fn:fn})}
+ add("move","mv","Move",function(){ctxAction("xmove")});add("copy","copy","Copy",function(){ctxAction("xcopy")});
+ add("rotate","rotate","Rotate",function(){ctxAction("xrot")});add("mirror","mirror","Mirror",function(){ctxAction("xmir")});
+ if(k==="op"&&e&&e.type==="D")add("flip","mirror","Flip",function(){snapshot();e.flip=!e.flip;changed();updProps();toast("Door swing flipped")});
+ if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
+ if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
+ if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
+ if(typeof selCat==="function"&&selCat())add("type","match","Edit Type",function(){editTypeFor("sel")});
+ add("props","props","Props",function(){if(!UI.props)propsOpen(true);else updProps()});
+ add("pin","pin",(L.every(isPinned)?"Unpin":"Pin"),function(){ctxAction("xpin")});
+ add("delete","del","Delete",function(){ctxAction("xdel")});
+ return A}
+function cxmName(r){var e=elGet(r);if(r.k==="op"&&e)return e.type==="W"?"Window":e.type==="V"?"Ventilator":(e.dk==="OP"?"Opening":"Door");if(r.k==="lab"&&e)return (isStair(e.name)?"Stair":"Room")+" · "+e.name;return (typeof EKN!=="undefined"&&EKN[r.k])||r.k}
+function cxmOpen(cx,cy){cxmClose();var L=selEls();if(!L.length)return;var items=cxmItems(L);var d=document.createElement("div");d.id="cxm";d.setAttribute("role","menu");
+ var one=L.length===1?L[0]:null;d.innerHTML='<div class="cxh">'+esc(one?cxmName(one):(L.length+" selected"))+'</div><div class="cxb">'+items.map(function(it){return '<button class="cxi'+(it.id==="delete"?" del":"")+'" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+svgI(it.icon)+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>';
+ document.body.appendChild(d);CXM.el=d;
+ d.addEventListener("pointerdown",function(e){e.stopPropagation()});
+ items.forEach(function(it){d.querySelector('[data-cx="'+it.id+'"]').onclick=function(e){e.stopPropagation();cxmClose();it.fn()}});
+ /* anchor the top-left corner at the tap point; shift only as much as needed to stay on screen */
+ var w=d.offsetWidth,h=d.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,m=4,x=cx,y=cy;
+ if(x+w>vw-m)x=Math.max(m,vw-m-w);if(y+h>vh-m)y=Math.max(m,vh-m-h);d.style.left=x+"px";d.style.top=y+"px";CXM.pos={x:x,y:y,tapX:cx,tapY:cy}}
+function cxmInit(){var c=$("cv");if(!c||c.__cxm)return;c.__cxm=1;
+ c.addEventListener("pointerdown",function(e){if(e.isPrimary)CXM.ptrs={};CXM.ptrs[e.pointerId]=1;if(Object.keys(CXM.ptrs).length===1)CXM.down={x:e.clientX,y:e.clientY,t:Date.now(),multi:false};else if(CXM.down)CXM.down.multi=true;cxmClose()});
+ c.addEventListener("pointermove",function(e){if(CXM.down&&Math.hypot(e.clientX-CXM.down.x,e.clientY-CXM.down.y)>6)CXM.down.moved=true});
+ function up(e){delete CXM.ptrs[e.pointerId];var D=CXM.down;if(Object.keys(CXM.ptrs).length)return;CXM.down=null;
+  if(!D||D.multi||D.moved||Date.now()-D.t>700||e.type==="pointercancel")return;
+  if(UI.tool!=="sel"||UI.pick||UI.clean||(window.V3&&V3.on))return;var cx=e.clientX,cy=e.clientY;
+  setTimeout(function(){if($("modal").classList.contains("show"))return;var r=c.getBoundingClientRect(),w=s2w(cx-r.left,cy-r.top),h=hitOne(w);
+   if(!h||!selHas(h.k,h.id))return;cxmOpen(cx,cy)},0)}
+ c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
+ c.addEventListener("wheel",cxmClose,{passive:true});window.addEventListener("resize",cxmClose);
+ document.addEventListener("pointerdown",function(e){if(CXM.el&&!CXM.el.contains(e.target))cxmClose()},true);
+ document.addEventListener("keydown",function(e){if(e.key==="Escape")cxmClose()},true);
+ if(typeof setTool==="function"&&!setTool.__cxm){var _st=setTool;setTool=function(){cxmClose();return _st.apply(this,arguments)};setTool.__cxm=1}
+ if(window.JKS&&JKS.setTool&&!JKS.setTool.__cxm){var _jt=JKS.setTool;JKS.setTool=function(){cxmClose();return _jt.apply(this,arguments)};JKS.setTool.__cxm=1}
+ setInterval(function(){if(CXM.el&&(UI.tool!=="sel"||!selEls().length||(window.V3&&V3.on)))cxmClose()},250);
+ if(typeof open3D==="function"){var _o3=open3D;open3D=function(){cxmClose();return _o3.apply(this,arguments)}}}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",cxmInit);else setTimeout(cxmInit,0);
 
 </script>
 <script>if("serviceWorker" in navigator&&location.protocol!=="file:")window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script>

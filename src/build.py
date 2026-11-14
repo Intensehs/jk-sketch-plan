@@ -39,7 +39,7 @@ V=R/"vendor"
 h=h.replace("/*__THREE__*/","/* three.js r128 (MIT) - inlined for offline use */\n"+(V/"three.min.js").read_text(encoding="utf-8")).replace("/*__ORBIT__*/","/* three.js r128 OrbitControls (MIT) */\n"+(V/"OrbitControls.js").read_text(encoding="utf-8"))
 import json
 V13="\n".join((S/f).read_text(encoding="utf-8") for f in ["levels.js","struct.js","modify.js","annot.js","views.js","props.js","types.js","ui14.js","tdim.js"]).replace("__ICONS_JSON__",json.dumps(ICONS))
-h=h.replace("/*__V13__*/",V13).replace("/*__IMP__*/",(S/"imp_parse.js").read_text(encoding="utf-8")+"\n"+(S/"imp_ui.js").read_text(encoding="utf-8")).replace("/*__THEME__*/",(S/"theme.js").read_text(encoding="utf-8")).replace("/*__DXFP__*/","/* dxf-parser 1.1.2 (MIT) */\n"+(V/"dxf-parser.min.js").read_text(encoding="utf-8"))
+h=h.replace("/*__V13__*/",V13).replace("/*__IMP__*/",(S/"imp_parse.js").read_text(encoding="utf-8")+"\n"+(S/"imp_ui.js").read_text(encoding="utf-8")).replace("/*__THEME__*/",(S/"theme.js").read_text(encoding="utf-8")).replace("/*__CXM__*/",(S/"ctxmenu.js").read_text(encoding="utf-8")).replace("/*__DXFP__*/","/* dxf-parser 1.1.2 (MIT) */\n"+(V/"dxf-parser.min.js").read_text(encoding="utf-8"))
 h=h.replace("/*__FURN__*/",(S/"furn.js").read_text(encoding="utf-8"))
 h=h.replace("/*__V3D__*/",(S/"v3d.js").read_text(encoding="utf-8")+"\n"+(S/"f3d.js").read_text(encoding="utf-8"))
 h=h.replace("/*__LIB__*/",(S/"lib.js").read_text(encoding="utf-8")).replace("/*__APP__*/",(S/"app.js").read_text(encoding="utf-8")+"\n"+(S/"sheet.js").read_text(encoding="utf-8"))
