@@ -1436,6 +1436,7 @@ function rectUnion(rects,holes){function uq(a){a.sort(function(p,q){return p-q})
 function rgb(h){h=String(h||"#000").replace("#","");if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];if(!/^[0-9a-fA-F]{6}/.test(h))h="000000";return [0,2,4].map(function(i){return (parseInt(h.substr(i,2),16)/255).toFixed(3)}).join(" ")}
 function pdfStr(s){return "("+ascii(s).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)")+")"}
 /* PDF writer: one Dwg or an array of Dwgs (one page each); optional JPEG logo (DCTDecode) */
+/* Stage: Export - PDF writer used by the Export PDF tool */
 function toPDF(ds,paper){if(!Array.isArray(ds))ds=[ds];var sc=(paper==="A4"?1/Math.SQRT2:1)*72/25.4,PW=420*sc,PH=297*sc;function X(x){return (x*sc).toFixed(2)}function Y(y){return (PH-y*sc).toFixed(2)}
  var logo=(typeof LOGO_B64==="string"&&LOGO_B64.length>100)?atob(LOGO_B64):null,useImg=false;
  function content(d){var s=["1 J 1 j"];
@@ -1461,6 +1462,7 @@ function toPDF(ds,paper){if(!Array.isArray(ds))ds=[ds];var sc=(paper==="A4"?1/Ma
  var xr=out.length;out+="xref\n0 "+(objs.length+1)+"\n0000000000 65535 f \n";offs.forEach(function(o){out+=String(o).padStart(10,"0")+" 00000 n \n"});
  out+="trailer\n<< /Size "+(objs.length+1)+" /Root 1 0 R /Info 5 0 R >>\nstartxref\n"+xr+"\n%%EOF\n";return out}
 var LAYCOL={WALLFILL:8,TITLE:9,WALLS:7,DIMS:5,TEXT:7,OPENINGS:4,DOORS:1,WINDOWS:4,ROOMS:8,STAIRS:3,FURNITURE:30};
+/* Stage: Export - DXF writer used by the Export DXF tool */
 function toDXF(d,layers){var o=[];function g(c,v){o.push(String(c));o.push(String(v))}
  g(0,"SECTION");g(2,"HEADER");g(9,"$ACADVER");g(1,"AC1009");g(9,"$INSUNITS");g(70,2);g(9,"$MEASUREMENT");g(70,0);g(0,"ENDSEC");
  g(0,"SECTION");g(2,"TABLES");g(0,"TABLE");g(2,"LTYPE");g(70,1);g(0,"LTYPE");g(2,"CONTINUOUS");g(70,0);g(3,"Solid line");g(72,65);g(73,0);g(40,0.0);g(0,"ENDTAB");
@@ -1512,9 +1514,11 @@ var FILLS=["#fde9c8","#d9ecf7","#e3f1d9","#f6dbe5","#e8e1f5","#fbf3c4","#d8f0ee"
 var S,cv,g,CW=0,CH=0,DPR=1;
 var V={s:20,ox:40,oy:40};          // plan view: px per ft
 var SV={s:2,ox:0,oy:0};            // clean view: px per mm of the A3 sheet
+/* Stage: v1.4 drawing tools - UI.tool holds the active tool; default is the Wall tool ("draw") */
 var UI={tool:"draw",ortho:90,grid:1,penOnly:false,penSeen:false,kind:"O",chainOn:true,chain:null,runStart:null,clean:false,preview:null,snap:null,mark:null,selSeg:null};
 var UNDO=[],REDO=[],CURID=null,SAVET=null,DIRTY=false;
 
+/* Stage: New drawing - empty plan, no tool-specific data yet (Wall tool active) */
 function blank(){return docify({v:1,nid:1,pts:[],segs:[],labels:[],ops:[],furn:[],meta:{name:"",owner:"",site:"",date:today(),dbl:true,tout:9,tin:4.5,paper:"A3",proj:"",ttl:"Ground Floor Plan",dno:"A101",drawn:"JK Construction",chk:"",revs:""}})}
 function nid(){return S.nid++}
 function pt(id){for(var i=0;i<S.pts.length;i++)if(S.pts[i].id===id)return S.pts[i];return null}
@@ -1572,6 +1576,7 @@ function snapStep(cur,tgt,isLast){
  if(res.pid){var P=pt(res.pid);res.x=P.x;res.y=P.y}
  return res}
 
+/* Stage: v1.4 drawing tools - Wall tool: freehand stroke -> straight wall preview */
 function buildPreview(start,path){
  var eps=Math.max(0.6,16/V.s),simp=rdp(path,eps);simp[0]={x:start.x,y:start.y};
  if(simp.length<2)return [];
@@ -1581,11 +1586,13 @@ function buildPreview(start,path){
  return out}
 
 /* ---------- topology ---------- */
+/* Stage: v1.4 drawing tools - Wall tool: creates a wall segment of the selected wall type */
 function addSeg(a,b,k){if(a===b)return null;for(var i=0;i<S.segs.length;i++){var s=S.segs[i];if((s.a===a&&s.b===b)||(s.a===b&&s.b===a))return s}
  var s={id:nid(),a:a,b:b,k:k||"O"};if(UI.wth)setWallTh(s,UI.wth);if(UI.wt&&typeof tById==="function"){var wt=tById("wall",UI.wt);if(wt&&Math.abs(wt.th-wallIn(s))<0.01)s.wt=wt.id}S.segs.push(s);return s}
 function ensurePoint(p){if(p.pid&&pt(p.pid))return p.pid;var q=findPoint(p.x,p.y,0.02);if(q)return q.id;var id=nid();S.pts.push({id:id,x:p.x,y:p.y});return id}
 function splitSeg(s,pid){var a=pt(s.a),b=pt(s.b),P=pt(pid),q=projSeg(P.x,P.y,a,b),t=q.t,s2={id:nid(),a:pid,b:s.b,k:s.k};if(s.th)s2.th=s.th;s.b=pid;S.segs.push(s2);
  S.ops.forEach(function(o){if(o.seg!==s.id)return;if(o.t<t)o.t=o.t/t;else{o.seg=s2.id;o.t=(o.t-t)/(1-t)}});return s2}
+/* Stage: v1.4 drawing tools - Wall tool / Import: joins walls at corners, T-junctions and crossings */
 function planarize(){
  for(var guard=0;guard<2000;guard++){var did=false;
   // merge coincident points
@@ -1633,6 +1640,7 @@ function faceInfo(f){var P=simplifyPoly(f.pts),xs=P.map(function(p){return p.x})
  bx=Math.min.apply(null,xs),by=Math.min.apply(null,ys),bw=Math.max.apply(null,xs)-bx,bh=Math.max.apply(null,ys)-by;
  var rect=P.length===4&&P.every(function(p,i){var q=P[(i+1)%4];return Math.abs(p.x-q.x)<1e-6||Math.abs(p.y-q.y)<1e-6});
  var cx=0,cy=0;P.forEach(function(p){cx+=p.x;cy+=p.y});return {area:f.area,pts:f.pts,rect:rect,w:bw,h:bh,bx:bx,by:by,cx:cx/P.length,cy:cy/P.length}}
+/* Stage: v1.4 drawing tools - Room tool: rooms and areas found from closed walls */
 function roomsInfo(){var F=faces().map(faceInfo);
  F.forEach(function(f){f.labels=[]});
  LABF={};S.labels.forEach(function(l){var best=null;F.forEach(function(f){if(inPoly(l.x,l.y,f.pts)&&(!best||f.area<best.area))best=f});LABF[l.id]=best;if(best)best.labels.push(l)});
@@ -1659,6 +1667,7 @@ function ctrText(f){return fi(f.w)+" x "+fi(f.h)}
 function w2s(x,y){return {x:x*V.s+V.ox,y:y*V.s+V.oy}}
 function s2w(x,y){return {x:(x-V.ox)/V.s,y:(y-V.oy)/V.s}}
 var RAF=0;function render(){if(!RAF)RAF=requestAnimationFrame(function(){RAF=0;paint()})}
+/* Stage: Plan view - draws whatever the active tool produced (walls, openings, rooms, annotations) */
 function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffffff";g.fillRect(0,0,CW,CH);
  if(UI.clean){paintSheet();return}
  drawGrid();drawUnderlay();
@@ -1725,6 +1734,7 @@ function nodeExt(s,pid){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return 0;v
   e=Math.max(e,Math.min(wallT(q)/2/cr+ts*co/cr,4*Math.max(wallT(q),wallT(s))))});return e}
 function wallPoly(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,h=wallT(s)/2,nx=-uy*h,ny=ux*h,e0=nodeExt(s,s.a),e1=nodeExt(s,s.b);
  var A={x:a.x-ux*e0,y:a.y-uy*e0},B={x:b.x+ux*e1,y:b.y+uy*e1};return [{x:A.x+nx,y:A.y+ny},{x:B.x+nx,y:B.y+ny},{x:B.x-nx,y:B.y-ny},{x:A.x-nx,y:A.y-ny}]}
+/* Stage: Plan view - Wall tool output: filled double-line walls */
 function drawWallsCanvas(){var sel=UI.selSeg||[];
  if(!S.meta.dbl){S.segs.forEach(function(s){var a=w2s(pt(s.a).x,pt(s.a).y),b=w2s(pt(s.b).x,pt(s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);
   var on=sel.indexOf(s.id)>=0;g.strokeStyle=on?"#e8590c":(s.k==="I"?"#4f6d8f":"#14253b");g.lineWidth=on?5:(s.k==="I"?2.2:3.4);g.lineCap="round";g.stroke()});return}
@@ -1736,6 +1746,7 @@ function drawWallsCanvas(){var sel=UI.selSeg||[];
  // very thin on screen (zoomed out): keep a visible centre line
  if(V.s*S.meta.tin/12<3)Q.forEach(function(q){var a=w2s(pt(q.s.a).x,pt(q.s.a).y),b=w2s(pt(q.s.b).x,pt(q.s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#0b1a2e";g.lineWidth=2;g.stroke()})}
 /* one door / window / ventilator in architectural plan style */
+/* Stage: Plan view - Door / Window / Opening tool output: wall cut, leaf, swing arc */
 function drawOpCanvas(o){var G=opWorld(o);if(!G)return;var dbl=S.meta.dbl,T=dbl?wallT(G.s):0.3,u=G.u,n=G.n,c=G.c,w=G.w,col=opCol(o),px=1/V.s;
  function P(al,ac){return w2s(c.x+u.x*al+n.x*ac,c.y+u.y*al+n.y*ac)}
  function ln(pts,lw,cl,dash){g.beginPath();pts.forEach(function(p,i){i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)});g.strokeStyle=cl;g.lineWidth=lw;g.lineCap="butt";g.setLineDash(dash||[]);g.stroke();g.setLineDash([])}
@@ -2010,6 +2021,7 @@ function opPopup(o,seg,t){var isNew=!o,s=o?segById(o.seg):seg,T0=isNew&&typeof o
   $("oFlip").onclick=function(){st.flip=!st.flip;toast("Door opens to "+(st.flip?"other":"first")+" side")};$("oHinge").onclick=function(){st.hinge=!st.hinge;toast("Hinge moved")};
   $("oX").onclick=closeModal;if(!isNew)$("oDel").onclick=function(){snapshot();S.ops=S.ops.filter(function(x){return x!==o});closeModal();changed()};
   $("oOk").onclick=function(){var w=get();if(!(w>0.2)){toast("Enter width");return}snapshot();if(isNew){var no={id:nid(),seg:s.id,t:t,type:st.type,dk:st.type==="D"?st.kind:undefined,w:w,flip:st.flip,hinge:st.hinge,sill:st.sill,h:st.h};if(typeof typeOf==="function"){var nt=typeOf(catOf("op",no),no);if(nt)no.ot=nt.id}S.ops.push(no);UI.lastOp=st.kind}else{o.type=st.type;o.dk=st.type==="D"?st.kind:undefined;o.w=w;o.flip=st.flip;o.hinge=st.hinge;o.sill=st.sill;o.h=st.h}closeModal();changed()};upd()})}
+/* Stage: Menu - My drawings, Details, Levels, Import IFC/DXF, Export PDF/DXF/PNG */
 function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.meta.name||"New drawing")+'</div><div class="grid2">'+
  '<button class="bb pri" id="mFiles">My drawings<small>சேமித்த வரைபடங்கள்</small></button><button class="bb" id="mNew">New drawing<small>புதிய தாள்</small></button>'+
  '<button class="bb" id="mDet">Details<small>Owner, site, walls</small></button><button class="bb" id="mLv">Levels<small>floors</small></button><button class="bb" id="mVG">Visibility<small>show / hide</small></button><button class="bb" id="mGrid">Grid: '+["Off","Faint","On"][UI.grid]+'<small>கட்டம்</small></button>'+
@@ -2020,6 +2032,7 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  $("mImp").onclick=importPopup;$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
  $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
  $("mHelp").onclick=helpPopup;$("mX").onclick=closeModal})}
+/* Stage: My drawings - open / rename / delete drawings saved in this browser */
 function filesPopup(){autosave();var L=idxList();
  modal('<div class="mt">My drawings</div><div class="ms">Saved automatically on this phone / tablet</div><div class="row"><button class="bb pri" id="fNew">+ New drawing</button></div>'+
   (L.length?L.map(function(e){return '<div class="file"><div><b>'+esc(e.name)+(e.id===CURID?" (open)":"")+'</b><small>'+(e.owner?esc(e.owner)+" · ":"")+sq(e.area||0)+' sq.ft · '+new Date(e.updated).toLocaleString()+'</small></div><button class="bb pri" data-open="'+e.id+'">Open</button><button class="bb" data-ren="'+e.id+'">Rename</button><button class="bb del" data-del="'+e.id+'">×</button></div>'}).join(""):'<p class="ms">No saved drawings yet.</p>')+
@@ -2069,22 +2082,28 @@ function setClean(on){UI.clean=on;$("bClean").classList.toggle("on",on);SHEET=nu
 function updButtons(){$("bUndo").disabled=!UNDO.length;$("bRedo").disabled=!REDO.length}
 
 /* ================= export ================= */
+/* Stage: Export (PDF/DXF/PNG) - browser download (Blob + <a download>); Android bridge only inside the APK */
 function saveFile(filename,blobOrDataURL,mime){var data=blobOrDataURL;mime=mime||(data&&data.type)||"application/octet-stream";
  function asBlob(){if(data instanceof Blob)return data;if(typeof data==="string"&&data.slice(0,5)==="data:")return dataURLtoBlob(data);return new Blob([data],{type:mime})}
  if(window.Android&&typeof window.Android.saveFile==="function"){
   if(typeof data==="string"&&/^data:[^,]*;base64,/.test(data)){window.Android.saveFile(filename,data.slice(data.indexOf(",")+1),mime);return}
   var fr=new FileReader();fr.onload=function(){var s=String(fr.result);window.Android.saveFile(filename,s.slice(s.indexOf(",")+1),mime)};fr.readAsDataURL(asBlob());return}
  var b=asBlob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},4000);toast("Saved "+filename);webShareOffer(filename,b)}
+/* Stage: Export (PDF/DXF/PNG) - optional Share button on phones (Web Share API) */
 function webShareOffer(name,b){try{if(!(navigator.share&&navigator.canShare&&matchMedia("(pointer:coarse)").matches))return;var f=new File([b],name,{type:b.type||"application/octet-stream"});if(!navigator.canShare({files:[f]}))return;var el=$("toast");el.innerHTML=esc("Saved "+name)+' <button id="tShare" style="margin-left:8px;border:0;border-radius:6px;padding:4px 10px;background:#fff;color:#16365c;font-weight:700">Share</button>';el.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(function(){el.style.display="none"},6000);$("tShare").onclick=function(){navigator.share({files:[f],title:name}).catch(function(){})}}catch(e){}}
 function fname(ext){return "HousePlan_"+((S.meta.owner||S.meta.name||"plan").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")||"plan")+"_"+(S.meta.date||today())+"."+ext}
 function needContent(){if(!S.segs.length){toast("Draw something first");return false}return true}
+/* Stage: Export - PDF tool (single sheet; replaced by the sheet-set export in views.js) */
 function exportPDF(){if(!needContent())return;var r=buildSheet();saveFile(fname("pdf"),new Blob([bin(toPDF([r.d,r.d2],S.meta.paper||"A3"))],{type:"application/pdf"}),"application/pdf")}
+/* Stage: Export - DXF tool (current plan, AutoCAD R12, feet) */
 function exportDXF(){if(!needContent())return;var r=buildSheet();saveFile(fname("dxf"),new Blob([toDXF(r.d,["WALLS","WALLFILL","DIMS","TEXT","DOORS","WINDOWS","STAIRS","FURNITURE","TITLE"])],{type:"application/dxf"}),"application/dxf")}
+/* Stage: Export - PNG tool (plan image) */
 function exportPNG(){if(!needContent())return;var r=buildSheet(),c=document.createElement("canvas"),s=2480/420;c.width=2480;c.height=Math.round(297*s);var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);drawDwg(x,UI.page===2?r.d2:r.d,s,0,0);
  c.toBlob(function(b){saveFile(fname("png"),b,"image/png")},"image/png")}
 
 /* ================= init ================= */
 function onBack(){if(window.V3&&V3.on){close3D();return 1}if($("modal").classList.contains("show")){closeModal();return 1}if(UI.clean){setClean(false);return 1}autosave();return 0}
+/* Stage: Start-up - binds the top-row quick tools (Undo, Redo, Fit, Sheets, 3D, Import, Menu); Wall tool active */
 function init(){cv=$("cv");g=cv.getContext("2d");S=blank();
  UI.grid=LS.get("jksp_grid",1);UI.penOnly=LS.get("jksp_pen",false);
  cv.addEventListener("pointerdown",onDown);cv.addEventListener("pointermove",onMove);cv.addEventListener("pointerup",onUp);cv.addEventListener("pointercancel",onUp);
@@ -2168,6 +2187,7 @@ function table(d,x,y,cols,rows,o){o=o||{};var rh=o.rh||4.8,W=cols.reduce(functio
  var H=hh+rows.length*rh;d.rect(x,y,W,H,{w:0.3,nodxf:true});cx=x;cols.forEach(function(c,i){if(i)d.line(cx,y,cx,y+H,{w:0.12,c:"#777777",nodxf:true});cx+=c[1]});
  if(o.title)d.text(x,y-1.6,o.title,2.8,{bold:true,nodxf:true});return y+H}
 
+/* Stage: Sheets - plan sheet with CTAK title block (Export PDF/DXF/PNG) */
 function buildSheet(O){O=O||{};
  var d=new Dwg(),d2=new Dwg(),RI=roomsInfo(),m=S.meta,dbl=m.dbl,A4=m.paper==="A4";
  frameA(d);frameA(d2);
@@ -2340,6 +2360,7 @@ function detailCell(d,g2,cx0,cy0,cw,ch,ks,maxL,mark,cell2H){var w=g2.w,h=g2.h,sl
  fitT(d,cx0+cw/2,cy+3.6,"Nos: "+g2.marks.length+"   "+(isD?"Lintel "+lvl(ln):"Sill "+lvl(sl)+"  Lintel "+lvl(ln))+"   Wall "+thA(T*12),1.8,cw-3,{a:"middle",c:"#333333"})}
 
 /* ================= FURNITURE library (plan symbols; 3D models are in v3d.js) ================= */
+/* Stage: Build - Component tool: furniture and fixture library */
 var FURN={
  dbed:{n:"Double bed",cat:"Bedroom",w:5,d:6.5},sbed:{n:"Single bed",cat:"Bedroom",w:3,d:6.5},wardrobe:{n:"Wardrobe",cat:"Bedroom",w:4,d:2},sidetable:{n:"Side table",cat:"Bedroom",w:1.5,d:1.5},
  sofaset:{n:"Sofa set 3+1+1",cat:"Hall",w:6.5,d:3,composite:true},sofa3:{n:"3-seater sofa",cat:"Hall",w:6.5,d:3},sofa1:{n:"Single sofa",cat:"Hall",w:3,d:3},ctable:{n:"Center table",cat:"Hall",w:3.5,d:2},
@@ -2404,6 +2425,7 @@ function snapFurn(f,autoRot){var best=null;S.segs.forEach(function(s){var a=pt(s
  if(autoRot){if(best.hz)f.rot=best.a.y<f.y?0:180;else f.rot=best.a.x<f.x?270:90}
  var half=(f.rot%180===0)?(best.hz?D.d/2:D.w/2):(best.hz?D.w/2:D.d/2);
  if(best.d-(t+half)<(autoRot?6:1.2)){if(best.hz){var sg=best.a.y<f.y?1:-1;f.y=best.a.y+sg*(t+half)}else{var sg2=best.a.x<f.x?1:-1;f.x=best.a.x+sg2*(t+half)}}}
+/* Stage: Build - Component tool: place an item */
 function addFurn(type,x,y){snapshot();S.furn=S.furn||[];var c=FURN[type];
  if(c.composite){var f={id:nid(),type:"sofa3",x:x,y:y,rot:0};snapFurn(f,true);var X=fXform(f);S.furn.push(f);
   [[-(3.25+0.3+1.5),2.4,270],[3.25+0.3+1.5,2.4,90]].forEach(function(o){var p=X(o[0],o[1]);var g={id:nid(),type:"sofa1",x:p.x,y:p.y,rot:(f.rot+o[2])%360};snapFurn(g,false);S.furn.push(g)});var pc=X(0,4.4);S.furn.push({id:nid(),type:"ctable",x:pc.x,y:pc.y,rot:f.rot});UI.fsel=f.id}
@@ -2456,6 +2478,7 @@ function mkMaterials(){var M={};
  M.edgeReal=new THREE.LineBasicMaterial({color:0x3a3530,transparent:true,opacity:0.28});
  furnMaterials(M);return M}
 
+/* Stage: 3D view - three.js renderer + OrbitControls (mouse / one-finger orbit, pinch zoom) */
 function ensure3D(){if(V3.ready)return true;if(!window.THREE){toast("3D engine missing");return false}
  var cv3=$("cv3"),R=new THREE.WebGLRenderer({canvas:cv3,antialias:true,alpha:false});R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
  R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.05;R.autoClear=false;
@@ -2500,6 +2523,7 @@ function wallBox(a,u,s0,s1,z0,z1,t,mat,layer,off,opts){var L=s1-s0,H=z1-z0;if(L<
  return addMesh(new THREE.BoxGeometry(L,H,t),mat,layer,new THREE.Vector3(a.x+u.x*mid+ox,z0+H/2,a.y+u.y*mid+oz),-Math.atan2(u.y,u.x),opts)}
 function shapeOf(pts){var sh=new THREE.Shape();pts.forEach(function(p,i){i?sh.lineTo(p.x,-p.y):sh.moveTo(p.x,-p.y)});return sh}
 function slab(pts,y0,y1,mat,layer,opts){var g=new THREE.ExtrudeGeometry(shapeOf(pts),{depth:y1-y0,bevelEnabled:false});var m=addMesh(g,mat,layer,new THREE.Vector3(0,y0,0),0,Object.assign({rotX:-Math.PI/2},opts||{}));return m}
+/* Stage: 3D view - all levels stacked: walls, openings, slabs, roof */
 function build3D(){var M=T3.M;[T3.model,T3.edges,T3.labels,T3.env].forEach(clearGroup);
  var RI=roomsInfo(),H=wallH(),roofT=0.5,par=V3.roof?3:0,top=V3.roof?H+roofT:H,PL=1.5,dbl=S.meta.dbl;
  function insideAny(x,y){return RI.faces.some(function(f){return inPoly(x,y,f.pts)})}
@@ -2575,6 +2599,7 @@ function applyStyle(){var M=T3.M,cad=V3.mode==="cad",st=cad?V3.style:"realistic"
 /* ---- views ---- */
 var VIEWS={"Top":[0,1,0.0001],"Front":[0,0.0001,1],"Back":[0,0.0001,-1],"Right":[1,0.0001,0],"Left":[-1,0.0001,0],"SE Iso":[1,1,1],"SW Iso":[-1,1,1],"NE Iso":[1,1,-1],"NW Iso":[-1,1,-1],"Persp":[0.8,0.85,1.1],"Inside":[0.5,1.55,0.85]};
 function fitDist(){var bb=T3.bb,r=Math.sqrt(bb.sx*bb.sx+bb.sy*bb.sy+bb.sz*bb.sz)/2+1;return r/Math.sin(T3.pcam.fov*Math.PI/360)*1.05}
+/* Stage: 3D view - View cube (Top, Front, Iso ...) */
 function setView(name,instant){var v=VIEWS[name]||VIEWS["SE Iso"],bb=T3.bb,tgt=new THREE.Vector3(bb.cx,bb.cy,bb.cz),dir=new THREE.Vector3(v[0],v[1],v[2]).normalize(),d=fitDist();
  var to=tgt.clone().add(dir.multiplyScalar(d));V3.view=name;var c=T3.ctl;
  if(T3.cam.isOrthographicCamera)fitOrtho();
@@ -2600,10 +2625,12 @@ function runCmd(t){t=String(t||"").trim().toUpperCase();if(!t)return;cmd(t);var 
 function setStyle(s){V3.style=s;applyStyle();upd3UI();cmd("VSCURRENT _"+s.charAt(0).toUpperCase()+s.slice(1))}
 
 /* ---- open / close / UI ---- */
+/* Stage: 3D view - 3D View tool / top-row 3D button */
 function open3D(mode){if(!S.segs.length){toast("Draw the plan first");return}if(!ensure3D())return;autosave();
  V3.on=true;V3.mode=mode;$("v3d").classList.add("show");$("v3d").classList.toggle("cad",mode==="cad");setCam(mode==="cad"?"ortho":"persp");resize3D();build3D();
  if(mode==="cad"){V3.style=V3.style||"shaded";CMDH=[];cmd("_-VIEW _SEISO");setView("SE Iso",true);cmd("VSCURRENT _"+V3.style)}else setView("Persp",true);
  T3.ctl.autoRotate=V3.auto;upd3UI();loop3D()}
+/* Stage: 3D view - Back to the plan (previous drawing tool active again) */
 function close3D(){V3.on=false;V3.anim=null;$("v3d").classList.remove("show");render()}
 function upd3UI(){var cad=V3.mode==="cad";$("v3title").textContent=cad?"AutoCAD 3D  ·  Model":"3D House View  ·  "+(S.meta.name||"");
  document.querySelectorAll("#v3d [data-s]").forEach(function(b){b.classList.toggle("on",b.dataset.s===V3.style)});
@@ -2621,7 +2648,9 @@ function bind3DUI(){
  $("cmdIn").addEventListener("keydown",function(e){if(e.key==="Enter"){runCmd(this.value);this.value="";this.blur()}})}
 
 /* ---- exports ---- */
+/* Stage: 3D view - PNG export of the 3D view */
 function export3DPNG(){var R=T3.R;R.setViewport(0,0,T3.W,T3.H);R.clear();R.render(T3.scene,T3.cam);var u=R.domElement.toDataURL("image/png");saveFile(fname(V3.mode==="cad"?"cad3d.png":"3d.png").replace(".cad3d.png","_AutoCAD3D.png").replace(".3d.png","_3D.png"),u,"image/png");cmd("PNGOUT")}
+/* Stage: 3D view - DXF 3D export */
 function export3DDXF(){var o=[];function g(c,v){o.push(String(c));o.push(String(v))}var layers=Object.keys(DXFCOL);
  g(0,"SECTION");g(2,"HEADER");g(9,"$ACADVER");g(1,"AC1009");g(9,"$INSUNITS");g(70,2);g(0,"ENDSEC");
  g(0,"SECTION");g(2,"TABLES");g(0,"TABLE");g(2,"LTYPE");g(70,1);g(0,"LTYPE");g(2,"CONTINUOUS");g(70,0);g(3,"Solid line");g(72,65);g(73,0);g(40,0.0);g(0,"ENDTAB");
@@ -2653,6 +2682,7 @@ function furnMaterials(M){function S(o){return new THREE.MeshStandardMaterial(o)
  F.shade=S({color:0xfff2d6,emissive:0xffd08a,emissiveIntensity:0.45,roughness:0.8});F.flame=S({color:0xffb030,emissive:0xff8c00,emissiveIntensity:1});F.tileW=S({color:0xeef4f5,map:M.tile,roughness:0.3});
  Object.keys(F).forEach(function(k){var m=F[k];if(m.color&&!m.map)m.color.convertSRGBToLinear();else if(m.color&&m.map&&m.color.getHex()!==0xffffff)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear()});
  M.F=F}
+/* Stage: 3D view - furniture placed with the Component tool */
 function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,Fr=d/2,G=new THREE.Group();
  function add(geo,mat,x,y,z,o){o=o||{};var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(o.rx)m.rotation.x=o.rx;if(o.rz)m.rotation.z=o.rz;if(o.ry)m.rotation.y=o.ry;if(o.sx||o.sy||o.sz)m.scale.set(o.sx||1,o.sy||1,o.sz||1);m.userData.edges=o.edges!==false;G.add(m);return m}
  function bx(W,H,Dp,x,y0,z,mat,o){return add(new THREE.BoxGeometry(W,H,Dp),mat,x,y0+H/2,z,o)}
@@ -2706,6 +2736,7 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
 /* ================= v1.3 LEVELS (multi-floor). Each level keeps its own model; S.pts / S.segs / ... point at the current level ================= */
 var LVK=["pts","segs","labels","ops","furn","cols","beams","dims","notes","spots","dlines","rails"];
 var LVNAMES=["Ground Floor","First Floor","Second Floor","Third Floor","Fourth Floor","Fifth Floor"];
+/* Stage: Levels - Level tool: data for one floor */
 function newLevel(name,h){var L={id:0,name:name,h:h||10,slab:5,ceil:9.5};LVK.forEach(function(k){L[k]=[]});return L}
 function docify(D){if(!D)return D;D.meta=D.meta||{};
  if(!Array.isArray(D.L)){var L0=newLevel("Ground Floor",+D.meta.wh||10);LVK.forEach(function(k){var v=Object.getOwnPropertyDescriptor(D,k);if(v&&Array.isArray(v.value))L0[k]=v.value;delete D[k]});D.L=[L0];D.cur=0}
@@ -2721,15 +2752,18 @@ function withLevel(i,fn){var c=S.cur;S.cur=i;try{return fn()}finally{S.cur=c}}
 function lvHas(i){var L=S.L[i];return L&&(L.segs.length||L.cols.length||L.labels.length||L.furn.length)}
 function topLevel(){var t=0;S.L.forEach(function(L,i){if(L.segs.length)t=i});return t}
 function lvTitle(i){return (S.L[i]||{}).name||"Level"}
+/* Stage: Levels - switch the active floor; drawing tools then work on that floor */
 function setLevel(i){if(i<0||i>=S.L.length)return;autosave();S.cur=i;UI.sel=[];UI.chain=null;UI.chainFree=null;SHEET=null;changed();updCtx();updLevelBadge();toast("Level: "+S.L[i].name+"  (elev "+lvl(lvElev(i))+")")}
 function updLevelBadge(){var b=$("lvBadge");if(b)b.textContent=S.L[S.cur].name+"  "+lvl(lvElev(S.cur))}
 /* copy walls (+ openings, rooms, columns, beams, furniture if asked) of level i to level j */
+/* Stage: Levels - copy a floor up (walls, openings, rooms) */
 function copyLevel(i,j,opts){var A=S.L[i],B=S.L[j],pm={},sm={};
  A.pts.forEach(function(p){var id=nid();pm[p.id]=id;B.pts.push({id:id,x:p.x,y:p.y})});
  A.segs.forEach(function(s){var id=nid();sm[s.id]=id;var c=JSON.parse(JSON.stringify(s));c.id=id;c.a=pm[s.a];c.b=pm[s.b];B.segs.push(c)});
  if(opts.ops)A.ops.forEach(function(o){if(!sm[o.seg])return;var c=JSON.parse(JSON.stringify(o));c.id=nid();c.seg=sm[o.seg];B.ops.push(c)});
  ["labels","cols","beams"].concat(opts.furn?["furn"]:[]).forEach(function(k){if(k==="labels"&&!opts.rooms)return;A[k].forEach(function(e){var c=JSON.parse(JSON.stringify(e));c.id=nid();B[k].push(c)})});
  withLevel(j,function(){planarize()})}
+/* Stage: Levels - Level tool popup (add, copy, open, height, rename) */
 function levelsPopup(){var rows=S.L.map(function(L,i){return i}).reverse().map(function(i){var L=S.L[i];
   return '<div class="file"><div><b>'+esc(L.name)+(i===S.cur?' (open)':'')+'</b><small>Elevation '+lvl(lvElev(i))+' · floor to floor '+fi(L.h)+' · '+L.segs.length+' walls</small></div>'+
    '<button class="bb pri" data-lo="'+i+'">Open</button><button class="bb" data-lh="'+i+'">Height</button><button class="bb" data-lr="'+i+'">Rename</button>'+(S.L.length>1?'<button class="bb del" data-ld="'+i+'">×</button>':'')+'</div>'}).join("");
@@ -2787,6 +2821,7 @@ function stairGeom(f,lab){var sd=f.side,db=S.meta.dbl&&sd,il=db?sd.l/2:0.25,ir=d
  var A=G.arrow,e=A[A.length-1],q0=A[A.length-2],ux=e.x-q0.x,uy=e.y-q0.y,ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;var hl=Math.min(0.9,ul*0.4),hw=0.4,q={x:e.x-ux*hl,y:e.y-uy*hl};
  G.head=[e,{x:q.x-uy*hw,y:q.y+ux*hw},{x:q.x+uy*hw,y:q.y-ux*hw}];G.ang=Math.atan2(A[1].y-A[0].y,A[1].x-A[0].x);
  G.info=nR+" risers @ "+fmt(R*12,1)+"\" · treads "+fmt(G.T*12,1)+"\"";return G}
+/* Stage: Circulation - Stair tool */
 function stairPopup(x,y){var RI=roomsInfo(),f=faceAt(x,y,RI.faces);if(!f){toast("Tap inside a closed room to make it a staircase");return}
  var lab=f.labels.find(function(l){return isStair(l.name)});
  if(!lab){snapshot();lab={id:nid(),x:f.cx,y:f.cy,name:"Staircase",st:{type:"straight"}};if(f.labels[0]&&!isStair(f.labels[0].name)){lab.x=f.labels[0].x;lab.y=f.labels[0].y;f.labels[0].name="Staircase";lab=f.labels[0];lab.st={type:"straight"}}else S.labels.push(lab);changed()}
@@ -2812,6 +2847,7 @@ function snapPick(w,opt){opt=opt||{};var R=snapR()*1.3,best=null,bd=R;
  var st=opt.fine?0.25:0.5;return {x:Math.round(w.x/st)*st,y:Math.round(w.y/st)*st}}
 /* ---------- columns ---------- */
 function colPoly(c){var a=(c.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),hw=c.w/24,hd=c.d/24;return [[-hw,-hd],[hw,-hd],[hw,hd],[-hw,hd]].map(function(p){return {x:c.x+p[0]*cs-p[1]*sn,y:c.y+p[0]*sn+p[1]*cs}})}
+/* Stage: Structure - Column tool */
 function addCol(x,y,quiet){if(S.cols.some(function(c){return Math.hypot(c.x-x,c.y-y)<0.4}))return null;var z=UI.colSz||[9,9],c={id:nid(),x:x,y:y,w:z[0],d:z[1],rot:UI.colRot||0};S.cols.push(c);return c}
 function autoCols(){snapshot();var n=0,deg={};S.segs.forEach(function(s){(deg[s.a]=deg[s.a]||[]).push(s);(deg[s.b]=deg[s.b]||[]).push(s)});
  S.pts.forEach(function(p){var L=deg[p.id]||[];if(!L.length)return;var turn=L.length!==2;if(L.length===2){var u=segDir(L[0],p.id),v=segDir(L[1],p.id);turn=Math.abs(u.x*v.y-u.y*v.x)>0.05}if(turn&&addCol(p.x,p.y))n++});
@@ -2819,6 +2855,7 @@ function autoCols(){snapshot();var n=0,deg={};S.segs.forEach(function(s){(deg[s.
 function segDir(s,from){var a=pt(from),o=pt(s.a===from?s.b:s.a),L=Math.hypot(o.x-a.x,o.y-a.y)||1;return {x:(o.x-a.x)/L,y:(o.y-a.y)/L}}
 function gridCols(){var X=gridXs();if(!X.length){toast("No grid intersections - add grids first (Annotate → Grid)");return}snapshot();var n=0;X.forEach(function(p){if(addCol(p.x,p.y))n++});changed();toast(n+" columns at grid intersections")}
 /* ---------- beams ---------- */
+/* Stage: Structure - Beam tool */
 function addBeam(a,b){var z=UI.beamSz||[9,18];var bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:z[0],d:z[1]};S.beams.push(bm);return bm}
 function autoBeams(){snapshot();var n=0,done={};S.segs.forEach(function(s){var r=wallRun(s),k=r.ids.slice().sort().join(",");if(done[k])return;done[k]=1;var a=pt(r.a),b=pt(r.b);
   if(S.beams.some(function(m){return (Math.hypot(m.a.x-a.x,m.a.y-a.y)<0.1&&Math.hypot(m.b.x-b.x,m.b.y-b.y)<0.1)||(Math.hypot(m.a.x-b.x,m.a.y-b.y)<0.1&&Math.hypot(m.b.x-a.x,m.b.y-a.y)<0.1)}))return;var bm=addBeam(a,b);bm.w=Math.max(bm.w,wallIn(s));n++});
@@ -2842,6 +2879,7 @@ function roofGeom(){var rc=roofCfg();if(rc.type==="flat")return null;var ti=topL
  return {tris:T,ze:ze,zr:zr,z0:z0,box:[X0,Y0,X1,Y1]}}
 function roofZ(x,y){var G=roofGeom();if(!G)return null;var best=null;G.tris.forEach(function(t){if(t.k!=="roof")return;var p=t.p,P2=p.map(function(q){return {x:q.x,y:q.y}});if(!inPoly(x,y,P2))return;
   var a=p[0],b=p[1],c=p[2],ux=b.x-a.x,uy=b.y-a.y,uz=b.z-a.z,vx=c.x-a.x,vy=c.y-a.y,vz=c.z-a.z,nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;if(Math.abs(nz)<1e-9)return;var z=a.z-(nx*(x-a.x)+ny*(y-a.y))/nz;if(best==null||z>best)best=z});return best}
+/* Stage: Build - Roof tool */
 function roofPopup(){var rc=JSON.parse(JSON.stringify(roofCfg()));
  function body(){return '<div class="mt">Roof / கூரை</div><div class="ms">Roof over the top level ('+esc(S.L[topLevel()].name)+'). 3D, elevations and sections use it.</div><div class="grid2">'+
   [["flat","Flat RCC slab","parapet wall"],["gable","Gable","2 slopes"],["hip","Hip","4 slopes"]].map(function(t){return '<button class="bb'+(rc.type===t[0]?' on':'')+'" data-rf="'+t[0]+'">'+t[1]+'<small>'+t[2]+'</small></button>'}).join("")+'</div>'+
@@ -2851,6 +2889,7 @@ function roofPopup(){var rc=JSON.parse(JSON.stringify(roofCfg()));
  function bind(box){box.querySelectorAll("[data-rf]").forEach(function(b){b.onclick=function(){rd();rc.type=b.dataset.rf;re()}});box.querySelectorAll("[data-rr]").forEach(function(b){b.onclick=function(){rd();rc.ridge=b.dataset.rr;re()}});
   $("rfX").onclick=closeModal;$("rfOk").onclick=function(){rd();snapshot();S.meta.roof=rc;closeModal();changed();toast("Roof: "+rc.type)}}
  function re(){$("mbox").innerHTML=body();bind($("mbox"))}modal(body(),bind)}
+/* Stage: Build - Floor / Ceiling tool */
 function floorPopup(){var L=curLv();modal('<div class="mt">Floor / slab - '+esc(L.name)+'</div><div class="ms">Floor slab is made from the closed rooms automatically (like Revit "Floor by walls").</div>'+
  '<div class="row"><label class="fld">Floor to floor height<input id="flH" value="'+fi(L.h)+'"></label><label class="fld">Slab thickness (inch)<input id="flT" type="number" value="'+L.slab+'"></label><label class="fld">Ceiling height<input id="flC" value="'+fi(L.ceil)+'"></label></div>'+
  '<div class="row"><button class="bb" id="flX">Cancel</button><button class="bb ok" id="flOk">Save</button></div>',function(){$("flX").onclick=closeModal;
@@ -2867,6 +2906,7 @@ function setSel(L,add){if(add){L.forEach(function(r){var i=UI.sel.findIndex(func
 function clearSel(){if(UI.sel&&UI.sel.length){UI.sel=[];updCtx();updProps();render()}}
 /* ---------- hit testing ---------- */
 function d2seg(w,a,b){return projSeg(w.x,w.y,a,b).d}
+/* Stage: Modify - Select tool: what is under the pointer */
 function hitList(w,R){var out=[];function add(k,id,d,pri){if(d<=R)out.push({k:k,id:id,d:d-pri*R*0.3})}
  if(visOn("doors"))S.ops.forEach(function(o){var G=opWorld(o);if(G)add("op",o.id,d2seg(w,G.p0,G.p1),2)});
  if(visOn("cols"))S.cols.forEach(function(c){add("col",c.id,inPoly(w.x,w.y,colPoly(c))?0:Math.hypot(c.x-w.x,c.y-w.y)-Math.max(c.w,c.d)/24,2)});
@@ -2889,6 +2929,7 @@ function elPts(r){var e=elGet(r);if(!e)return [];if(r.k==="seg")return [pt(e.a),
 function elBox(r){var P=elPts(r);if(!P.length)return null;var b=[Infinity,Infinity,-Infinity,-Infinity];P.forEach(function(p){b[0]=Math.min(b[0],p.x);b[1]=Math.min(b[1],p.y);b[2]=Math.max(b[2],p.x);b[3]=Math.max(b[3],p.y)});return b}
 function allRefs(){var out=[];Object.keys(EK).forEach(function(k){if(!visOn(EKV[k]))return;(S[EK[k]]||[]).forEach(function(e){out.push({k:k,id:e.id})})});return out}
 /* window (left→right: fully inside) / crossing (right→left: touching) like Revit */
+/* Stage: Modify - Select tool: box select (L->R window, R->L crossing) */
 function boxSelect(a,b,add){var x0=Math.min(a.x,b.x),x1=Math.max(a.x,b.x),y0=Math.min(a.y,b.y),y1=Math.max(a.y,b.y),cross=b.x<a.x,L=[];
  allRefs().forEach(function(r){var P=elPts(r);if(!P.length)return;var inside=P.every(function(p){return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1});
   var touch=inside||P.some(function(p){return p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1})||(P.length>=2&&segBoxHit(P[0],P[1],x0,y0,x1,y1));if(cross?touch:inside)L.push(r)});
@@ -2921,12 +2962,18 @@ function dupRefs(L){var pm={},sm={},out=[];function np(id){if(pm[id])return pm[i
  return out}
 function rotP(c,deg){var a=deg*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);return function(p){var dx=p.x-c.x,dy=p.y-c.y;return {x:c.x+dx*cs-dy*sn,y:c.y+dx*sn+dy*cs}}}
 function mirP(a,deg){var t=deg*Math.PI/180,ux=Math.cos(t),uy=Math.sin(t);return function(p){var dx=p.x-a.x,dy=p.y-a.y,pr=dx*ux+dy*uy;return {x:a.x+2*pr*ux-dx,y:a.y+2*pr*uy-dy}}}
+/* Stage: Modify - Move / Copy tool */
 function doMove(dx,dy,copy){var L=movable();if(!L.length){toast("Select something first");return}snapshot();if(copy)L=dupRefs(L);xfRefs(L,function(p){return {x:p.x+dx,y:p.y+dy}});if(copy)UI.sel=L;changed();updProps();toast((copy?"Copied ":"Moved ")+fi(Math.hypot(dx,dy)))}
+/* Stage: Modify - Rotate tool */
 function doRotate(deg,copy,c){var L=movable();if(!L.length){toast("Select something first");return}c=c||selCenter(L);snapshot();if(copy)L=dupRefs(L);xfRefs(L,rotP(c,deg),deg);if(copy)UI.sel=L;changed();updProps();toast("Rotated "+deg+"°")}
+/* Stage: Modify - Mirror tool */
 function doMirror(a,deg,copy){var L=movable();if(!L.length){toast("Select something first");return}snapshot();if(copy)L=dupRefs(L);xfRefs(L,mirP(a,deg),0,deg);if(copy)UI.sel=L;changed();updProps();toast("Mirrored"+(copy?" (copy)":""))}
+/* Stage: Modify - Array tool */
 function doArray(n,dx,dy){var L=movable();if(!L.length||n<2){toast("Select something first");return}snapshot();var all=L.slice();for(var i=1;i<n;i++){var c=dupRefs(L);(function(k){xfRefs(c,function(p){return {x:p.x+dx*k,y:p.y+dy*k}})})(i);all=all.concat(c)}UI.sel=all;changed();updProps();toast(n+" copies in a row")}
+/* Stage: Modify - Delete tool */
 function doDelete(){var L=movable();if(!L.length)return;snapshot();var segs={};L.forEach(function(r){if(r.k==="seg")segs[r.id]=1});
  L.forEach(function(r){var k=EK[r.k];S[k]=S[k].filter(function(e){return e.id!==r.id})});Object.keys(segs).forEach(function(id){dropOps(+id)});cleanup();UI.sel=[];changed();updCtx();updProps();toast(L.length+" deleted")}
+/* Stage: Modify - Pin tool */
 function doPin(){var L=selEls();if(!L.length)return;var on=!L.every(isPinned);snapshot();L.forEach(function(r){var e=elGet(r);if(on)e.pin=true;else delete e.pin});changed();updProps();updCtx();toast(on?"Pinned (cannot move / delete)":"Unpinned")}
 /* ---------- popups ---------- */
 function dirDist(title,cb,opt){opt=opt||{};var st={d:opt.dir||"r"};modal('<div class="mt">'+title+'</div><div class="ms">Direction and distance (feet + inches). Or drag the selection on the drawing.</div><div class="grid2" style="grid-template-columns:repeat(4,1fr)">'+
@@ -2954,6 +3001,7 @@ function filterPopup(){var L=selEls(),cnt={};L.forEach(function(r){cnt[r.k]=(cnt
  $("fiOk").onclick=function(){closeModal();setSel(L.filter(function(r){return on[r.k]}))}})}
 /* ---------- align / trim / split / offset ---------- */
 function lineOf(r){var e=elGet(r);if(!e)return null;if(r.k==="seg")return [pt(e.a),pt(e.b)];if(e.a&&e.b&&e.a.x!=null)return [e.a,e.b];return null}
+/* Stage: Modify - Align tool */
 function alignTap(w){var h=hitOne(w);if(!h){toast("Tap a wall, grid or line");return}
  if(!UI.pick||UI.pick.k!=="align"){var L=lineOf(h);if(!L){toast("First tap a straight reference (wall, grid, line)");return}var A=L[0],B=L[1],Ln=Math.hypot(B.x-A.x,B.y-A.y),u={x:(B.x-A.x)/Ln,y:(B.y-A.y)/Ln};
   var n={x:-u.y,y:u.x},ref=projSeg(w.x,w.y,A,B);var off=0;if(h.k==="seg"&&S.meta.dbl){var t=wallT(elGet(h))/2,sd=((w.x-ref.x)*n.x+(w.y-ref.y)*n.y)>=0?1:-1;if(ref.d>t*0.45)off=t*sd}
@@ -2964,6 +3012,7 @@ function alignTap(w){var h=hitOne(w);if(!h){toast("Tap a wall, grid or line");re
   snapshot();[a,b].forEach(function(p){p.x+=P.n.x*d;p.y+=P.n.y*d})}
  else{var c=elPts(h),cx=0,cy=0;c.forEach(function(p){cx+=p.x;cy+=p.y});cx/=c.length;cy/=c.length;d=(P.A.x-cx)*P.n.x+(P.A.y-cy)*P.n.y;snapshot();xfRefs([h],function(p){return {x:p.x+P.n.x*d,y:p.y+P.n.y*d}})}
  planarize();changed();toast("Aligned (moved "+fi(Math.abs(d))+")")}
+/* Stage: Modify - Trim/Extend tool */
 function trimTap(w){var n=nearSeg(w.x,w.y,snapR()*1.4);if(!n){toast("Tap a wall");return}
  if(!UI.pick||UI.pick.k!=="trim"){UI.pick={k:"trim",s:n.s.id,w:{x:w.x,y:w.y}};UI.selSeg=wallRun(n.s).ids;updCtx();render();toast(UI.trimMode==="one"?"Now tap the boundary wall":"Now tap the second wall (side to keep)");return}
  var P=UI.pick;UI.pick=null;UI.selSeg=null;var s1=segById(P.s),s2=n.s;if(!s1||s1===s2){updCtx();render();return}
@@ -2976,8 +3025,10 @@ function trimTap(w){var n=nearSeg(w.x,w.y,snapR()*1.4);if(!n){toast("Tap a wall"
   if(deg<=1){E.x=X.x;E.y=X.y}else{var id=nid();S.pts.push({id:id,x:X.x,y:X.y});addSeg(end,id,segById(run.ids[0]).k)}}
  fix(r1,P.w);if(UI.trimMode!=="one")fix(r2,w);
  planarize();cleanup();changed();updCtx();toast(UI.trimMode==="one"?"Extended / trimmed to boundary":"Corner made")}
+/* Stage: Modify - Split tool */
 function splitTap(w){var sg=findSeg(w.x,w.y,snapR()*1.4);if(!sg){toast("Tap on a wall (not at a corner)");return}var s=segById(sg.seg);snapshot();var id=nid();S.pts.push({id:id,x:sg.x,y:sg.y});splitSeg(s,id);planarize();changed();
  toast("Wall split at "+fi(Math.hypot(sg.x-pt(s.a).x,sg.y-pt(s.a).y)));UI.flash={x:sg.x,y:sg.y,t:Date.now()};render()}
+/* Stage: Modify - Offset tool */
 function offsetTap(w){var n=nearSeg(w.x,w.y,Math.max(snapR()*2,(UI.offD||3)+1));if(!n){toast("Tap near a wall, on the side to copy to");return}var run=UI.offRun?wallRun(n.s):{a:n.s.a,b:n.s.b},A=pt(run.a),B=pt(run.b),L=Math.hypot(B.x-A.x,B.y-A.y),u={x:(B.x-A.x)/L,y:(B.y-A.y)/L},nn={x:-u.y,y:u.x};
  var sd=((w.x-A.x)*nn.x+(w.y-A.y)*nn.y)>=0?1:-1,D=(UI.offD||3)*sd;snapshot();var a=ensurePoint({x:A.x+nn.x*D,y:A.y+nn.y*D}),b=ensurePoint({x:B.x+nn.x*D,y:B.y+nn.y*D}),s=addSeg(a,b,n.s.k);if(s&&n.s.th)s.th=n.s.th;planarize();changed();toast("Offset copy at "+fi(Math.abs(D)))}
 function offsetDistPopup(){modal('<div class="mt">Offset distance</div><div class="ms">Distance between the wall centre lines</div>'+keypadHTML()+'<div class="row"><button class="bb" id="ofX">Cancel</button><button class="bb ok" id="ofOk">OK</button></div>',function(box){var get=bindKeypad(box,UI.offD||3);$("ofX").onclick=closeModal;$("ofOk").onclick=function(){var v=get();if(v>0.1)UI.offD=v;closeModal();updCtx()}})}
@@ -3002,6 +3053,7 @@ function gridVert(m){return Math.abs(m.b.y-m.a.y)>=Math.abs(m.b.x-m.a.x)}
 function letterN(n){var s="";n++;while(n>0){var r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s}
 function letterI(s){var n=0;for(var i=0;i<s.length;i++)n=n*26+(s.charCodeAt(i)-64);return n-1}
 function nextGridName(m){var v=gridVert(m),mx=-1;S.grids.forEach(function(q){if(q===m)return;if(v&&/^\d+$/.test(q.name))mx=Math.max(mx,+q.name-1);if(!v&&/^[A-Z]+$/.test(q.name))mx=Math.max(mx,letterI(q.name))});return v?String(mx+2):letterN(mx+1)}
+/* Stage: Datum - Grid tool (auto grids) */
 function autoGrids(){if(!S.segs.length){toast("Draw walls first");return}var xs=[],ys=[],done={},x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;S.pts.forEach(function(p){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)});
  S.segs.forEach(function(s){var r=wallRun(s),k=r.ids.slice().sort().join(",");if(done[k])return;done[k]=1;var a=pt(r.a),b=pt(r.b);
   if(Math.abs(a.x-b.x)<1e-6&&r.len>=Math.max(3,(y1-y0)*0.25))xs.push(a.x);else if(Math.abs(a.y-b.y)<1e-6&&r.len>=Math.max(3,(x1-x0)*0.25))ys.push(a.y)});
@@ -3009,6 +3061,7 @@ function autoGrids(){if(!S.segs.length){toast("Draw walls first");return}var xs=
  if(S.grids.length&&!confirm("Replace the existing "+S.grids.length+" grids?"))return;snapshot();S.grids=[];var e=4;
  xs.forEach(function(x,i){S.grids.push({id:nid(),a:{x:x,y:y0-e},b:{x:x,y:y1+e},name:String(i+1)})});ys.forEach(function(y,i){S.grids.push({id:nid(),a:{x:x0-e,y:y},b:{x:x1+e,y:y},name:letterN(i)})});
  changed();toast(xs.length+" + "+ys.length+" grids (1,2,3 / A,B,C) from the walls")}
+/* Stage: Annotate - Aligned dimension tool */
 function dimGeom(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)||1,u={x:(m.b.x-m.a.x)/L,y:(m.b.y-m.a.y)/L},n={x:-u.y,y:u.x},o=m.off||0;var A={x:m.a.x+n.x*o,y:m.a.y+n.y*o},B={x:m.b.x+n.x*o,y:m.b.y+n.y*o};return {u:u,n:n,A:A,B:B,L:L,T:{x:(A.x+B.x)/2,y:(A.y+B.y)/2}}}
 function noteH(n){return n.h||0.6}
 function noteBox(n){var h=noteH(n),lines=String(n.t||"").split("\n"),w=Math.max.apply(null,lines.map(function(l){return l.length}))*h*0.58;return [n.x,n.y-h,n.x+Math.max(w,h),n.y-h+lines.length*h*1.25]}
@@ -3058,6 +3111,7 @@ function commitLine(t,a,b){var L=Math.hypot(b.x-a.x,b.y-a.y);if(L<0.3){toast("To
  else if(t==="sec"){var n=S.secs.length+1;S.secs.push({id:nid(),a:A,b:B,name:String(n),flip:false});toast("Section "+n+" - see View → Sheets / Section");setTimeout(function(){changed();openSheetBy("sec",S.secs.length-1)},50)}
  changed()}
 /* ---------- pointer hooks called from app.js ---------- */
+/* Stage: Annotate / Structure - pointer handling for Dim, Detail Line, Grid, Beam, Railing, Section tools */
 function toolDown(w,G){var t=UI.tool;
  if(t==="sel"){if(UI.pick)return false;var h=hitOne(w);if(h&&selHas(h.k,h.id)){G.kind="dragsel";G.w0=w;G.dx=0;G.dy=0;G.snap=false;return true}G.kind="boxsel";G.w0=w;return true}
  if(LINE2[t]&&!UI.dimPend){G.kind="line2";G.a=snapLine(w);return true}
@@ -3089,11 +3143,13 @@ function toolTap(w){var t=UI.tool;
  if(t==="split"){splitTap(w);return true}
  if(t==="offset"){offsetTap(w);return true}
  return false}
+/* Stage: Annotate - Text tool */
 function notePopup(n,w){modal('<div class="mt">'+(n?"Edit":"Add")+' text note</div><div class="ms">English letters print best in PDF / DXF</div><label class="fld">Text (new line = Enter)<textarea id="ntT" rows="3" style="display:block;width:100%;font-size:18px;padding:8px;border:1.5px solid #b8c6d8;border-radius:10px;-webkit-user-select:text;user-select:text">'+esc(n?n.t:"")+'</textarea></label>'+
  '<div class="grid2">'+[[0.45,"Small"],[0.6,"Medium"],[0.9,"Large"]].map(function(z){return '<button class="bb'+(Math.abs((n?noteH(n):0.6)-z[0])<0.01?' on':'')+'" data-nh="'+z[0]+'">'+z[1]+'</button>'}).join("")+'</div><div class="row">'+(n?'<button class="bb del" id="ntD">Delete</button>':'')+'<button class="bb" id="ntX">Cancel</button><button class="bb ok" id="ntOk">OK</button></div>',function(box){var h=n?noteH(n):0.6;
  box.querySelectorAll("[data-nh]").forEach(function(b){b.onclick=function(){h=+b.dataset.nh;box.querySelectorAll("[data-nh]").forEach(function(x){x.classList.toggle("on",x===b)})}});$("ntX").onclick=closeModal;setTimeout(function(){try{$("ntT").focus()}catch(e){}},50);
  if(n)$("ntD").onclick=function(){snapshot();S.notes=S.notes.filter(function(q){return q!==n});closeModal();changed()};
  $("ntOk").onclick=function(){var t=$("ntT").value.replace(/\s+$/,"");if(!t){toast("Type the text");return}snapshot();if(n){n.t=t;n.h=h}else S.notes.push({id:nid(),x:w.x,y:w.y,t:t,h:h});closeModal();changed()}})}
+/* Stage: Annotate - Spot Level tool */
 function spotPopup(s,w){var z=s?spotZ(s):lvElev(S.cur);modal('<div class="mt">Spot level</div><div class="ms">Level value from ground floor FFL +0\'-0" (this level = '+lvl(lvElev(S.cur))+')</div><div class="grid2">'+["FFL","TOS","SILL","LINTEL","GL","RL"].map(function(l){return '<button class="bb'+((s?s.lab||"FFL":"FFL")===l?' on':'')+'" data-sl="'+l+'">'+l+'</button>'}).join("")+'</div><label class="fld">Level (ft-in, e.g. 10\'6" or -1\'6")<input id="spZ" value="'+(z<0?"-":"")+fi(z)+'"></label>'+
  '<div class="row">'+(s?'<button class="bb del" id="spD">Delete</button>':'')+'<button class="bb" id="spX">Cancel</button><button class="bb ok" id="spOk">OK</button></div>',function(box){var lab=s?s.lab||"FFL":"FFL";
  box.querySelectorAll("[data-sl]").forEach(function(b){b.onclick=function(){lab=b.dataset.sl;box.querySelectorAll("[data-sl]").forEach(function(x){x.classList.toggle("on",x===b)})}});$("spX").onclick=closeModal;
@@ -3126,6 +3182,7 @@ function opItems(items,o,h0,h1,s0,s1,dep,ext,light){var k=opKind(o),c=light?"#8a
 var EDIR={N:{h:function(p){return -p.x},d:function(p){return p.y},v:{x:0,y:1},t:"NORTH ELEVATION"},S:{h:function(p){return p.x},d:function(p){return -p.y},v:{x:0,y:-1},t:"SOUTH ELEVATION"},
  E:{h:function(p){return -p.y},d:function(p){return -p.x},v:{x:-1,y:0},t:"EAST ELEVATION"},W:{h:function(p){return p.y},d:function(p){return p.x},v:{x:1,y:0},t:"WEST ELEVATION"}};
 function levelMarks(PK){var out=[];PK.forEach(function(P,i){if(i===0||P.walls.length||PK[i-1].walls.length)out.push({z:P.zb,t:ascii(P.L.name).toUpperCase()})});var ti=topLevel(),T=PK[ti];if(T)out.push({z:T.zb+T.H,t:roofCfg().type==="flat"?"TERRACE / ROOF":"ROOF EAVE"});return out}
+/* Stage: Views - Elevation tool (N/S/E/W) */
 function elevView(dir,PK){PK=PK||allPacks();var D=EDIR[dir],items=[],rc=roofCfg();
  PK.forEach(function(P){P.walls.forEach(function(w){var hs=w.poly.map(D.h),h0=Math.min.apply(null,hs),h1=Math.max.apply(null,hs),ds=w.poly.map(D.d),dep=ds.reduce(function(a,b){return a+b},0)/ds.length,zt=P.zb+P.H;
    items.push({p:rect(h0,P.zb,h1,zt),fill:"#f3ede2",c:"#2b2b2b",w:0.25,dep:dep,L:"ELEV"});
@@ -3136,6 +3193,7 @@ function elevView(dir,PK){PK=PK||allPacks();var D=EDIR[dir],items=[],rc=roofCfg(
   P.rails.forEach(function(r){var a=D.h(r.a),b=D.h(r.b),dep=(D.d(r.a)+D.d(r.b))/2,hh=r.h||3,ls=[[Math.min(a,b),P.zb+hh,Math.max(a,b),P.zb+hh]];for(var t=0;t<=1.0001;t+=1/Math.max(1,Math.ceil(Math.abs(b-a)/4)))ls.push([a+(b-a)*t,P.zb,a+(b-a)*t,P.zb+hh]);items.push({p:null,lines:ls,c:"#0f766e",w:0.25,dep:dep-0.01,L:"RAILINGS"})})});
  var RG=roofGeom();if(RG)RG.tris.forEach(function(t){var dep=t.p.reduce(function(a,p){return a+D.d(p)},0)/3;items.push({p:t.p.map(function(p){return [D.h(p),p.z]}),fill:t.k==="roof"?"#b5653b":"#f3ede2",c:"#3b2314",w:0.25,dep:dep-(t.k==="roof"?0.5:0),L:"ROOF"})});
  return {items:items,lv:levelMarks(PK),title:D.t}}
+/* Stage: Views - Section tool */
 function secView(sec,PK){PK=PK||allPacks();var G=secGeom(sec),A=sec.a,u=G.u,n=G.n,items=[],rc=roofCfg(),ti=topLevel(),c0=-1,c1=G.L+1;
  function H(p){return (p.x-A.x)*u.x+(p.y-A.y)*u.y}function Dd(p){return (p.x-A.x)*n.x+(p.y-A.y)*n.y}
  function crossH(poly){var ds=poly.map(Dd),hs=[];for(var k=0;k<poly.length;k++){var p=poly[k],q=poly[(k+1)%poly.length],d0=ds[k],d1=ds[(k+1)%poly.length];if((d0<=0&&d1>0)||(d0>0&&d1<=0)){var t=d0/(d0-d1);hs.push(H({x:p.x+(q.x-p.x)*t,y:p.y+(q.y-p.y)*t}))}}return hs.length>=2?[Math.min.apply(null,hs),Math.max.apply(null,hs)]:null}
@@ -3193,6 +3251,7 @@ function sheetList(){var L=[],base=S.meta.dno||"A101",m=base.match(/^(.*?)(\d)(\
  if(S.L.some(function(Lv){return Lv.segs.length}))L.push({key:"elev",no:ser(sr0+1,0),title:"Elevations",short:"Elevations N/S/E/W"});
  S.secs.forEach(function(s,i){L.push({key:"sec"+i,sec:i,no:ser(sr0+2,i),title:"Section "+s.name+"-"+s.name,short:"Section "+s.name})});
  L.push({key:"dw",no:ser(sr0+5,0),title:"Door & Window Details",short:"Door & Window"});return L}
+/* Stage: Sheets - sheet set used by Export PDF */
 function buildSheetSet(){var L=sheetList(),N=L.length,RIall=plinthAll(),PK=null;MARKG=true;assignMarks();
  try{L.forEach(function(sh,k){var lab=(k+1)+" / "+N;
   if(sh.lv!=null){var r=withLevel(sh.lv,function(){return buildSheet({title:sh.title,dno:sh.no,sheet:lab,noD2:true})});sh.d=r.d;sh.N=r.N;sh.RI=r.RI}
@@ -3213,10 +3272,13 @@ function curSheet(){if(!SHEET||!SHEET.list)SHEET=buildSheetSet();var L=SHEET.lis
 function paintSheet(){var c=curSheet(),DD=c.sh.d;g.fillStyle="#d9dee5";g.fillRect(0,0,CW,CH);g.fillStyle="#ffffff";g.shadowColor="rgba(0,0,0,.25)";g.shadowBlur=10;g.fillRect(SV.ox,SV.oy,420*SV.s,297*SV.s);g.shadowBlur=0;
  drawDwg(g,DD,SV.s,SV.ox,SV.oy);$("info").innerHTML="Sheet "+(c.i+1)+"/"+c.n+": <b>"+esc(c.sh.no+" "+c.sh.title)+"</b> · Built-up (all floors) <b>"+sq(SHEET.RI.plinth)+"</b> sq.ft · pinch to zoom"}
 function lwScaled(d,f){if(Math.abs(f-1)<0.01)return d;var c=Object.create(Object.getPrototypeOf(d));Object.keys(d).forEach(function(k){c[k]=d[k]});c.p=d.p.map(function(p){if(p.w>0){var q=Object.assign({},p);q.w=p.w*f;return q}return p});return c}
+/* Stage: Export - PDF tool (all sheets) */
 function exportPDF(){if(!S.L.some(function(L){return L.segs.length})){toast("Draw something first");return}var r=buildSheetSet(),f=+S.meta.lw||1;
  saveFile(fname("pdf"),new Blob([bin(toPDF(r.list.map(function(s){return lwScaled(s.d,f)}),S.meta.paper||"A3"))],{type:"application/pdf"}),"application/pdf");toast("PDF: "+r.list.length+" sheets")}
 var DXFL=["WALLS","WALLFILL","DIMS","TEXT","DOORS","WINDOWS","STAIRS","FURNITURE","COLUMNS","BEAMS","GRIDS","ANNO","DETAIL","RAILINGS","SECTION","ELEV","ROOF","FOOTINGS","TITLE"];
+/* Stage: Export - DXF tool (current sheet) */
 function exportDXF(){if(!needContent())return;var d,nm;if(UI.clean){var c=curSheet();d=c.sh.d;nm=c.sh.no}else{d=buildSheet({title:curLv().name+" Plan"}).d;nm=curLv().name}saveFile(fname("dxf").replace(/\.dxf$/,"_"+nm.replace(/[^A-Za-z0-9]+/g,"-")+".dxf"),new Blob([toDXF(d,DXFL)],{type:"application/dxf"}),"application/dxf")}
+/* Stage: Export - PNG tool (current sheet) */
 function exportPNG(){if(!needContent())return;var d=UI.clean?curSheet().sh.d:buildSheet({title:curLv().name+" Plan"}).d,c=document.createElement("canvas"),s=2480/420;c.width=2480;c.height=Math.round(297*s);var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);drawDwg(x,d,s,0,0);
  c.toBlob(function(b){saveFile(fname("png"),b,"image/png")},"image/png")}
 /* ---------- 3D: all levels stacked ---------- */
@@ -3299,6 +3361,7 @@ function buildRail(){var r=$("tools");r.innerHTML=TABS[UI.tab][1].map(function(t
  r.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){setTool(b.dataset.t)}});r.querySelectorAll("[data-a]").forEach(function(b){b.onclick=function(){railAction(b.dataset.a)}});markRail()}
 function markRail(){document.querySelectorAll("#tools .tool").forEach(function(b){b.classList.toggle("on",b.dataset.t===UI.tool)});document.querySelectorAll("#tabs .tab").forEach(function(b){b.classList.toggle("on",b.dataset.tab===UI.tab)})}
 function railAction(a){if(a==="levels")levelsPopup();else if(a==="elev")openSheetBy("elev");else if(a==="sheets"){setClean(true)}else if(a==="v3d")open3D("3d");else if(a==="vg")vgPopup()}
+/* Stage: all - switches the active tool (UI.tool) and its hint */
 function setTool(t){if(UI.tool!==t){UI.pick=null;UI.lpA=null;UI.dimPend=null;UI.lp=null;UI.selSeg=null}UI.tool=t;
  if(!TABS[UI.tab]||TABS[UI.tab][1].indexOf(t)<0){var tb=Object.keys(TABS).find(function(k){return TABS[k][1].indexOf(t)>=0});if(tb){UI.tab=tb;buildRail()}}
  markRail();if(t!=="sel"&&UI.sel&&UI.sel.length){UI.sel=[];updProps()}if(UI.clean)setClean(false);updCtx();render()}
@@ -3354,6 +3417,7 @@ function propsOpen(on){UI.props=on;$("app").classList.toggle("pr",on);$("bProps"
 function pf(lab,key,val,o){o=o||{};if(o.ro)return '<div class="pf"><label>'+lab+'</label><div class="ro">'+val+'</div></div>';
  if(o.opts)return '<div class="pf"><label>'+lab+'</label><select data-p="'+key+'">'+o.opts.map(function(x){return '<option value="'+escH(x[0])+'"'+(String(x[0])===String(val)?" selected":"")+'>'+esc(x[1])+'</option>'}).join("")+'</select></div>';
  return '<div class="pf"><label>'+lab+'</label><input data-p="'+key+'" value="'+escH(val)+'"'+(o.num?' inputmode="decimal"':'')+'></div>'}
+/* Stage: Properties panel - shows the selected element / active tool settings */
 function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<div class="ph"><b>Properties</b><button class="cb" id="prX">×</button></div>',lv=curLv();
  if(!L.length){h+='<div class="pt">Floor Plan: '+esc(lv.name)+'</div>'+pf("Level name","lv.name",lv.name)+pf("Elevation","",lvl(lvElev(S.cur)),{ro:1})+pf("Floor to floor","lv.h",fi(lv.h))+pf("Slab (inch)","lv.slab",lv.slab,{num:1})+pf("Ceiling height","lv.ceil",fi(lv.ceil))+
    pf("Walls / openings","",lv.segs.length+" / "+lv.ops.length,{ro:1})+pf("Default outer wall","m.tout",S.meta.tout,{num:1})+pf("Default inner wall","m.tin",S.meta.tin,{num:1})+pf("Roof","",roofCfg().type,{ro:1})+'<div class="pn">Tap an element (Modify → Select) to edit its type, size, level and offset.</div>'}
@@ -3393,6 +3457,7 @@ function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=par
  if(!ok){UNDO.pop();toast("Value not valid");updProps();return}changed();updProps();updLevelBadge()}
 /* ---------- Visibility / Graphics ---------- */
 var VGC=[["walls","Walls"],["doors","Doors / Windows"],["furn","Furniture"],["rooms","Rooms / tags"],["stairs","Stairs"],["cols","Columns"],["beams","Beams"],["rails","Railings"],["dims","Dimensions"],["grids","Grids"],["text","Text / spot levels"],["dlines","Detail lines"],["secs","Section marks"],["underlay","Underlay (floor below)"]];
+/* Stage: View - Visibility/Graphics tool */
 function vgPopup(){var v=S.meta.vis||{};modal('<div class="mt">Visibility / Graphics</div><div class="ms">Show or hide categories in the plan, sheets and PDF (like Revit VG)</div><div class="grid2">'+VGC.map(function(c){return '<button class="bb'+(v[c[0]]!==false?' on':'')+'" data-vg="'+c[0]+'">'+c[1]+'</button>'}).join("")+'</div>'+
  '<div class="ms" style="margin-top:10px"><b>Line weight</b> in PDF</div><div class="grid2">'+[[0.7,"Thin"],[1,"Normal"],[1.35,"Heavy"]].map(function(x){return '<button class="bb'+(Math.abs((+S.meta.lw||1)-x[0])<0.01?' on':'')+'" data-lw="'+x[0]+'">'+x[1]+'</button>'}).join("")+'</div>'+
  '<div class="row"><button class="bb'+(UI.thin?' on':'')+'" id="vgThin">Thin lines on screen: '+(UI.thin?"ON":"OFF")+'</button></div><div class="row"><button class="bb" id="vgAll">Show all</button><button class="bb ok" id="vgOk">Done</button></div>',function(box){
@@ -3408,6 +3473,7 @@ function initV13(){UI.sel=[];UI.tab="arch";UI.thin=LS.get("jksp_thin",false);bui
 /* ================= v1.4 REVIT-STYLE TYPES (walls, doors, windows, columns) + clipboard, measure, area, footing ================= */
 var FAMN={wall:"Basic Wall",MD:"Main Door",D:"Single Door",TD:"Toilet Door",OP:"Opening",W:"Window",V:"Ventilator",col:"Concrete Column"};
 var TCATN={wall:"Wall",door:"Door",win:"Window",col:"Column"};
+/* Stage: Types - wall / door / window / column types used by the Wall, Door, Window and Column tools */
 function defTypes(){return {wall:[{id:"w45",name:'Brick 4½"',th:4.5},{id:"w6",name:'Block 6"',th:6},{id:"w8",name:'Block 8"',th:8},{id:"w9",name:'Brick 9"',th:9}],
  door:[{id:"dMD35",k:"MD",w:3.5,h:7},{id:"dMD4",k:"MD",w:4,h:7},{id:"dD3",k:"D",w:3,h:7},{id:"dD275",k:"D",w:2.75,h:7},{id:"dTD25",k:"TD",w:2.5,h:7},{id:"dTD225",k:"TD",w:2.25,h:7},{id:"dOP3",k:"OP",w:3,h:7},{id:"dOP4",k:"OP",w:4,h:7}],
  win:[{id:"nW4",k:"W",w:4,h:4,sill:3},{id:"nW3",k:"W",w:3,h:4,sill:3},{id:"nW5",k:"W",w:5,h:4,sill:3},{id:"nW6",k:"W",w:6,h:4,sill:3},{id:"nV2",k:"V",w:2,h:1.5,sill:7},{id:"nV15",k:"V",w:1.5,h:1.5,sill:7}],
@@ -3455,6 +3521,7 @@ function selectSame(){var L=selEls();if(L.length!==1){toast("Select one wall / d
  setSel(R);toast(R.length+" instances of "+tFull(c,t)+" (this level)")}
 /* ---------- Edit Type / New Type ---------- */
 function newTypePopup(cat,base,key,done){var b=base||(key!=="sel"&&key!==cat&&key!=="op"?null:(key==="sel"?null:curType(key)))||TY(cat)[0],t=JSON.parse(JSON.stringify(b||{}));t.id="u"+Date.now().toString(36);t.custom=true;t.name=(tName(cat,b)||"Type")+" (custom)";editTypePopup(cat,t,done,true)}
+/* Stage: Types - Edit Type */
 function editTypePopup(cat,t,done,isNew){var st=JSON.parse(JSON.stringify(t)),n=isNew?0:allInst(cat,t).length,isDoor=cat==="door"||cat==="win";
  var kinds=cat==="door"?["MD","D","TD","OP"]:["W","V"];
  var f='<label class="fld">Type name<input id="etN" value="'+escH(tName(cat,st))+'"></label>';
@@ -3480,10 +3547,12 @@ function editTypeFor(key){var c=key==="sel"?selCat():(key==="op"?"door":key),t=k
 /* ---------- creation hooks ---------- */
 var _addCol0=addCol;addCol=function(x,y,q){var c=_addCol0(x,y,q);if(c){var t=curType("col");if(t)c.ct=t.id}return c};
 /* ---------- clipboard (Copy / Paste aligned to current level) ---------- */
+/* Stage: Modify - Copy to Clipboard tool */
 function clipCopy(){var L=selEls().filter(function(r){return r.k!=="grid"&&r.k!=="sec"});if(!L.length){toast("Select elements, then Copy to clipboard");setTool("sel");return}
  var segs={},items=[];L.forEach(function(r){var e=elGet(r);if(!e)return;var c=JSON.parse(JSON.stringify(e));if(r.k==="seg"){var a=pt(e.a),b=pt(e.b);c._a={x:a.x,y:a.y};c._b={x:b.x,y:b.y};segs[e.id]=1}items.push({k:r.k,e:c})});
  S.ops.forEach(function(o){if(segs[o.seg]&&!L.some(function(r){return r.k==="op"&&r.id===o.id}))items.push({k:"op",e:JSON.parse(JSON.stringify(o))})});
  UI.clip={items:items,lv:S.cur};updCtx();toast(items.length+" copied · switch level and Paste (aligned)")}
+/* Stage: Modify - Paste tool (aligned to the current level) */
 function clipPaste(){var C=UI.clip;if(!C||!C.items.length){toast("Clipboard empty - select and Copy first");return}snapshot();var same=C.lv===S.cur,off=same?2:0,pm={},sm={},out=[];
  function P(q){var x=q.x+off,y=q.y+off,k=x.toFixed(3)+","+y.toFixed(3);if(pm[k])return pm[k];var ex=S.pts.find(function(p){return Math.abs(p.x-x)<0.01&&Math.abs(p.y-y)<0.01}),id=ex?ex.id:nid();if(!ex)S.pts.push({id:id,x:x,y:y});pm[k]=id;return id}
  function sh(c){if(!off)return;if(c.a&&c.a.x!=null){c.a.x+=off;c.a.y+=off;c.b.x+=off;c.b.y+=off}else if(c.x!=null){c.x+=off;c.y+=off}}
@@ -3497,9 +3566,11 @@ LINE2.meas=1;
 var _commit0=commitLine;commitLine=function(t,a,b){if(t!=="meas")return _commit0(t,a,b);var L=Math.hypot(b.x-a.x,b.y-a.y);UI.lp={a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};UI.meas={L:L,dx:Math.abs(b.x-a.x),dy:Math.abs(b.y-a.y)};
  showHud(fi(L));setTimeout(hideHud,2200);toast("Distance "+fi(L)+"  ·  ΔX "+fi(UI.meas.dx)+"  ·  ΔY "+fi(UI.meas.dy));updCtx();render()};
 /* ---------- Room & Area, Tags ---------- */
+/* Stage: Room & Area - Area tool */
 function areaPopup(){var rows="",tot=0;S.L.forEach(function(L,i){withLevel(i,function(){if(!S.segs.length)return;var R=roomsInfo();rows+='<tr><td colspan="3" style="padding-top:8px"><b>'+esc(L.name)+'</b> · built-up '+sq(R.plinth)+' sq.ft · carpet '+sq(R.carpet)+'</td></tr>';tot+=R.plinth;
   S.labels.forEach(function(l){var f=LABF[l.id];if(f)rows+='<tr><td>'+esc(l.name)+'</td><td>'+sizeText(f)+'</td><td style="text-align:right">'+sq(f.carpet)+'</td></tr>'})})});
  modal('<div class="mt">Room & Area</div><div class="ms">Room areas (clear / carpet) per level · total built-up '+sq(tot)+' sq.ft ('+sq(tot*0.092903)+' sq.m)</div><div style="max-height:52vh;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'+rows+'</table></div><div class="row"><button class="bb ok" id="arOk">Done</button></div>',function(){$("arOk").onclick=closeModal})}
+/* Stage: Annotate - Tag tool */
 function tagPopup(){var c={};S.ops.forEach(function(o){var k=opKind(o);c[k]=(c[k]||0)+1});var v=S.meta.vis||{};
  modal('<div class="mt">Tags</div><div class="ms">Doors / windows are tagged automatically (D1, W1…) in sheets and schedules. Room tags: tap a room with Room Tag.</div><div class="grid2">'+OK5.filter(function(k){return c[k]}).map(function(k){return '<div class="bb" style="display:flex;flex-direction:column;justify-content:center"><b>'+k+' × '+c[k]+'</b><small>'+OKN[k]+'</small></div>'}).join("")+'</div>'+
   '<div class="row"><button class="bb'+(v.rooms!==false?' on':'')+'" id="tgR">Room tags: '+(v.rooms!==false?"shown":"hidden")+'</button><button class="bb'+(v.doors!==false?' on':'')+'" id="tgD">Door / window tags: '+(v.doors!==false?"shown":"hidden")+'</button></div><div class="row"><button class="bb ok" id="tgOk">Done</button></div>',function(){
@@ -3507,6 +3578,7 @@ function tagPopup(){var c={};S.ops.forEach(function(o){var k=opKind(o);c[k]=(c[k
   $("tgR").onclick=function(){tg("rooms")};$("tgD").onclick=function(){tg("doors")};$("tgOk").onclick=closeModal})}
 /* ---------- Foundation: isolated footings under columns (lowest level) ---------- */
 function ftgCfg(){var f=S.meta.ftg||{};return {on:!!f.on,w:+f.w||4,l:+f.l||4,dep:+f.dep||5}}
+/* Stage: Foundation - Isolated Footing tool */
 function footingPopup(){var f=ftgCfg();modal('<div class="mt">Foundation · Isolated footings</div><div class="ms">Footing under every column of the ground level (dashed in plan, layer FOOTINGS). '+S.L[0].cols.length+' columns on ground.</div>'+
  '<div class="row"><label class="fld">Width<input id="fgW" value="'+fi(f.w)+'"></label><label class="fld">Length<input id="fgL" value="'+fi(f.l)+'"></label><label class="fld">Depth below GL<input id="fgD" value="'+fi(f.dep)+'"></label></div>'+
  '<div class="row"><button class="bb'+(f.on?' on':'')+'" id="fgOn">Footings: '+(f.on?"ON":"OFF")+'</button><button class="bb" id="fgC">Auto columns at corners</button></div><div class="row"><button class="bb" id="fgX">Cancel</button><button class="bb ok" id="fgOk">OK</button></div>',function(){
@@ -3575,6 +3647,7 @@ Object.assign(ICO,{
  sofa:ICO.sofa,door:ICO.door,draw:ICO.draw,wall:ICO.draw,move:'<path d="M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>'});
 function svgI(k){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">'+(ICO[k]||ICO.draw)+'</svg>'}
 /* tool / action definitions: [label, long tip, icon] */
+/* Stage: v1.4 drawing tools - every rail tool: [label, tooltip, icon] */
 var TD14={draw:["Wall","Draw walls of the selected wall type","draw"],door:["Door","Place a door on a wall (door types)","door"],window:["Window","Place a window / ventilator (window types)","window"],opening:["Opening","Wall opening without shutter","opening"],
  furn:["Component","Furniture & fixtures","sofa"],col:["Column","Structural column (column types)","col"],roof:["Roof","Flat + parapet, gable, hip","roof2"],"a:ceil":["Ceiling","Ceiling height for this level","ceil"],slab:["Floor","Floor slab & floor-to-floor height","slab"],
  stair:["Stair","Straight / L / U stair with risers","stair"],rail:["Railing","Draw a railing","rail"],room:["Room","Tap inside walls to name a room","room"],"a:rtag":["Room Tag","Tag a room (tap inside it)","rtag"],"a:area":["Area","Room areas & built-up per level","area"],
@@ -3586,6 +3659,7 @@ var TD14={draw:["Wall","Draw walls of the selected wall type","draw"],door:["Doo
  "a:xcopy":["Copy","Copy the selection (move copy)","copy"],"a:xrot":["Rotate","Rotate the selection","rotate"],trim:["Trim/Extend","Trim / extend walls to corner","trim"],split:["Split","Split a wall","split"],"a:xarr":["Array","Linear array","array"],
  "a:xpin":["Pin","Pin / unpin the selection","pin"],del:["Delete","Tap items to delete","del"],move:["Edit Corners","Drag corners / room names","corner"],"a:ccopy":["Copy to Clipboard","Copy selection to clipboard","clipcopy"],
  "a:cpaste":["Paste","Paste aligned to the current level","paste"],wall:["Match Type","Tap a wall to change its type","match"],meas:["Measure","Measure between two points","measure"],size:["Size","Tap a wall to type its length","size"]};
+/* Stage: v1.4 ribbon - tabs and panels: Architecture, Structure, Annotate, View (incl. Import), Modify */
 var PANELS={arch:["Architecture",[["Build","Build",["draw","door","window","furn","col","roof","a:ceil","slab"]],["Circulation","Circul.",["stair","rail"]],["Room & Area","Room",["room","a:rtag","a:area"]],["Opening","Opening",["opening"]],["Datum","Datum",["a:levels","grid"]]]],
  struct:["Structure",[["Structure","Struct.",["beam","col","slab"]],["Foundation","Found.",["a:found"]],["Datum","Datum",["grid","a:levels"]]]],
  anno:["Annotate",[["Dimension","Dim.",["dim","spot"]],["Detail","Detail",["dline"]],["Text","Text",["text"]],["Tag","Tag",["a:tag","room"]]]],
@@ -3607,6 +3681,7 @@ function buildRail(){var r=$("tools");r.innerHTML=PANELS[UI.tab][1].map(function
  r.querySelectorAll("[data-a]").forEach(function(b){b.onclick=function(){railAction(b.dataset.a)}});markRail()}
 function markRail(){document.querySelectorAll("#tools .tool").forEach(function(b){b.classList.toggle("on",b.dataset.t===UI.tool&&(!b.dataset.of||b.dataset.of===(UI.opFam||"D")))});document.querySelectorAll("#tabs .tab").forEach(function(b){b.classList.toggle("on",b.dataset.tab===UI.tab)})}
 function needSel(k,name){if(selEls().length){ctxAction(k);return}if(UI.tool!=="sel")setTool("sel");toast("Select elements first, then tap "+name)}
+/* Stage: v1.4 ribbon - one-shot rail actions (Levels, 3D View, Sheets, Export PDF, Import, ...) */
 function railAction(a){if(a==="import"){importPopup();return}if(a==="levels")levelsPopup();else if(a==="elev")openSheetBy("elev");else if(a==="sheets"){setClean(true)}else if(a==="v3d")open3D("3d");else if(a==="vg")vgPopup();
  else if(a==="ceil")floorPopup();else if(a==="area")areaPopup();else if(a==="rtag"){setTool("room");toast("Room Tag: tap inside a room to tag / rename it")}else if(a==="found")footingPopup();else if(a==="tag")tagPopup();
  else if(a==="plan"){if(UI.clean)setClean(false);levelsPopup()}else if(a==="pdf")exportPDF();else if(a==="thin"){UI.thin=!UI.thin;LS.set("jksp_thin",UI.thin);toast("Thin lines "+(UI.thin?"ON":"OFF"));updCtx();render()}
@@ -3619,6 +3694,7 @@ function cb(k,t,s,on,cls){return cbI(k,null,t,s,on,cls)}
 var CDV='<span class="cdv"></span>';
 function toolLabel(T){if(T==="open"){var f=UI.opFam||"D";return f==="W"?TD14.window:f==="OP"?TD14.opening:TD14.door}return TD14[T]||[T,"","draw"]}
 function typeBar(key,cur){var cat=key==="op"?"door":key;return '<span class="tlab">Type</span>'+tselHTML(key,cur)+cbI("tedit:"+key,"edit","","Edit Type ("+tFull(cat,cur)+")")}
+/* Stage: Option bar - options for the active tool */
 function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
  if(UI.clean){var L=(SHEET&&SHEET.list)||sheetList(),cur=UI.sheetKey||(L[0]&&L[0].key);
   h='<span class="ctl">'+svgI("sheets")+'Sheets</span>'+cbI("back","back","Back to drawing","",true)+cbI("pdf","pdf","PDF","all sheets")+cbI("dxf","dxf","DXF","this sheet")+cbI("png","img","PNG")+cbI("det","edit","Details","title block")+CDV+cb("pg1","Plan","Sheet 1",/^plan/.test(cur))+cb("pg2","Door & Window","details",cur==="dw")+
@@ -3663,6 +3739,7 @@ var _up0=updProps;updProps=function(){_up0();var P=$("props");if(!P||!UI.props)r
  bindTsel(P,function(k,id){if(k==="sel")setSelType(id);else pickType(k,id);updCtx();updProps();render()});
  var x=$("prX");if(x){x.innerHTML=svgI("x");x.title="Close"}};
 /* ---------- focus mode / option bar / auto-hide / long-press tips ---------- */
+/* Stage: Focus mode - full-screen canvas, active tool unchanged */
 function setFocus(on){UI.focus=!!on;$("app").classList.toggle("focus",UI.focus);$("bFocus").classList.toggle("on",UI.focus);setTimeout(resize,20);toast(UI.focus?"Focus mode - full-screen canvas":"Focus mode off")}
 function initTips(){var tip=$("tip"),tm=0,hideT=0;function hide(){clearTimeout(tm);clearTimeout(hideT);hideT=setTimeout(function(){tip.style.display="none"},700)}
  document.addEventListener("pointerdown",function(e){var b=e.target.closest&&e.target.closest("[data-tip]");clearTimeout(tm);if(!b)return;tm=setTimeout(function(){var r=b.getBoundingClientRect(),inRail=!!b.closest("#tools");tip.innerHTML=esc(b.dataset.tip)+(b.dataset.tips?'<small>'+esc(b.dataset.tips)+'</small>':'');tip.style.display="block";
@@ -3683,6 +3760,7 @@ var _st0=setTool;setTool=function(t){_st0(t);if(UI.props)updProps()};
 function segGeo(s){var a=pt(s.a),b=pt(s.b),L=Math.hypot(b.x-a.x,b.y-a.y)||1,u={x:(b.x-a.x)/L,y:(b.y-a.y)/L};return {a:a,b:b,L:L,u:u,n:{x:-u.y,y:u.x}}}
 function runGeo(s){var R=wallRun(s),a=pt(R.a),b=pt(R.b),L=Math.hypot(b.x-a.x,b.y-a.y)||1,u={x:(b.x-a.x)/L,y:(b.y-a.y)/L};return {R:R,a:a,b:b,L:L,u:u,n:{x:-u.y,y:u.x}}}
 /* nearest parallel walls on both sides of a wall run: clear (face to face) distances */
+/* Stage: Modify - Select tool: temporary dimensions of a selected wall */
 function tempDims(s){var G=runGeo(s),ts=wallT(s)/2,best={1:null,"-1":null},sa=pt(s.a),sb=pt(s.b),sm=(((sa.x+sb.x)/2-G.a.x)*G.u.x+((sa.y+sb.y)/2-G.a.y)*G.u.y);
  S.segs.forEach(function(q){if(G.R.ids.indexOf(q.id)>=0)return;var Q=segGeo(q);if(Math.abs(Q.u.x*G.u.y-Q.u.y*G.u.x)>0.03)return;
   var d1=(Q.a.x-G.a.x)*G.n.x+(Q.a.y-G.a.y)*G.n.y,d2=(Q.b.x-G.a.x)*G.n.x+(Q.b.y-G.a.y)*G.n.y,d=(d1+d2)/2;if(Math.abs(d)<0.2)return;
@@ -3773,6 +3851,7 @@ function app(M,p){var x=p[0],y=p[1],z=p[2]||0;return [M[0]*x+M[1]*y+M[2]*z+M[3],
 function norm(v){var l=Math.hypot(v[0],v[1],v[2]||0)||1;return [v[0]/l,v[1]/l,(v[2]||0)/l]}
 function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
 /* ---------------- IFC ---------------- */
+/* Stage: Import (IFC) - IfcWall -> walls, IfcDoor/IfcWindow -> openings, IfcBuildingStorey -> levels */
 function parseIFC(txt,opt){opt=opt||{};var F=Step(txt),skipped={},notes=[];
  function G(r){return F.get(r)}
  function coords(p){var e=G(p);return e&&e.a[0]?e.a[0].map(Number):[0,0,0]}
@@ -3870,6 +3949,7 @@ function parseIFC(txt,opt){opt=opt||{};var F=Step(txt),skipped={},notes=[];
 /* ---------------- DXF ---------------- */
 var DXFU={0:null,1:["inch",1/12],2:["feet",1],4:["mm",1/304.8],5:["cm",1/30.48],6:["m",1/0.3048]};
 var UNITS={mm:1/304.8,cm:1/30.48,m:1/0.3048,inch:1/12,feet:1};
+/* Stage: Import (DXF) - read layers and units */
 function readDXF(txt){var P=new DxfParser();var d=P.parseSync(txt);var layers={};
  function L(n){n=n||"0";if(!layers[n])layers[n]={name:n,count:0,types:{},role:"ignore"};return layers[n]}
  (d.entities||[]).forEach(function(e){var l=L(e.layer);l.count++;bump(l.types,e.type)});
@@ -3889,6 +3969,7 @@ function blockBox(d,name,depth){var B=d.blocks&&d.blocks[name];if(!B||depth>4)re
  if(!isFinite(b.x0))return null;var bp=B.position||{x:0,y:0};b.x0-=bp.x||0;b.x1-=bp.x||0;b.y0-=bp.y||0;b.y1-=bp.y||0;return b}
 function insXf(e){var sx=e.xScale!=null?e.xScale:1,sy=e.yScale!=null?e.yScale:1,r=(e.rotation||0)*Math.PI/180,c=Math.cos(r),s=Math.sin(r),p=e.position||{x:0,y:0};return function(x,y){x*=sx;y*=sy;return {x:p.x+x*c-y*s,y:p.y+x*s+y*c}}}
 /* convert using user choices: roles {layer:role}, units key, opts {minT,maxT (in), single (bool), singleTh (in)} */
+/* Stage: Import (DXF) - wall lines -> walls (double lines -> thickness), door/window blocks -> openings */
 function convertDXF(R,roles,unit,opts){opts=opts||{};var d=R.dxf,k=UNITS[unit]||1,skipped={},notes=[];var minT=(opts.minT||2)/12,maxT=(opts.maxT||16)/12;
  function role(e){var r=roles[e.layer||"0"]||"ignore";if(e.type==="INSERT"&&r!=="wall"){var n=(e.name||"").toLowerCase();if(/door|^dr|kathavu/.test(n))return "door";if(/win|glaz|wndw|vent/.test(n))return "window"}return r}
  var lines=[],ins=[],arcs=[],wlines=[];
@@ -3965,6 +4046,7 @@ if(typeof module!=="undefined")module.exports=JKI;
 
 /* ================= JK Sketch Plan Web - Import dialog + apply to drawing ================= */
 var IMP={};
+/* Stage: Import (IFC/DXF) - Import tool: file picker (top-row Import, Menu, View ribbon) */
 function importPopup(){modal('<div class="mt">Import IFC / DXF</div><div class="ms">Revit: File &gt; Export &gt; IFC, or Export &gt; CAD Formats &gt; DXF. Walls, doors and windows become normal editable objects.</div>'+
  '<label class="bb pri" style="display:flex;align-items:center;justify-content:center;cursor:pointer">Choose file (.ifc / .dxf)<input type="file" id="impFile" accept=".ifc,.dxf,.rvt,.rfa,.dwg,.ifczip" style="display:none"></label>'+
  '<div id="impBody"></div><div class="row"><button class="bb" id="impX">Close</button></div>',function(){$("impX").onclick=closeModal;$("impFile").onchange=function(e){var f=e.target.files[0];if(f)impRead(f)}})}
@@ -3977,6 +4059,7 @@ function impRead(f){var n=f.name,ext=(n.split(".").pop()||"").toLowerCase();IMP=
  var r=new FileReader();r.onload=function(){setTimeout(function(){try{if(ext==="ifc"){IMP.kind="ifc";IMP.model=JKI.parseIFC(String(r.result));impShow()}else{IMP.kind="dxf";IMP.raw=JKI.readDXF(String(r.result));IMP.unit=IMP.raw.units;IMP.roles={};Object.keys(IMP.raw.layers).forEach(function(k){IMP.roles[k]=IMP.raw.layers[k].role});IMP.single=false;impDxfConv();impShow()}}catch(err){B.innerHTML='<div class="imperr">Could not read this file: '+esc(err.message||err)+'</div>'}},20)};r.readAsText(f)}
 function impDxfConv(){IMP.model=JKI.convertDXF(IMP.raw,IMP.roles,IMP.unit,{single:IMP.single,singleTh:4.5})}
 function impCounts(m){var c={w:0,d:0,win:0};m.levels.forEach(function(L){c.w+=L.walls.length;L.ops.forEach(function(o){if(o.type==="D")c.d++;else c.win++})});return c}
+/* Stage: Import (IFC/DXF) - dialog: DXF layer roles, units, preview, summary */
 function impShow(){var m=IMP.model,B=$("impBody"),c=impCounts(m),h="";
  if(IMP.kind==="dxf"){var L=IMP.raw.layers;h+='<div class="ms" style="margin-top:8px"><b>Layers</b> – choose what each layer is</div><div class="implay">'+Object.keys(L).sort().map(function(k){var l=L[k];return '<div class="impl"><span title="'+escH(Object.keys(l.types).join(", "))+'">'+esc(k)+' <small>('+l.count+')</small></span><select data-lay="'+escH(k)+'">'+[["ignore","Ignore"],["wall","Walls"],["door","Doors"],["window","Windows"]].map(function(o){return '<option value="'+o[0]+'"'+(IMP.roles[k]===o[0]?" selected":"")+'>'+o[1]+'</option>'}).join("")+'</select></div>'}).join("")+'</div>'+
   '<div class="row"><label class="fld">Drawing units'+(IMP.raw.guessed?" (guessed)":"")+'<select id="impU">'+["mm","cm","m","inch","feet"].map(function(u){return '<option'+(IMP.unit===u?" selected":"")+'>'+u+'</option>'}).join("")+'</select></label>'+
@@ -3999,6 +4082,7 @@ function impPreview(){var cvp=$("impCv");if(!cvp)return;var x=cvp.getContext("2d
  x.lineCap="round";L.walls.forEach(function(w){var a=T(w.a),b=T(w.b);x.strokeStyle="rgba(22,54,92,.85)";x.lineWidth=Math.max(2,w.th/12*s);x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()});
  L.ops.forEach(function(o){var c=T(o);x.fillStyle=o.type==="D"?"#c2410c":"#1d4ed8";x.beginPath();x.arc(c[0],c[1],Math.max(3,o.w*s/2),0,7);x.globalAlpha=.6;x.fill();x.globalAlpha=1})}
 /* model (feet, Y-up) -> app objects (Y-down) */
+/* Stage: Import (IFC/DXF) - converts to normal walls / doors / windows / levels (then editable with every tool) */
 function impApply(m,target){snapshot();var prev=[UI.wth,UI.wt];UI.wth=null;UI.wt=null;
  var mnx=Infinity,mxy=-Infinity;m.levels.forEach(function(L){L.walls.forEach(function(w){mnx=Math.min(mnx,w.a.x,w.b.x);mxy=Math.max(mxy,w.a.y,w.b.y)})});var ox=-mnx,oy=mxy;
  function Q(p){return {x:Math.round((p.x+ox)*1000)/1000,y:Math.round((oy-p.y)*1000)/1000}}
@@ -4014,6 +4098,7 @@ function impApply(m,target){snapshot();var prev=[UI.wth,UI.wt];UI.wth=null;UI.wt
   planarize();res.levels.push((S.L[idx].name)+": "+S.segs.length+" walls, "+S.ops.length+" openings")});
  S.cur=base;UI.wth=prev[0];UI.wt=prev[1];res.skipped=m.skipped;res.notes=m.notes;res.file=IMP.file;
  if(typeof updLevelBadge==="function")updLevelBadge();setClean(false);fitAll();changed();updTitle();autosave();window.JKS_LASTIMPORT=res;return res}
+/* Stage: Import (IFC/DXF) - result summary; Open 3D */
 function impResult(r){modal('<div class="mt">Import done</div><div class="impsum"><b>'+r.walls+' walls · '+r.doors+' doors · '+r.windows+' windows</b><div class="ms">'+r.levels.map(esc).join("<br>")+'</div>'+(r.lost?'<div class="ms">'+r.lost+' opening(s) had no host wall and were skipped</div>':'')+impSkip({skipped:r.skipped,notes:r.notes})+'</div>'+
  '<div class="ms">Walls were joined at corners / T-junctions (a wall drawn in one piece may now be split into several segments). Everything is editable and shows in 3D.</div><div class="row"><button class="bb" id="irX">Close</button><button class="bb pri" id="ir3">Open 3D</button></div>',function(){$("irX").onclick=closeModal;$("ir3").onclick=function(){closeModal();open3D("3d")}})}
 
