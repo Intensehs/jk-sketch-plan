@@ -261,6 +261,16 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 @media (max-width:1100px){.tab{padding:0 8px;font-size:12px}#brand{max-width:180px}}
 @media (max-width:900px){#brand b{display:none}.tsep{display:none}}
 .imperr{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13.5px}.impsum{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:14px}.implay{max-height:170px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px;padding:4px}.impl{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px;font-size:13px}.impl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.impl select{font-size:13px;padding:3px}#mbox{max-height:92vh;overflow:auto}
+/* Toolbar labels: short tool name under every icon (top row, left rail, 3D rail, focus bar) */
+:root{--top:44px;--rail:52px}
+.tb,#top .tb{width:auto;min-width:34px;max-width:54px;height:40px;padding:0 3px;flex-direction:column;gap:2px}
+.tb span,#top .tb span{display:block;font-size:9.5px;line-height:1.05;font-weight:550;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tools .tool{width:48px;height:42px;flex-direction:column;gap:2px;font-size:inherit}
+#tools .tool small{display:block;font-size:9px;line-height:1.05;font-weight:550;max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.95}
+#v3rail .tool span{font-size:9px;max-width:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fxBar .tb{width:auto;height:40px;min-width:36px}
+#tools .rph{flex:0 0 auto}
+@media (max-width:600px){#tabs{min-width:92px;margin-left:6px}#tbar{flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}#tbar::-webkit-scrollbar{display:none}.tb,#top .tb{min-width:32px;flex:0 0 auto}}
 </style></head><body>
 <div id="app">
  <div id="top">
@@ -284,7 +294,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
   </div>
  </div>
  <div id="ctx"></div>
- <div id="stage"><canvas id="cv"></canvas><div id="hud"></div><div id="info"></div><div id="hint"></div><div id="fxBar"><button class="tb" id="fxUndo" title="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="tb" id="fxRedo" title="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button><button class="tb" id="fxFit" title="Fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></button><button class="tb" id="fxExit" title="Exit focus mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg></button></div></div>
+ <div id="stage"><canvas id="cv"></canvas><div id="hud"></div><div id="info"></div><div id="hint"></div><div id="fxBar"><button class="tb" id="fxUndo" title="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Undo</span></button><button class="tb" id="fxRedo" title="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span>Redo</span></button><button class="tb" id="fxFit" title="Fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg><span>Fit</span></button><button class="tb" id="fxExit" title="Exit focus mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg><span>Exit</span></button></div></div>
  <div id="tools"></div>
  <div id="props"></div>
 </div>
@@ -3672,10 +3682,12 @@ function tabOf(t){return Object.keys(PANELS).find(function(k){return TABS[k][1].
 function showTool(t){var k=tabOf(t);if(k&&UI.tab!==k){UI.tab=k;buildRail()}return k}
 function buildTabs(){var t=$("tabs");t.innerHTML=Object.keys(PANELS).map(function(k){return '<button class="tab" data-tab="'+k+'">'+PANELS[k][0]+'</button>'}).join("");
  t.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){UI.tab=b.dataset.tab;buildRail();var L=TABS[UI.tab][1].filter(function(x){return x.indexOf("a:")<0});if(UI.tab!=="view"&&L.indexOf(UI.tool)<0&&L.length)setTool(L[0]);else{markRail();updCtx()}}})}
+/* Toolbar labels: short name shown under each rail icon (full name stays in the tooltip) */
+var RLAB={"a:vg":"Visibility","a:found":"Footing","a:ccopy":"Clip Copy","a:cpaste":"Paste",trim:"Trim",move:"Corners",wall:"Match",dline:"Detail",spot:"Spot","a:thin":"Thin","a:pdf":"PDF","a:elev":"Elev","a:plan":"Plan",furn:"Comp.",dim:"Dim","a:rtag":"Room Tag","a:v3d":"3D View","a:levels":"Level","a:xmir":"Mirror","a:xarr":"Array","a:xpin":"Pin","a:xrot":"Rotate","a:xcopy":"Copy","a:xmove":"Move","a:sheets":"Sheets","a:import":"Import","a:ceil":"Ceiling","a:area":"Area","a:tag":"Tag"};
 function railBtn(it){var d=TD14[it]||[it,"","draw"],tip=' title="'+escH(d[0]+(d[1]?" - "+d[1]:""))+'" data-tip="'+escH(d[0])+'" data-tips="'+escH(d[1])+'"';
- if(OPF[it])return '<button class="tool" data-t="open" data-of="'+OPF[it]+'"'+tip+'>'+svgI(d[2])+'<small>'+d[0]+'</small></button>';
- if(it.indexOf("a:")===0)return '<button class="tool act" data-a="'+it.slice(2)+'"'+tip+'>'+svgI(d[2])+'<small>'+d[0]+'</small></button>';
- return '<button class="tool" data-t="'+it+'"'+tip+'>'+svgI(d[2])+'<small>'+d[0]+'</small></button>'}
+ if(OPF[it])return '<button class="tool" data-t="open" data-of="'+OPF[it]+'"'+tip+'>'+svgI(d[2])+'<small>'+(RLAB[it]||d[0])+'</small></button>';
+ if(it.indexOf("a:")===0)return '<button class="tool act" data-a="'+it.slice(2)+'"'+tip+'>'+svgI(d[2])+'<small>'+(RLAB[it]||d[0])+'</small></button>';
+ return '<button class="tool" data-t="'+it+'"'+tip+'>'+svgI(d[2])+'<small>'+(RLAB[it]||d[0])+'</small></button>'}
 function buildRail(){var r=$("tools");r.innerHTML=PANELS[UI.tab][1].map(function(p){return '<div class="rph" title="'+escH(p[0])+'">'+p[1]+'</div>'+p[2].map(railBtn).join("")}).join("");
  r.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){if(b.dataset.of){UI.opFam=b.dataset.of;if(b.dataset.of!=="D")UI.opExp=true}else if(b.dataset.t==="open")UI.opFam="D";setTool(b.dataset.t);if(b.dataset.t==="open"){markRail();updCtx()}}});
  r.querySelectorAll("[data-a]").forEach(function(b){b.onclick=function(){railAction(b.dataset.a)}});markRail()}

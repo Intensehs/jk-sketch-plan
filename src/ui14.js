@@ -81,10 +81,12 @@ function tabOf(t){return Object.keys(PANELS).find(function(k){return TABS[k][1].
 function showTool(t){var k=tabOf(t);if(k&&UI.tab!==k){UI.tab=k;buildRail()}return k}
 function buildTabs(){var t=$("tabs");t.innerHTML=Object.keys(PANELS).map(function(k){return '<button class="tab" data-tab="'+k+'">'+PANELS[k][0]+'</button>'}).join("");
  t.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){UI.tab=b.dataset.tab;buildRail();var L=TABS[UI.tab][1].filter(function(x){return x.indexOf("a:")<0});if(UI.tab!=="view"&&L.indexOf(UI.tool)<0&&L.length)setTool(L[0]);else{markRail();updCtx()}}})}
+/* Toolbar labels: short name shown under each rail icon (full name stays in the tooltip) */
+var RLAB={"a:vg":"Visibility","a:found":"Footing","a:ccopy":"Clip Copy","a:cpaste":"Paste",trim:"Trim",move:"Corners",wall:"Match",dline:"Detail",spot:"Spot","a:thin":"Thin","a:pdf":"PDF","a:elev":"Elev","a:plan":"Plan",furn:"Comp.",dim:"Dim","a:rtag":"Room Tag","a:v3d":"3D View","a:levels":"Level","a:xmir":"Mirror","a:xarr":"Array","a:xpin":"Pin","a:xrot":"Rotate","a:xcopy":"Copy","a:xmove":"Move","a:sheets":"Sheets","a:import":"Import","a:ceil":"Ceiling","a:area":"Area","a:tag":"Tag"};
 function railBtn(it){var d=TD14[it]||[it,"","draw"],tip=' title="'+escH(d[0]+(d[1]?" - "+d[1]:""))+'" data-tip="'+escH(d[0])+'" data-tips="'+escH(d[1])+'"';
- if(OPF[it])return '<button class="tool" data-t="open" data-of="'+OPF[it]+'"'+tip+'>'+svgI(d[2])+'<small>'+d[0]+'</small></button>';
- if(it.indexOf("a:")===0)return '<button class="tool act" data-a="'+it.slice(2)+'"'+tip+'>'+svgI(d[2])+'<small>'+d[0]+'</small></button>';
- return '<button class="tool" data-t="'+it+'"'+tip+'>'+svgI(d[2])+'<small>'+d[0]+'</small></button>'}
+ if(OPF[it])return '<button class="tool" data-t="open" data-of="'+OPF[it]+'"'+tip+'>'+svgI(d[2])+'<small>'+(RLAB[it]||d[0])+'</small></button>';
+ if(it.indexOf("a:")===0)return '<button class="tool act" data-a="'+it.slice(2)+'"'+tip+'>'+svgI(d[2])+'<small>'+(RLAB[it]||d[0])+'</small></button>';
+ return '<button class="tool" data-t="'+it+'"'+tip+'>'+svgI(d[2])+'<small>'+(RLAB[it]||d[0])+'</small></button>'}
 function buildRail(){var r=$("tools");r.innerHTML=PANELS[UI.tab][1].map(function(p){return '<div class="rph" title="'+escH(p[0])+'">'+p[1]+'</div>'+p[2].map(railBtn).join("")}).join("");
  r.querySelectorAll("[data-t]").forEach(function(b){b.onclick=function(){if(b.dataset.of){UI.opFam=b.dataset.of;if(b.dataset.of!=="D")UI.opExp=true}else if(b.dataset.t==="open")UI.opFam="D";setTool(b.dataset.t);if(b.dataset.t==="open"){markRail();updCtx()}}});
  r.querySelectorAll("[data-a]").forEach(function(b){b.onclick=function(){railAction(b.dataset.a)}});markRail()}

@@ -261,6 +261,16 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 @media (max-width:1100px){.tab{padding:0 8px;font-size:12px}#brand{max-width:180px}}
 @media (max-width:900px){#brand b{display:none}.tsep{display:none}}
 .imperr{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13.5px}.impsum{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:14px}.implay{max-height:170px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px;padding:4px}.impl{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 4px;font-size:13px}.impl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.impl select{font-size:13px;padding:3px}#mbox{max-height:92vh;overflow:auto}
+/* Toolbar labels: short tool name under every icon (top row, left rail, 3D rail, focus bar) */
+:root{--top:44px;--rail:52px}
+.tb,#top .tb{width:auto;min-width:34px;max-width:54px;height:40px;padding:0 3px;flex-direction:column;gap:2px}
+.tb span,#top .tb span{display:block;font-size:9.5px;line-height:1.05;font-weight:550;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tools .tool{width:48px;height:42px;flex-direction:column;gap:2px;font-size:inherit}
+#tools .tool small{display:block;font-size:9px;line-height:1.05;font-weight:550;max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.95}
+#v3rail .tool span{font-size:9px;max-width:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fxBar .tb{width:auto;height:40px;min-width:36px}
+#tools .rph{flex:0 0 auto}
+@media (max-width:600px){#tabs{min-width:92px;margin-left:6px}#tbar{flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}#tbar::-webkit-scrollbar{display:none}.tb,#top .tb{min-width:32px;flex:0 0 auto}}
 </style></head><body>
 <div id="app">
  <div id="top">
@@ -284,7 +294,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
   </div>
  </div>
  <div id="ctx"></div>
- <div id="stage"><canvas id="cv"></canvas><div id="hud"></div><div id="info"></div><div id="hint"></div><div id="fxBar"><button class="tb" id="fxUndo" title="Undo">__undo__</button><button class="tb" id="fxRedo" title="Redo">__redo__</button><button class="tb" id="fxFit" title="Fit">__fit__</button><button class="tb" id="fxExit" title="Exit focus mode">__unfocus__</button></div></div>
+ <div id="stage"><canvas id="cv"></canvas><div id="hud"></div><div id="info"></div><div id="hint"></div><div id="fxBar"><button class="tb" id="fxUndo" title="Undo">__undo__<span>Undo</span></button><button class="tb" id="fxRedo" title="Redo">__redo__<span>Redo</span></button><button class="tb" id="fxFit" title="Fit">__fit__<span>Fit</span></button><button class="tb" id="fxExit" title="Exit focus mode">__unfocus__<span>Exit</span></button></div></div>
  <div id="tools"></div>
  <div id="props"></div>
 </div>
