@@ -102,7 +102,7 @@ function build3D(){var M=T3.M;[T3.model,T3.edges,T3.labels,T3.env].forEach(clear
  // stairs
  stairsAll(RI).forEach(function(G){G.steps.forEach(function(st){var z=Math.min(st.z,H-0.2);var m=slab(st.pts,0,z,M.stair,"STAIRS3D")})});
  // furniture
- (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});
+ (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});try{kc3DAll(0)}catch(e){console.warn("kc",e)}
  // labels
  RI.faces.forEach(function(f){var l=f.labels[0],name=l?l.name:"Room",at=l||{x:f.cx,y:f.cy};var sp=textSprite(name.toUpperCase()+"\n"+sizeText(f)+"  "+sq(f.carpet!=null?f.carpet:f.area)+" sq.ft",{bg:"rgba(255,255,255,.88)",size:40});
   var w=Math.min(Math.max(f.w*0.42,3.2),5.5);sp.scale.set(w,w/sp.userData.aspect,1);sp.position.set(at.x,H+1.2,at.y);T3.labels.add(sp)});

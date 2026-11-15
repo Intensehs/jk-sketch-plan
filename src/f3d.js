@@ -19,7 +19,7 @@ function furnMaterials(M){function S(o){return new THREE.MeshStandardMaterial(o)
  Object.keys(F).forEach(function(k){var m=F[k];if(m.color&&!m.map)m.color.convertSRGBToLinear();else if(m.color&&m.map&&m.color.getHex()!==0xffffff)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear()});
  M.F=F}
 /* Stage: 3D view - furniture placed with the Component tool */
-function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,Fr=d/2,G=new THREE.Group();
+function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),C0=FURN[f.type]||{},RIG={basin:1,wcw:1,wci:1,cyl:1,bucket:1}[f.type],w=RIG?C0.w:D.w,d=RIG?C0.d:D.d,h=D.h,L=-w/2,Rr=w/2,B=-d/2,Fr=d/2,G=new THREE.Group();
  function add(geo,mat,x,y,z,o){o=o||{};var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(o.rx)m.rotation.x=o.rx;if(o.rz)m.rotation.z=o.rz;if(o.ry)m.rotation.y=o.ry;if(o.sx||o.sy||o.sz)m.scale.set(o.sx||1,o.sy||1,o.sz||1);m.userData.edges=o.edges!==false;G.add(m);return m}
  function bx(W,H,Dp,x,y0,z,mat,o){return add(new THREE.BoxGeometry(W,H,Dp),mat,x,y0+H/2,z,o)}
  function cy(rt,rb,H,x,y0,z,mat,o){o=o||{};return add(new THREE.CylinderGeometry(rt,rb,H,o.seg||18),mat,x,y0+H/2,z,o)}
@@ -34,6 +34,15 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
  function stove(x,z,along){var W=along?1.5:2.3,Dp=along?2.3:1.5;bx(W,0.2,Dp,x,2.68,z,F.black);[-1,1].forEach(function(k){var bxp=along?x:x+k*0.58,bz=along?z+k*0.58:z;cy(0.34,0.34,0.03,bxp,2.88,bz,F.iron,{seg:20});cy(0.16,0.16,0.05,bxp,2.89,bz,F.brass,{seg:16});
    for(var a=0;a<4;a++){var g=bx(0.6,0.05,0.04,bxp,2.92,bz,F.iron,{ry:a*Math.PI/4})}})}
  switch(f.type){
+ /* Stage: Kitchen - modular units in 3D (base 720 carcass on 100 plinth, wall units / chimney lifted to their elevation) */
+ case "km_base":case "km_sink":case "km_hob":case "km_drawer":case "km_corner":{var pl=100*MM,top=!(typeof kcCovers==="function"&&kcCovers(f.x,f.y));bx(w-0.1,pl,d-0.15,0,0,-0.05,F.black,{edges:false});bx(w,h,d-0.06,0,pl,-0.03,F.lam);
+  if(f.type==="km_drawer"){for(var q=0;q<3;q++){bx(w-0.06,h/3-0.05,0.05,0,pl+0.03+q*h/3,Fr-0.025,F.shutter);bx(Math.min(0.8,w*0.4),0.05,0.06,0,pl+q*h/3+h/3-0.2,Fr+0.03,F.steel)}}
+  else{var ns=f.doors||(w>1.6?2:1),sw=w/ns;for(var q2=0;q2<ns;q2++){var xx=L+sw*q2+sw/2;bx(sw-0.05,h-0.08,0.05,xx,pl+0.04,Fr-0.025,F.shutter);bx(0.06,0.45,0.06,xx+(q2%2?-1:1)*(sw/2-0.2),pl+h-0.7,Fr+0.03,F.steel)}}
+  if(top)bx(w+0.04,0.13,d+0.06,0,pl+h,0.03,F.granite);if(f.type==="km_sink"&&w>=2.7)sink(0,0.05);else if(f.type==="km_sink")bx(w*0.7,0.03,d*0.6,0,pl+h+0.13,0.05,F.steel);if(f.type==="km_hob"&&w>=2.3)stove(0,0.05,false);break}
+ case "km_tall":{var pl2=100*MM;bx(w-0.1,pl2,d-0.15,0,0,-0.05,F.black,{edges:false});bx(w,h-pl2,d-0.06,0,pl2,-0.03,F.lam);var hh=(h-pl2)/2;for(var q3=0;q3<2;q3++){bx(w-0.06,hh-0.06,0.05,0,pl2+0.03+q3*hh,Fr-0.025,F.shutter);bx(0.06,0.6,0.06,Rr-0.2,pl2+q3*hh+hh/2-0.3,Fr+0.03,F.steel)}break}
+ case "km_wall":{bx(w,h,d,0,0,0,F.lam);var nw=f.doors||(w>1.6?2:1),sw2=w/nw;for(var q4=0;q4<nw;q4++){var x4=L+sw2*q4+sw2/2;bx(sw2-0.05,h-0.06,0.05,x4,0.03,Fr+0.025,F.shutter);bx(0.06,0.4,0.06,x4+(q4%2?-1:1)*(sw2/2-0.2),0.15,Fr+0.07,F.steel)}break}
+ case "km_fsp":bx(w-0.2,h,d-0.15,0,0,-0.05,F.fridge);bx(0.07,1.2,0.1,Rr-0.35,h*0.45,Fr-0.1,F.steel);break;
+ case "km_chim":bx(w,0.3,d,0,0,0,F.steel);bx(w*0.35,Math.max(0.3,h-0.3),d*0.5,0,0.3,B+d*0.25,F.steel);bx(w*0.9,0.03,d*0.9,0,-0.02,0,F.black,{edges:false});break;
  case "dbed":case "sbed":{legs(w,d,0.35,0.25,F.woodD,0.15);bx(w,0.85,d,0,0.35,0,F.woodD);bx(w+0.1,3.5,0.25,0,0,B+0.125,F.woodD);bx(w-0.5,1.55,0.12,0,1.75,B+0.3,F.headF);bx(w+0.04,1.55,0.18,0,0,Fr-0.09,F.woodD);
   bx(w-0.2,0.7,d-0.5,0,1.2,0.07,F.mattress);var bl=d*0.6,bz=Fr-0.28-bl/2;bx(w-0.08,0.1,bl,0,1.86,bz,F.blanket);[-1,1].forEach(function(k){bx(0.06,0.6,bl,k*(w/2-0.05),1.32,bz,F.blanket,{edges:false})});bx(w-0.08,0.15,0.55,0,1.88,bz-bl/2+0.28,F.sheet);
   var n=f.type==="dbed"?2:1,pw=(w-0.6)/n;for(var i=0;i<n;i++)sp(1,L+0.3+pw*(i+0.5),2.05,B+0.95,F.pillow,{sx:pw*0.44,sy:0.22,sz:0.5});break}
@@ -49,14 +58,14 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
  case "dining4":case "dining6":{var k2=f.type==="dining4"?2:3,tw2=w;legs(tw2,3,2.4,0.2,F.woodD,0.3);bx(tw2,0.12,3,0,2.4,0,F.woodD);
   for(var q=0;q<k2;q++){var cx=-tw2/2+tw2*(q+0.5)/k2;[-1,1].forEach(function(s){var zc=s*(1.5+0.68),g2=[];[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(function(p){bx(0.12,1.5,0.12,cx+p[0]*0.55,0,zc+p[1]*0.52,F.woodL)});bx(1.32,0.12,1.28,cx,1.5,zc,F.woodL);bx(1.2,0.1,1.15,cx,1.62,zc,F.cushion);bx(1.32,1.75,0.12,cx,1.62,zc+s*0.58,F.woodL)})}
   break}
- case "counterS":cabinetRun(L,Rr,B,Fr,"z");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);sink(Rr-1.9,0.1);stove(L+1.75,0.1,false);break;
- case "counterL":cabinetRun(L+2,Rr,B,B+2,"z");cabinetRun(L,L+2,B,Fr,"x");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);bx(0.05,2.0,d,L+0.025,2.68,0,F.tileW);sink(Rr-1.9,B+1.1);stove(L+1.05,Fr-2,true);break;
+ case "counterS":cabinetRun(L,Rr,B,Fr,"z");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);if(w>=4)sink(Rr-1.9,0.1);if(w>=5.5)stove(L+1.75,0.1,false);break;
+ case "counterL":{var cd=Math.min(f.cd||2,Math.min(w,d)-0.5);cabinetRun(L+cd,Rr,B,B+cd,"z");cabinetRun(L,L+cd,B,Fr,"x");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);bx(0.05,2.0,d,L+0.025,2.68,0,F.tileW);if(w-cd>=3)sink(Rr-1.9,B+cd/2+0.1);if(d-cd>=2.4)stove(L+cd/2+0.05,Fr-Math.min(2,(d-cd)/2),true);break}
  case "fridge":bx(w-0.1,0.12,d-0.2,0,0,0,F.black,{edges:false});bx(w-0.1,5.5,d-0.12,0,0.12,0,F.fridge);bx(w-0.08,0.03,0.03,0,3.9,Fr-0.05,F.steelD,{edges:false});bx(0.07,1.1,0.1,Rr-0.32,4.2,Fr+0.0,F.steel);bx(0.07,1.4,0.1,Rr-0.32,2.2,Fr+0.0,F.steel);break;
  case "cyl":cy(0.46,0.46,0.18,0,0,0,F.red);cy(0.5,0.5,1.45,0,0.18,0,F.red,{seg:24});sp(0.5,0,1.63,0,F.red,{sy:0.5});cy(0.24,0.24,0.28,0,1.78,0,F.red);cy(0.07,0.07,0.22,0,1.95,0,F.brass);break;
- case "wcw":bx(0.62,1.2,0.75,0,0,B+0.75,F.ceramic);cy(0.62,0.45,1.2,0,0,B+1.45,F.ceramic,{sx:w*0.4/0.62,sz:0.85/0.62,seg:24});cy(0.64,0.64,0.07,0,1.2,B+1.45,F.seat,{sx:w*0.41/0.64,sz:0.88/0.64,seg:24});
+ case "wcw":bx(0.62,1.2,0.75,0,0,B+0.75,F.ceramic);cy(0.62,0.45,1.2,0,0,B+1.45,F.ceramic,{sx:1.4*0.4/0.62,sz:0.85/0.62,seg:24});cy(0.64,0.64,0.07,0,1.2,B+1.45,F.seat,{sx:1.4*0.41/0.64,sz:0.88/0.64,seg:24});
   bx(1.35,1.25,0.58,0,1.27,B+0.3,F.ceramic);bx(1.42,0.08,0.64,0,2.52,B+0.31,F.ceramic);cy(0.08,0.08,0.03,0,2.6,B+0.31,F.steel,{seg:14});break;
  case "wci":bx(w,0.14,d,0,0,0,F.ceramic);cy(0.42,0.42,0.02,0,0.14,0.1,F.pan,{sz:0.75/0.42,seg:22,edges:false});cy(0.13,0.13,0.025,0,0.145,-0.4,F.steelD,{seg:14,edges:false});[-1,1].forEach(function(s){bx(0.26,0.06,0.7,s*0.55,0.14,0.6,F.ceramic)});cy(0.05,0.05,0.3,0.5,1.8,B+0.12,F.steel,{rx:Math.PI/2});break;
- case "basin":cy(0.17,0.24,2.15,0,0,B+0.55,F.ceramic,{seg:16});cy(0.8,0.55,0.5,0,2.15,B+0.75,F.ceramic,{sx:w*0.45/0.8,sz:0.62/0.8,seg:24});cy(0.68,0.68,0.02,0,2.64,B+0.78,F.pan,{sx:w*0.45/0.8,sz:0.5/0.8,seg:24,edges:false});
+ case "basin":cy(0.17,0.24,2.15,0,0,B+0.55,F.ceramic,{seg:16});cy(0.8,0.55,0.5,0,2.15,B+0.75,F.ceramic,{sx:1.8*0.45/0.8,sz:0.62/0.8,seg:24});cy(0.68,0.68,0.02,0,2.64,B+0.78,F.pan,{sx:1.8*0.45/0.8,sz:0.5/0.8,seg:24,edges:false});
   cy(0.045,0.045,0.38,0,2.65,B+0.22,F.steel);bx(0.06,0.06,0.3,0,2.98,B+0.36,F.steel);bx(1.6,2.1,0.05,0,3.5,B+0.03,F.mirror);break;
  case "shower":bx(w,0.15,d,0,0,0,F.ceramic);var gl=T3.M.glass;bx(w*0.55,6.3,0.04,Rr-w*0.275,0.15,Fr-0.03,gl,{edges:false});bx(0.04,6.3,d,Rr-0.03,0.15,0,gl,{edges:false});bx(w*0.55,0.06,0.06,Rr-w*0.275,6.45,Fr-0.03,F.steel);bx(0.06,0.06,d,Rr-0.03,6.45,0,F.steel);
   cy(0.05,0.05,5.9,0,0.15,B+0.1,F.steel);bx(0.06,0.06,0.6,0,6.0,B+0.38,F.steel);cy(0.32,0.22,0.08,0,5.9,B+0.65,F.steel,{seg:20});cy(0.12,0.12,0.12,0,3.6,B+0.12,F.steel,{rx:Math.PI/2});cy(0.15,0.15,0.01,0,0.15,0,F.steelD,{edges:false});break;
@@ -65,6 +74,6 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
   bx(w+0.25,0.25,d+0.2,0,6.0,0.05,F.woodD);cy(0.0,0.42,0.45,0,6.25,0,F.brass,{seg:4,ry:Math.PI/4});bx(w-0.3,0.08,d,0,2.4,0,F.woodL);bx(w-0.6,0.3,d*0.5,0,2.48,B+d*0.3,F.woodL);bx(w-1.2,0.3,d*0.4,0,2.78,B+d*0.22,F.woodL);
   cy(0.12,0.16,0.3,0,3.08,B+0.25,F.brass);sp(0.16,0,3.5,B+0.25,F.brass,{sy:1.3});[-1,1].forEach(function(s){cy(0.07,0.12,0.22,s*w/3,2.48,Fr-0.25,F.brass);sp(0.045,s*w/3,2.78,Fr-0.25,F.flame,{sy:1.8})});break}
  }
- G.position.set(f.x,0.005,f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;G.updateMatrix();
+ G.position.set(f.x,0.005+(D.z||0),f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;if(RIG)G.scale.set(D.w/C0.w,1,D.d/C0.d);if(f.h&&!C0.km&&C0.h)G.scale.y=f.h/C0.h;G.updateMatrix();
  G.children.slice().forEach(function(m){m.applyMatrix4(G.matrix);m.castShadow=m.material!==T3.M.glass;m.receiveShadow=true;m.userData.layer=m.material===T3.M.glass?"GLASS3D":"FURN3D";m.userData.real=m.material;T3.model.add(m);
   if(m.userData.edges){var e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,28),T3.M.edgeReal);e.position.copy(m.position);e.quaternion.copy(m.quaternion);e.scale.copy(m.scale);e.userData.layer="FURN3D";T3.edges.add(e)}})}

@@ -1,5 +1,5 @@
 /* ================= v1.3 LEVELS (multi-floor). Each level keeps its own model; S.pts / S.segs / ... point at the current level ================= */
-var LVK=["pts","segs","labels","ops","furn","cols","beams","dims","notes","spots","dlines","rails","stairs"];
+var LVK=["pts","segs","labels","ops","furn","cols","beams","dims","notes","spots","dlines","rails","stairs","kcs"];
 var LVNAMES=["Ground Floor","First Floor","Second Floor","Third Floor","Fourth Floor","Fifth Floor"];
 /* Stage: Levels - Level tool: data for one floor */
 function newLevel(name,h){var L={id:0,name:name,h:h||10,slab:5,ceil:9.5};LVK.forEach(function(k){L[k]=[]});return L}

@@ -1759,7 +1759,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  var RI=roomsInfo();
  if(visOn("rooms"))RI.faces.forEach(function(f,i){if(!f.labels.length)return;g.beginPath();f.pts.forEach(function(p,j){var q=w2s(p.x,p.y);j?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle=FILLS[i%FILLS.length];g.globalAlpha=0.55;g.fill();g.globalAlpha=1});
  // staircase symbols
- drawStairsPlan(RI);
+ drawStairsPlan(RI);if(typeof drawKcPlan==="function")drawKcPlan();
  // furniture
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnCanvas(f,UI.tool==="furn"&&f.id===UI.fsel)});
  // walls (double line, filled, per-wall thickness)
@@ -2131,7 +2131,7 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();newDrawing();toast("New blank sheet")};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
  $("mGrid").onclick=function(){UI.grid=(UI.grid+1)%3;LS.set("jksp_grid",UI.grid);$("mGrid").innerHTML="Grid: "+["Off","Faint","On"][UI.grid]+"<small>கட்டம்</small>";render();updCtx()};
  $("mImp").onclick=importPopup;$("mFill").onclick=function(){fillToggle();this.classList.toggle("on",!!S.meta.fillc);this.innerHTML="Corners: "+(S.meta.fillc?"Filled":"Plain")+"<small>wall joins</small>"};$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
- $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
+ $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];S.kcs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
  $("mHelp").onclick=helpPopup;$("mX").onclick=closeModal})}
 /* Stage: My drawings - open / rename / delete drawings saved in this browser */
 function filesPopup(){autosave();var L=idxList();
@@ -2325,7 +2325,7 @@ function buildSheet(O){O=O||{};
  else S.segs.forEach(function(s){var a=RP(pt(s.a)),b=RP(pt(s.b));d.line(a[0],a[1],b[0],b[1],{w:0.7,c:DK,L:"WALLS"})});
  // ---- furniture, staircase ----
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnSheet(d,R,f)});
- stairsSheet(d,RP,RI);
+ stairsSheet(d,RP,RI);if(typeof kcSheet==="function"&&visOn("furn"))kcSheet(d,RP);
  // ---- openings ----
  var cnt={MD:0,D:0,TD:0,OP:0,W:0,V:0};
  G.forEach(function(q){var o=q.o,T=q.T,col=opCol(o),LY=opLayer(o),n=q.n,u=q.u,c=q.c,w=q.w,O={w:0.2,c:DK,L:LY};if(!MARKG||!o._mark)o._mark=opKind(o)+(++cnt[opKind(o)]);
@@ -2409,6 +2409,7 @@ function sheet2(d,G,RI,sched,O){var m=S.meta;O=O||{};
  var nx=X0+266,nw=X1-nx,lens={};S.L.forEach(function(Lv,li){withLevel(li,function(){S.segs.forEach(function(s){var v=fmt(wallIn(s));lens[v]=(lens[v]||0)+segLen(s)})})});
  var wr=Object.keys(lens).sort(function(a,b){return b-a}).map(function(v){return [v+'" '+thName(v),fmt(lens[v],1)+" rft"]});
  var ny=table(d,nx,ty,[["Wall",nw*0.58,"start"],["Length",nw*0.42]],wr,{rh:4.6,title:"WALL THICKNESS"})+4;
+ if(typeof kitSchedRows==="function"){var kr=kitSchedRows().map(function(r){return [ascii(r[0]),r[1],String(r[2])]});if(kr.length){var mk2=Math.max(1,Math.floor((262-ny)/4.6)-2);if(kr.length>mk2)kr=kr.slice(0,mk2-1).concat([["...","",""]]);ny=table(d,nx,ny,[["Kitchen unit",nw*0.44,"start"],["Size (mm)",nw*0.42],["Nos",nw*0.14]],kr,{rh:4.6,title:"MODULAR KITCHEN"})+4}}
  var notes=["Levels are from finished floor level FFL +0'-0\".","Sill = bottom of window. Lintel = top of opening.","RCC lintel band shown 6\" deep with 6\" bearing each side (typical).","Door swing and hinge side as marked on plan (sheet 1).","Wall lengths are centre-line running feet."];
  noteBox(d,nx,ny,nw,"NOTES",notes,1.9)}
 
@@ -2467,55 +2468,90 @@ function detailCell(d,g2,cx0,cy0,cw,ch,ks,maxL,mark,cell2H){var w=g2.w,h=g2.h,sl
 
 /* ================= FURNITURE library (plan symbols; 3D models are in v3d.js) ================= */
 /* Stage: Build - Component tool: furniture and fixture library */
+var MM=1/304.8;
 var FURN={
- dbed:{n:"Double bed",cat:"Bedroom",w:5,d:6.5},sbed:{n:"Single bed",cat:"Bedroom",w:3,d:6.5},wardrobe:{n:"Wardrobe",cat:"Bedroom",w:4,d:2},sidetable:{n:"Side table",cat:"Bedroom",w:1.5,d:1.5},
- sofaset:{n:"Sofa set 3+1+1",cat:"Hall",w:6.5,d:3,composite:true},sofa3:{n:"3-seater sofa",cat:"Hall",w:6.5,d:3},sofa1:{n:"Single sofa",cat:"Hall",w:3,d:3},ctable:{n:"Center table",cat:"Hall",w:3.5,d:2},
- tvunit:{n:"TV unit + TV",cat:"Hall",w:5,d:1.5},dining4:{n:"Dining + 4 chairs",cat:"Hall",w:4,d:5.6},dining6:{n:"Dining + 6 chairs",cat:"Hall",w:5.5,d:5.6},
- counterL:{n:"L platform (sink+stove)",cat:"Kitchen",w:8,d:6},counterS:{n:"Straight platform",cat:"Kitchen",w:8,d:2},fridge:{n:"Fridge",cat:"Kitchen",w:2.25,d:2.25},cyl:{n:"Gas cylinder",cat:"Kitchen",w:1.2,d:1.2},
- wcw:{n:"Western WC",cat:"Toilet",w:1.4,d:2.3},wci:{n:"Indian WC",cat:"Toilet",w:1.6,d:2.2},basin:{n:"Wash basin",cat:"Toilet",w:1.8,d:1.4},shower:{n:"Shower",cat:"Toilet",w:3,d:3},bucket:{n:"Bucket area",cat:"Toilet",w:2.5,d:2.5},
- pooja:{n:"Pooja shelf",cat:"Pooja",w:3,d:1.25}};
-var FCATS=[["Bedroom","படுக்கை அறை"],["Hall","ஹால்"],["Kitchen","சமையலறை"],["Toilet","கழிவறை"],["Pooja","பூஜை"]];
-function fdims(f){var c=FURN[f.type];return {w:f.w||c.w,d:f.d||c.d}}
-/* plan symbol primitives in local feet, centre (0,0), back of the item at y=-d/2 */
-function furnSym(type,w,d){var P=[],L=-w/2,Rr=w/2,B=-d/2,F=d/2;
+ dbed:{n:"Double bed",cat:"Bedroom",w:5,d:6.5,h:3.5},sbed:{n:"Single bed",cat:"Bedroom",w:3,d:6.5,h:3.5},wardrobe:{n:"Wardrobe",cat:"Bedroom",w:4,d:2,h:7},sidetable:{n:"Side table",cat:"Bedroom",w:1.5,d:1.5,h:3.2},
+ sofaset:{n:"Sofa set 3+1+1",cat:"Hall",w:6.5,d:3,composite:true,h:2.8},sofa3:{n:"3-seater sofa",cat:"Hall",w:6.5,d:3,h:2.8},sofa1:{n:"Single sofa",cat:"Hall",w:3,d:3,h:2.8},ctable:{n:"Center table",cat:"Hall",w:3.5,d:2,h:1.5},
+ tvunit:{n:"TV unit + TV",cat:"Hall",w:5,d:1.5,h:4.5},dining4:{n:"Dining + 4 chairs",cat:"Hall",w:4,d:5.6,h:2.5},dining6:{n:"Dining + 6 chairs",cat:"Hall",w:5.5,d:5.6,h:2.5},
+ counterL:{n:"L platform (sink+stove)",cat:"Kitchen",w:8,d:6,h:2.75},counterS:{n:"Straight platform",cat:"Kitchen",w:8,d:2,h:2.75},fridge:{n:"Fridge",cat:"Kitchen",w:2.25,d:2.25,h:5.6},cyl:{n:"Gas cylinder",cat:"Kitchen",w:1.2,d:1.2,h:2.1},
+ wcw:{n:"Western WC",cat:"Toilet",w:1.4,d:2.3,h:2.6},wci:{n:"Indian WC",cat:"Toilet",w:1.6,d:2.2,h:0.3},basin:{n:"Wash basin",cat:"Toilet",w:1.8,d:1.4,h:2.7},shower:{n:"Shower",cat:"Toilet",w:3,d:3,h:6.5},bucket:{n:"Bucket area",cat:"Toilet",w:2.5,d:2.5,h:2.1},
+ pooja:{n:"Pooja shelf",cat:"Pooja",w:3,d:1.25,h:6.5},
+ /* Stage: Kitchen - modular kitchen units (sizes in mm, stored in feet) */
+ km_base:{n:"Base cabinet",cat:"Modular",w:600*MM,d:560*MM,h:720*MM,km:"base"},km_drawer:{n:"Drawer unit",cat:"Modular",w:600*MM,d:560*MM,h:720*MM,km:"base"},
+ km_sink:{n:"Sink unit",cat:"Modular",w:900*MM,d:560*MM,h:720*MM,km:"base"},km_hob:{n:"Hob unit",cat:"Modular",w:900*MM,d:560*MM,h:720*MM,km:"base"},
+ km_corner:{n:"Corner unit",cat:"Modular",w:900*MM,d:900*MM,h:720*MM,km:"base"},km_wall:{n:"Wall cabinet",cat:"Modular",w:600*MM,d:300*MM,h:720*MM,km:"wall",z:1400*MM},
+ km_tall:{n:"Tall unit",cat:"Modular",w:600*MM,d:560*MM,h:2100*MM,km:"tall"},km_fsp:{n:"Fridge space",cat:"Modular",w:750*MM,d:650*MM,h:1800*MM,km:"space"},
+ km_chim:{n:"Chimney",cat:"Modular",w:900*MM,d:500*MM,h:900*MM,km:"wall",z:1600*MM}};
+var FCATS=[["Bedroom","படுக்கை அறை"],["Hall","ஹால்"],["Kitchen","சமையலறை"],["Toilet","கழிவறை"],["Pooja","பூஜை"],["Modular","Kitchen units"]];
+/* ready sizes per item [label, w ft, d ft, extra] */
+function mmP(l,w,d,x){return [l,w*MM,d*MM,x]}
+var FPRE={dbed:[["Single 3'x6'3\"",3,6.25],["Double 4'6\"x6'3\"",4.5,6.25],["Queen 5'x6'6\"",5,6.5],["King 6'x6'6\"",6,6.5]],
+ wardrobe:[["2-door 3'x2'",3,2,{doors:2}],["3-door 4'6\"x2'",4.5,2,{doors:3}],["4-door 6'x2'",6,2,{doors:4}],["Sliding 6'x2'2\"",6,2.17,{doors:2}]],
+ sidetable:[["Small 1'3\"",1.25,1.25],["Standard 1'6\"",1.5,1.5],["Large 2'",2,1.5]],
+ sofa3:[["2-seater 4'6\"",4.5,3],["3-seater 6'6\"",6.5,3],["4-seater 8'",8,3]],sofa1:[["Compact 2'6\"",2.5,2.75],["Standard 3'",3,3]],ctable:[["Small 3'x1'6\"",3,1.5],["Standard 3'6\"x2'",3.5,2],["Large 4'x2'6\"",4,2.5]],
+ tvunit:[["4' unit",4,1.5],["5' unit",5,1.5],["6' unit",6,1.5],["8' unit",8,1.5]],dining4:[["4-seater 4'x5'6\"",4,5.6],["Square 3'6\"",3.5,5.6]],dining6:[["6-seater 5'6\"",5.5,5.6],["8-seater 7'",7,5.6]],
+ counterS:[["6' x 2'",6,2],["8' x 2'",8,2],["10' x 2'",10,2],["12' x 2'",12,2]],counterL:[["8' x 6'",8,6,{cd:2}],["10' x 8'",10,8,{cd:2}],["12' x 8'",12,8,{cd:2}]],
+ fridge:[["Single door 2'x2'",2,2],["Double door 2'4\"x2'4\"",2.33,2.33],["Side-by-side 3'x2'4\"",3,2.33]],cyl:[["Standard",1.2,1.2]],
+ wcw:[["Compact 1'2\"x1'11\"",1.17,1.92],["Standard 1'4\"x2'3\"",1.4,2.3],["Wall hung 1'2\"x1'9\"",1.17,1.75]],wci:[["Standard 1'8\"x2'2\"",1.6,2.2],["Large 1'10\"x2'4\"",1.83,2.33]],
+ basin:[["Small 1'4\"x1'",1.33,1],["Standard 1'10\"x1'5\"",1.8,1.4],["Large 2'x1'8\"",2,1.67],["Counter 3'x1'8\"",3,1.67]],shower:[["3' x 3'",3,3],["3' x 4'",3,4],["4' x 4'",4,4]],
+ bucket:[["2'6\" x 2'6\"",2.5,2.5],["3' x 3'",3,3]],pooja:[["2' shelf",2,1.25],["3' shelf",3,1.25],["4' unit",4,1.5]],
+ km_base:[mmP("300",300,560),mmP("450",450,560),mmP("600",600,560),mmP("900",900,560)],km_drawer:[mmP("450",450,560),mmP("600",600,560),mmP("900",900,560)],
+ km_sink:[mmP("600",600,560),mmP("800",800,560),mmP("900",900,560)],km_hob:[mmP("600",600,560),mmP("750",750,560),mmP("900",900,560)],
+ km_corner:[mmP("900x900",900,900),mmP("1000x1000",1000,1000)],km_wall:[mmP("300",300,300),mmP("450",450,300),mmP("600",600,300),mmP("900",900,300)],
+ km_tall:[mmP("450",450,560),mmP("600",600,560)],km_fsp:[mmP("Single door 700",700,650),mmP("Double door 800",800,700),mmP("Side-by-side 950",950,750)],km_chim:[mmP("600",600,500),mmP("900",900,500)]};
+FPRE.sbed=FPRE.dbed;
+function fdims(f){var c=FURN[f.type]||{w:2,d:2,h:3};return {w:f.w||c.w,d:f.d||c.d,h:f.h||c.h||3,z:f.z!=null?f.z:(c.z||0)}}
+function isKM(t){return !!(FURN[t]&&FURN[t].km)}
+/* plan symbol primitives in local feet, centre (0,0), back of the item at y=-d/2.
+   Stage: Furniture size editing - every symbol is drawn from the item's own width / depth (fixed details are capped so they stay in proportion) */
+function furnSym(type,w,d,f){var P=[],L=-w/2,Rr=w/2,B=-d/2,F=d/2,mn=Math.min(w,d);f=f||{};
  function r(x0,y0,x1,y1,o){P.push({t:"r",x0:x0,y0:y0,x1:x1,y1:y1,o:o||{}})}function l(x0,y0,x1,y1,o){P.push({t:"l",x0:x0,y0:y0,x1:x1,y1:y1,o:o||{}})}
  function e(cx,cy,rx,ry,o){var pts=[];for(var i=0;i<28;i++){var a=i/28*Math.PI*2;pts.push([cx+rx*Math.cos(a),cy+ry*Math.sin(a)])}P.push({t:"p",pts:pts,closed:true,o:o||{}})}
  function c(cx,cy,rr,o){e(cx,cy,rr,rr,o)}function p(pts,cl,o){P.push({t:"p",pts:pts,closed:cl,o:o||{}})}
+ function sinkAt(x0,x1,y0,y1){var W=x1-x0,H=y1-y0;if(W>2.2){var m=(x0+x1)/2;r(x0,y0,m-0.05,y1,{fill:4});r(m+0.05,y0,x1,y1,{fill:4});c((x0+m)/2,(y0+y1)/2,0.08);c((m+x1)/2,(y0+y1)/2,0.08)}else{r(x0,y0,x1,y1,{fill:4});c((x0+x1)/2,(y0+y1)/2,0.08)}}
+ function hobAt(cx,cy,along){var a=along?0:1,rr=0.36;r(cx-(a?1.1:0.6),cy-(a?0.6:1.1),cx+(a?1.1:0.6),cy+(a?0.6:1.1));[-0.55,0.55].forEach(function(k){var x=cx+(a?k:0),y=cy+(a?0:k);c(x,y,rr);c(x,y,0.14)})}
  switch(type){
- case "dbed":case "sbed":{r(L,B,Rr,F,{fill:1});r(L,B,Rr,B+0.3,{fill:2});var n=type==="dbed"?2:1,g=0.25,pw=(w-0.5-(n-1)*g)/n;for(var i=0;i<n;i++){var x=L+0.25+i*(pw+g);r(x,B+0.5,x+pw,B+1.5,{fill:3})}
-  l(L,B+2.3,Rr,B+2.3);p([[Rr-1.3,B+2.3],[Rr,B+3.4]],false);l(L+0.15,F-0.15,Rr-0.15,F-0.15,{dash:1});break}
- case "wardrobe":r(L,B,Rr,F,{fill:1});l(0,B,0,F);l(L,F-0.12,Rr,F-0.12);l(L+0.2,0,Rr-0.2,0,{dash:1});for(var x=L+0.5;x<Rr-0.3;x+=0.5)l(x,-0.35,x+0.15,0.35);break;
- case "sidetable":r(L,B,Rr,F,{fill:1});c(0,0,Math.min(w,d)*0.28);l(-0.25,0,0.25,0);l(0,-0.25,0,0.25);break;
- case "sofa3":case "sofa1":case "sofaset":{r(L,B,Rr,F,{fill:1});r(L,B,Rr,B+0.7,{fill:2});r(L,B,L+0.6,F,{fill:2});r(Rr-0.6,B,Rr,F,{fill:2});var k=type==="sofa1"?1:3,cw=(w-1.2)/k;for(var j=0;j<k;j++)r(L+0.6+j*cw+0.05,B+0.75,L+0.6+(j+1)*cw-0.05,F-0.1,{fill:3});break}
- case "ctable":r(L,B,Rr,F,{fill:1});r(L+0.25,B+0.25,Rr-0.25,F-0.25);break;
- case "tvunit":{r(L,B,Rr,F,{fill:1});var tw=w*0.75;r(-tw/2,B+0.12,tw/2,B+0.4,{fill:4});r(-0.5,B+0.4,0.5,B+0.75);l(L+0.2,F-0.12,Rr-0.2,F-0.12,{dash:1});break}
- case "dining4":case "dining6":{var k2=type==="dining4"?2:3,tw2=w,th=3;r(-tw2/2,-th/2,tw2/2,th/2,{fill:1});for(var q=0;q<k2;q++){var cx=-tw2/2+tw2*(q+0.5)/k2;
-   r(cx-0.65,-th/2-1.3,cx+0.65,-th/2-0.1,{fill:3});r(cx-0.65,-th/2-1.3,cx+0.65,-th/2-1.1,{fill:2});r(cx-0.65,th/2+0.1,cx+0.65,th/2+1.3,{fill:3});r(cx-0.65,th/2+1.1,cx+0.65,th/2+1.3,{fill:2})}break}
- case "counterS":r(L,B,Rr,F,{fill:1});r(Rr-3.2,B+0.3,Rr-1.95,F-0.3,{fill:4});r(Rr-1.85,B+0.3,Rr-0.6,F-0.3,{fill:4});c(Rr-2.6,0,0.1);c(Rr-1.25,0,0.1);
-  r(L+0.6,B+0.25,L+2.9,F-0.25);c(L+1.15,0,0.38);c(L+2.35,0,0.38);c(L+1.15,0,0.15);c(L+2.35,0,0.15);break;
- case "counterL":p([[L,B],[Rr,B],[Rr,B+2],[L+2,B+2],[L+2,F],[L,F]],true,{fill:1});r(Rr-3.2,B+0.3,Rr-1.95,B+1.7,{fill:4});r(Rr-1.85,B+0.3,Rr-0.6,B+1.7,{fill:4});c(Rr-2.6,B+1,0.1);c(Rr-1.25,B+1,0.1);
-  r(L+0.25,F-3.2,L+1.75,F-0.8);c(L+1,F-2.6,0.38);c(L+1,F-1.4,0.38);c(L+1,F-2.6,0.15);c(L+1,F-1.4,0.15);l(L+2,B+2,L+2.2,B+2.2,{dash:1});break;
- case "fridge":r(L,B,Rr,F,{fill:1});r(L+0.12,B+0.12,Rr-0.12,F-0.3);l(L,F-0.3,Rr,F-0.3);l(Rr-0.45,F-0.3,Rr-0.45,F);break;
- case "cyl":c(0,0,0.55,{fill:4});c(0,0,0.2);break;
- case "wcw":r(L,B,Rr,B+0.6,{fill:1});e(0,B+0.6+0.85,w*0.4,0.85,{fill:1});e(0,B+0.6+0.9,w*0.27,0.6);break;
- case "wci":r(L,B,Rr,F,{fill:1});e(0,0.1,0.42,0.75);c(0,-0.35,0.14);r(-0.68,0.25,-0.42,0.95,{fill:2});r(0.42,0.25,0.68,0.95,{fill:2});break;
- case "basin":r(L,B,Rr,B+0.25,{fill:2});e(0,B+0.75,w*0.45,0.6,{fill:1});e(0,B+0.8,w*0.32,0.42);c(0,B+0.4,0.08);break;
+ case "dbed":case "sbed":{var hb=Math.min(0.3,d*0.05),sc=Math.min(1,d/6.5);r(L,B,Rr,F,{fill:1});r(L,B,Rr,B+hb,{fill:2});var n=w>=3.9?2:1,g=Math.min(0.25,w*0.05),pw=(w-2*g-(n-1)*g)/n,py0=B+hb+0.2*sc,py1=py0+Math.min(1,d*0.16);
+  for(var i=0;i<n;i++){var x=L+g+i*(pw+g);r(x,py0,x+pw,py1,{fill:3})}var fy=B+d*0.36;l(L,fy,Rr,fy);var fw=Math.min(1.3,w*0.35);p([[Rr-fw,fy],[Rr,fy+Math.min(1.1,d*0.17)]],false);l(L+0.15,F-0.15,Rr-0.15,F-0.15,{dash:1});break}
+ case "wardrobe":{r(L,B,Rr,F,{fill:1});var nd=f.doors||(w<=2.6?1:Math.max(2,Math.round(w/1.6)));for(var k=1;k<nd;k++){var xd=L+w*k/nd;l(xd,B,xd,F)}l(L,F-Math.min(0.12,d*0.08),Rr,F-Math.min(0.12,d*0.08));l(L+0.2,0,Rr-0.2,0,{dash:1});var hs=Math.min(0.35,d*0.18);for(var x2=L+0.5;x2<Rr-0.3;x2+=0.5)l(x2,-hs,x2+0.15,hs);break}
+ case "sidetable":r(L,B,Rr,F,{fill:1});c(0,0,mn*0.28);l(-mn*0.17,0,mn*0.17,0);l(0,-mn*0.17,0,mn*0.17);break;
+ case "sofa3":case "sofa1":case "sofaset":{var ar=Math.min(0.6,w*0.15),bk=Math.min(0.7,d*0.25);r(L,B,Rr,F,{fill:1});r(L,B,Rr,B+bk,{fill:2});r(L,B,L+ar,F,{fill:2});r(Rr-ar,B,Rr,F,{fill:2});var ks=type==="sofa1"?1:Math.max(1,Math.round((w-2*ar)/1.8)),cw=(w-2*ar)/ks;for(var j=0;j<ks;j++)r(L+ar+j*cw+0.05,B+bk+0.05,L+ar+(j+1)*cw-0.05,F-0.1,{fill:3});break}
+ case "ctable":{var ins=Math.min(0.25,mn*0.12);r(L,B,Rr,F,{fill:1});r(L+ins,B+ins,Rr-ins,F-ins);break}
+ case "tvunit":{r(L,B,Rr,F,{fill:1});var tw=w*0.75,td=Math.min(0.28,d*0.2);r(-tw/2,B+0.12*Math.min(1,d/1.5),tw/2,B+0.12*Math.min(1,d/1.5)+td,{fill:4});var sw=Math.min(0.5,w*0.12);r(-sw,B+0.4*Math.min(1,d/1.5),sw,B+0.75*Math.min(1,d/1.5));l(L+0.2,F-0.12,Rr-0.2,F-0.12,{dash:1});break}
+ case "dining4":case "dining6":{var th=Math.max(1.5,d-2.6),ch=Math.min(1.2,(d-th)/2-0.1),k2=Math.max(1,Math.round(w/1.9)),cw2=Math.min(1.3,w/k2*0.8);r(-w/2,-th/2,w/2,th/2,{fill:1});
+  for(var q=0;q<k2;q++){var cx=-w/2+w*(q+0.5)/k2,hw=cw2/2;if(ch>0.3){r(cx-hw,-th/2-ch-0.1,cx+hw,-th/2-0.1,{fill:3});r(cx-hw,-th/2-ch-0.1,cx+hw,-th/2-ch+0.1,{fill:2});r(cx-hw,th/2+0.1,cx+hw,th/2+ch+0.1,{fill:3});r(cx-hw,th/2+ch-0.1,cx+hw,th/2+ch+0.1,{fill:2})}}break}
+ case "counterS":{r(L,B,Rr,F,{fill:1});var by=Math.min(0.3,d*0.15);if(w>=3.2){var sW=w>=6?2.6:Math.min(1.6,w*0.4);sinkAt(Rr-0.6-sW,Rr-0.6,B+by,F-by)}if(w>=5.5)hobAt(L+0.6+1.1,0,true);else if(w<3.2)c(0,0,Math.min(0.3,mn*0.25));break}
+ case "counterL":{var cd=Math.min(f.cd||2,Math.min(w,d)-0.5);p([[L,B],[Rr,B],[Rr,B+cd],[L+cd,B+cd],[L+cd,F],[L,F]],true,{fill:1});l(L+cd,B+cd,L,B,{dash:1});
+  var sW2=Math.min(2.6,Math.max(1.2,w-cd-1.2));if(w-cd>=2)sinkAt(Rr-0.4-sW2,Rr-0.4,B+0.3*Math.min(1,cd/2),B+cd-0.3*Math.min(1,cd/2));if(d-cd>=2.4)hobAt(L+cd/2,F-Math.min(2,(d-cd)/2),false);break}
+ case "fridge":r(L,B,Rr,F,{fill:1});r(L+0.12,B+0.12,Rr-0.12,F-0.3);l(L,F-0.3,Rr,F-0.3);l(Rr-Math.min(0.45,w*0.2),F-0.3,Rr-Math.min(0.45,w*0.2),F);if(w>2.8)l(0,B+0.12,0,F-0.3);break;
+ case "cyl":c(0,0,mn*0.46,{fill:4});c(0,0,mn*0.17);break;
+ case "wcw":{var tk=Math.min(0.6,d*0.26),ry=(d-tk)/2*0.95,rx=Math.min(w*0.4,ry*0.85);r(L,B,Rr,B+tk,{fill:1});e(0,B+tk+(d-tk)/2,rx,ry,{fill:1});e(0,B+tk+(d-tk)/2+ry*0.05,rx*0.68,ry*0.7);break}
+ case "wci":{var sx=w/1.6,sy=d/2.2;r(L,B,Rr,F,{fill:1});e(0,0.1*sy,0.42*sx,0.75*sy);c(0,-0.35*sy,0.14*Math.min(sx,sy));r(-0.68*sx,0.25*sy,-0.42*sx,0.95*sy,{fill:2});r(0.42*sx,0.25*sy,0.68*sx,0.95*sy,{fill:2});break}
+ case "basin":{var bs=Math.min(0.25,d*0.18),av=d-bs,ry2=Math.min(av*0.46,w*0.4),rx2=Math.min(w*0.45,ry2*1.6),cy2=B+bs+av/2;r(L,B,Rr,B+bs,{fill:2});if(w>2.6)r(L,B,Rr,F,{});e(0,cy2,rx2,ry2,{fill:1});e(0,cy2+ry2*0.08,rx2*0.72,ry2*0.7);c(0,B+bs+Math.min(0.15,av*0.1),0.08);break}
  case "shower":r(L,B,Rr,F,{fill:1});l(L,B,Rr,F);l(Rr,B,L,F);c(0,0,0.15);c(0,B+0.3,0.22,{fill:4});break;
- case "bucket":r(L,B,Rr,F,{dash:1});c(0.25,0.3,0.45,{fill:4});c(-0.65,0.55,0.18);c(0,B+0.2,0.08);l(0,B,0,B+0.2);r(-1,-0.9,-0.3,-0.2);break;
- case "pooja":r(L,B,Rr,F,{fill:1});l(L,B+0.4,Rr,B+0.4);l(L,B+0.8,Rr,B+0.8);c(-w/3,F-0.22,0.1,{fill:4});c(w/3,F-0.22,0.1,{fill:4});p([[-0.4,B+0.4],[-0.4,B+0.15],[0,B+0.02],[0.4,B+0.15],[0.4,B+0.4]],false);break;
+ case "bucket":{var s2=mn/2.5;r(L,B,Rr,F,{dash:1});c(0.25*s2,0.3*s2,0.45*s2,{fill:4});c(-0.65*s2,0.55*s2,0.18*s2);c(0,B+0.2,0.08);l(0,B,0,B+0.2);r(-1*s2,-0.9*s2,-0.3*s2,-0.2*s2);break}
+ case "pooja":{var sh=Math.min(0.4,d*0.32);r(L,B,Rr,F,{fill:1});l(L,B+sh,Rr,B+sh);l(L,B+2*sh,Rr,B+2*sh);c(-w/3,F-0.22,0.1,{fill:4});c(w/3,F-0.22,0.1,{fill:4});var pw2=Math.min(0.4,w*0.15);p([[-pw2,B+sh],[-pw2,B+sh*0.4],[0,B+0.02],[pw2,B+sh*0.4],[pw2,B+sh]],false);break}
+ /* modular kitchen units: carcass + shutter lines (wall units / chimney dashed = above the counter) */
+ case "km_base":case "km_sink":case "km_hob":case "km_drawer":case "km_tall":{r(L,B,Rr,F,{fill:type==="km_tall"?2:1});var nsh=f.doors||(w>1.6?2:1);l(L,F-0.06,Rr,F-0.06);
+  if(type==="km_drawer"){[0.25,0.5,0.75].forEach(function(t){l(L+0.05,B+d*t,Rr-0.05,B+d*t,{dash:1})})}else for(var k3=1;k3<nsh;k3++)l(L+w*k3/nsh,B,L+w*k3/nsh,F);
+  if(type==="km_sink")sinkAt(L+Math.min(0.25,w*0.1),Rr-Math.min(0.25,w*0.1),B+d*0.15,F-d*0.2);if(type==="km_hob"&&w>=1.8)hobAt(0,0,true);if(type==="km_tall"){l(L,B,Rr,F);l(Rr,B,L,F)}break}
+ case "km_corner":{r(L,B,Rr,F,{fill:1});var cd2=Math.min(560*MM,mn*0.62);p([[L+cd2,B+cd2],[Rr,B+cd2]],false,{dash:1});p([[L+cd2,B+cd2],[L+cd2,F]],false,{dash:1});c(L+cd2*0.5,B+cd2*0.5,Math.min(0.35,cd2*0.3));break}
+ case "km_wall":{r(L,B,Rr,F,{dash:1});var nw2=f.doors||(w>1.6?2:1);for(var k4=1;k4<nw2;k4++)l(L+w*k4/nw2,B,L+w*k4/nw2,F,{dash:1});break}
+ case "km_chim":{p([[L,B],[Rr,B],[Rr-w*0.3,F],[L+w*0.3,F]],true,{dash:1});r(-Math.min(0.5,w*0.15),B,Math.min(0.5,w*0.15),B+Math.min(0.6,d*0.4),{dash:1});break}
+ case "km_fsp":{r(L,B,Rr,F,{dash:1});l(L,B,Rr,F,{dash:1});l(Rr,B,L,F,{dash:1});break}
  default:r(L,B,Rr,F)}
  return P}
 var FFILL={1:"#fbf6ee",2:"#e7d6bd",3:"#ffffff",4:"#d9e6f2"};
 function fXform(f){var a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);return function(x,y){return {x:f.x+x*cs-y*sn,y:f.y+x*sn+y*cs}}}
 function primPolys(pr){if(pr.t==="r")return [[pr.x0,pr.y0],[pr.x1,pr.y0],[pr.x1,pr.y1],[pr.x0,pr.y1]];if(pr.t==="l")return [[pr.x0,pr.y0],[pr.x1,pr.y1]];return pr.pts}
 /* draw onto the plan canvas */
-function drawFurnCanvas(f,sel){var D=fdims(f),X=fXform(f),P=furnSym(f.type,D.w,D.d);
+function drawFurnCanvas(f,sel){var D=fdims(f),X=fXform(f),P=furnSym(f.type,D.w,D.d,f);
  P.forEach(function(pr){var pts=primPolys(pr).map(function(q){var w=X(q[0],q[1]);return w2s(w.x,w.y)}),closed=pr.t!=="l"&&pr.closed!==false;
   g.beginPath();pts.forEach(function(q,i){i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});if(closed)g.closePath();
   if(closed&&pr.o.fill){g.fillStyle=FFILL[pr.o.fill];g.fill()}g.setLineDash(pr.o.dash?[4,3]:[]);g.strokeStyle=sel?"#e8590c":"#7a5432";g.lineWidth=sel?2:1.2;g.stroke();g.setLineDash([])});
  if(sel){var c=w2s(f.x,f.y);g.beginPath();g.arc(c.x,c.y,6,0,7);g.fillStyle="#e8590c";g.fill()}}
 /* draw onto the sheet (Dwg) - layer FURNITURE */
-function drawFurnSheet(d,R,f){var D=fdims(f),X=fXform(f),P=furnSym(f.type,D.w,D.d);
+function drawFurnSheet(d,R,f){var D=fdims(f),X=fXform(f),P=furnSym(f.type,D.w,D.d,f);
  P.forEach(function(pr){var pts=primPolys(pr).map(function(q){var w=X(q[0],q[1]);return R(w.x,w.y)});
   if(pr.t==="l")d.line(pts[0][0],pts[0][1],pts[1][0],pts[1][1],{w:0.15,c:"#6b4a2b",L:"FURNITURE",dash:pr.o.dash?[0.8,0.6]:null});
   else{if(pr.o.fill)d.poly(pts,{w:0,fill:FFILL[pr.o.fill],nodxf:true});d.poly(pts,{w:0.18,c:"#6b4a2b",closed:pr.closed!==false,L:"FURNITURE",dash:pr.o.dash?[0.8,0.6]:null})}})}
@@ -2538,8 +2574,8 @@ function addFurn(type,x,y){snapshot();S.furn=S.furn||[];var c=FURN[type];
  else{var f2={id:nid(),type:type,x:gsnap(x),y:gsnap(y),rot:0};snapFurn(f2,true);S.furn.push(f2);UI.fsel=f2.id}
  changed();updCtx();toast(c.n+" placed - drag to move, Rotate 90° to turn")}
 function furnPopup(x,y){var cat=UI.fcat||"Bedroom";
- function body(){return '<div class="mt">Furniture / மரச்சாமான்</div><div class="ms">Tap an item to place it here. It snaps to the nearest wall.</div><div class="row" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr))">'+FCATS.map(function(c){return '<button class="bb '+(c[0]===cat?"on":"")+'" data-fc="'+c[0]+'">'+c[0]+'<small>'+c[1]+'</small></button>'}).join("")+'</div><div class="grid3">'+
-  Object.keys(FURN).filter(function(k){return FURN[k].cat===cat}).map(function(k){return '<button class="bb" data-fi="'+k+'" style="min-height:110px"><img src="'+furnIcon(k)+'" style="width:96px;height:72px;display:block;margin:0 auto 2px"><span style="font-size:14px">'+esc(FURN[k].n)+'</span><small>'+fi(FURN[k].w)+' x '+fi(FURN[k].d)+'</small></button>'}).join("")+'</div><div class="row"><button class="bb" id="fX">Close</button></div>'}
+ function body(){return '<div class="mt">Furniture / மரச்சாமான்</div><div class="ms">Tap an item to place it here. It snaps to the nearest wall.</div><div class="row" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr))">'+FCATS.map(function(c){return '<button class="bb '+(c[0]===cat?"on":"")+'" data-fc="'+c[0]+'">'+c[0]+'<small>'+c[1]+'</small></button>'}).join("")+'</div><div class="grid3">'+
+  Object.keys(FURN).filter(function(k){return FURN[k].cat===cat}).map(function(k){return '<button class="bb" data-fi="'+k+'" style="min-height:110px"><img src="'+furnIcon(k)+'" style="width:96px;height:72px;display:block;margin:0 auto 2px"><span style="font-size:14px">'+esc(FURN[k].n)+'</span><small>'+(isKM(k)?Math.round(FURN[k].w/MM)+' x '+Math.round(FURN[k].d/MM)+' mm':fi(FURN[k].w)+' x '+fi(FURN[k].d))+'</small></button>'}).join("")+'</div><div class="row"><button class="bb" id="fX">Close</button></div>'}
  modal(body(),bind);function bind(box){box.querySelectorAll("[data-fc]").forEach(function(b){b.onclick=function(){cat=UI.fcat=b.dataset.fc;$("mbox").innerHTML=body();bind($("mbox"))}});
   box.querySelectorAll("[data-fi]").forEach(function(b){b.onclick=function(){closeModal();addFurn(b.dataset.fi,x,y)}});$("fX").onclick=closeModal}}
 function furnSel(){return (S.furn||[]).find(function(f){return f.id===UI.fsel})}
@@ -2651,7 +2687,7 @@ function build3D(){var M=T3.M;[T3.model,T3.edges,T3.labels,T3.env].forEach(clear
  // stairs
  stairsAll(RI).forEach(function(G){G.steps.forEach(function(st){var z=Math.min(st.z,H-0.2);var m=slab(st.pts,0,z,M.stair,"STAIRS3D")})});
  // furniture
- (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});
+ (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});try{kc3DAll(0)}catch(e){console.warn("kc",e)}
  // labels
  RI.faces.forEach(function(f){var l=f.labels[0],name=l?l.name:"Room",at=l||{x:f.cx,y:f.cy};var sp=textSprite(name.toUpperCase()+"\n"+sizeText(f)+"  "+sq(f.carpet!=null?f.carpet:f.area)+" sq.ft",{bg:"rgba(255,255,255,.88)",size:40});
   var w=Math.min(Math.max(f.w*0.42,3.2),5.5);sp.scale.set(w,w/sp.userData.aspect,1);sp.position.set(at.x,H+1.2,at.y);T3.labels.add(sp)});
@@ -2789,7 +2825,7 @@ function furnMaterials(M){function S(o){return new THREE.MeshStandardMaterial(o)
  Object.keys(F).forEach(function(k){var m=F[k];if(m.color&&!m.map)m.color.convertSRGBToLinear();else if(m.color&&m.map&&m.color.getHex()!==0xffffff)m.color.convertSRGBToLinear();if(m.emissive&&!m.emissiveMap)m.emissive.convertSRGBToLinear()});
  M.F=F}
 /* Stage: 3D view - furniture placed with the Component tool */
-function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,Fr=d/2,G=new THREE.Group();
+function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),C0=FURN[f.type]||{},RIG={basin:1,wcw:1,wci:1,cyl:1,bucket:1}[f.type],w=RIG?C0.w:D.w,d=RIG?C0.d:D.d,h=D.h,L=-w/2,Rr=w/2,B=-d/2,Fr=d/2,G=new THREE.Group();
  function add(geo,mat,x,y,z,o){o=o||{};var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(o.rx)m.rotation.x=o.rx;if(o.rz)m.rotation.z=o.rz;if(o.ry)m.rotation.y=o.ry;if(o.sx||o.sy||o.sz)m.scale.set(o.sx||1,o.sy||1,o.sz||1);m.userData.edges=o.edges!==false;G.add(m);return m}
  function bx(W,H,Dp,x,y0,z,mat,o){return add(new THREE.BoxGeometry(W,H,Dp),mat,x,y0+H/2,z,o)}
  function cy(rt,rb,H,x,y0,z,mat,o){o=o||{};return add(new THREE.CylinderGeometry(rt,rb,H,o.seg||18),mat,x,y0+H/2,z,o)}
@@ -2804,6 +2840,15 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
  function stove(x,z,along){var W=along?1.5:2.3,Dp=along?2.3:1.5;bx(W,0.2,Dp,x,2.68,z,F.black);[-1,1].forEach(function(k){var bxp=along?x:x+k*0.58,bz=along?z+k*0.58:z;cy(0.34,0.34,0.03,bxp,2.88,bz,F.iron,{seg:20});cy(0.16,0.16,0.05,bxp,2.89,bz,F.brass,{seg:16});
    for(var a=0;a<4;a++){var g=bx(0.6,0.05,0.04,bxp,2.92,bz,F.iron,{ry:a*Math.PI/4})}})}
  switch(f.type){
+ /* Stage: Kitchen - modular units in 3D (base 720 carcass on 100 plinth, wall units / chimney lifted to their elevation) */
+ case "km_base":case "km_sink":case "km_hob":case "km_drawer":case "km_corner":{var pl=100*MM,top=!(typeof kcCovers==="function"&&kcCovers(f.x,f.y));bx(w-0.1,pl,d-0.15,0,0,-0.05,F.black,{edges:false});bx(w,h,d-0.06,0,pl,-0.03,F.lam);
+  if(f.type==="km_drawer"){for(var q=0;q<3;q++){bx(w-0.06,h/3-0.05,0.05,0,pl+0.03+q*h/3,Fr-0.025,F.shutter);bx(Math.min(0.8,w*0.4),0.05,0.06,0,pl+q*h/3+h/3-0.2,Fr+0.03,F.steel)}}
+  else{var ns=f.doors||(w>1.6?2:1),sw=w/ns;for(var q2=0;q2<ns;q2++){var xx=L+sw*q2+sw/2;bx(sw-0.05,h-0.08,0.05,xx,pl+0.04,Fr-0.025,F.shutter);bx(0.06,0.45,0.06,xx+(q2%2?-1:1)*(sw/2-0.2),pl+h-0.7,Fr+0.03,F.steel)}}
+  if(top)bx(w+0.04,0.13,d+0.06,0,pl+h,0.03,F.granite);if(f.type==="km_sink"&&w>=2.7)sink(0,0.05);else if(f.type==="km_sink")bx(w*0.7,0.03,d*0.6,0,pl+h+0.13,0.05,F.steel);if(f.type==="km_hob"&&w>=2.3)stove(0,0.05,false);break}
+ case "km_tall":{var pl2=100*MM;bx(w-0.1,pl2,d-0.15,0,0,-0.05,F.black,{edges:false});bx(w,h-pl2,d-0.06,0,pl2,-0.03,F.lam);var hh=(h-pl2)/2;for(var q3=0;q3<2;q3++){bx(w-0.06,hh-0.06,0.05,0,pl2+0.03+q3*hh,Fr-0.025,F.shutter);bx(0.06,0.6,0.06,Rr-0.2,pl2+q3*hh+hh/2-0.3,Fr+0.03,F.steel)}break}
+ case "km_wall":{bx(w,h,d,0,0,0,F.lam);var nw=f.doors||(w>1.6?2:1),sw2=w/nw;for(var q4=0;q4<nw;q4++){var x4=L+sw2*q4+sw2/2;bx(sw2-0.05,h-0.06,0.05,x4,0.03,Fr+0.025,F.shutter);bx(0.06,0.4,0.06,x4+(q4%2?-1:1)*(sw2/2-0.2),0.15,Fr+0.07,F.steel)}break}
+ case "km_fsp":bx(w-0.2,h,d-0.15,0,0,-0.05,F.fridge);bx(0.07,1.2,0.1,Rr-0.35,h*0.45,Fr-0.1,F.steel);break;
+ case "km_chim":bx(w,0.3,d,0,0,0,F.steel);bx(w*0.35,Math.max(0.3,h-0.3),d*0.5,0,0.3,B+d*0.25,F.steel);bx(w*0.9,0.03,d*0.9,0,-0.02,0,F.black,{edges:false});break;
  case "dbed":case "sbed":{legs(w,d,0.35,0.25,F.woodD,0.15);bx(w,0.85,d,0,0.35,0,F.woodD);bx(w+0.1,3.5,0.25,0,0,B+0.125,F.woodD);bx(w-0.5,1.55,0.12,0,1.75,B+0.3,F.headF);bx(w+0.04,1.55,0.18,0,0,Fr-0.09,F.woodD);
   bx(w-0.2,0.7,d-0.5,0,1.2,0.07,F.mattress);var bl=d*0.6,bz=Fr-0.28-bl/2;bx(w-0.08,0.1,bl,0,1.86,bz,F.blanket);[-1,1].forEach(function(k){bx(0.06,0.6,bl,k*(w/2-0.05),1.32,bz,F.blanket,{edges:false})});bx(w-0.08,0.15,0.55,0,1.88,bz-bl/2+0.28,F.sheet);
   var n=f.type==="dbed"?2:1,pw=(w-0.6)/n;for(var i=0;i<n;i++)sp(1,L+0.3+pw*(i+0.5),2.05,B+0.95,F.pillow,{sx:pw*0.44,sy:0.22,sz:0.5});break}
@@ -2819,14 +2864,14 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
  case "dining4":case "dining6":{var k2=f.type==="dining4"?2:3,tw2=w;legs(tw2,3,2.4,0.2,F.woodD,0.3);bx(tw2,0.12,3,0,2.4,0,F.woodD);
   for(var q=0;q<k2;q++){var cx=-tw2/2+tw2*(q+0.5)/k2;[-1,1].forEach(function(s){var zc=s*(1.5+0.68),g2=[];[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(function(p){bx(0.12,1.5,0.12,cx+p[0]*0.55,0,zc+p[1]*0.52,F.woodL)});bx(1.32,0.12,1.28,cx,1.5,zc,F.woodL);bx(1.2,0.1,1.15,cx,1.62,zc,F.cushion);bx(1.32,1.75,0.12,cx,1.62,zc+s*0.58,F.woodL)})}
   break}
- case "counterS":cabinetRun(L,Rr,B,Fr,"z");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);sink(Rr-1.9,0.1);stove(L+1.75,0.1,false);break;
- case "counterL":cabinetRun(L+2,Rr,B,B+2,"z");cabinetRun(L,L+2,B,Fr,"x");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);bx(0.05,2.0,d,L+0.025,2.68,0,F.tileW);sink(Rr-1.9,B+1.1);stove(L+1.05,Fr-2,true);break;
+ case "counterS":cabinetRun(L,Rr,B,Fr,"z");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);if(w>=4)sink(Rr-1.9,0.1);if(w>=5.5)stove(L+1.75,0.1,false);break;
+ case "counterL":{var cd=Math.min(f.cd||2,Math.min(w,d)-0.5);cabinetRun(L+cd,Rr,B,B+cd,"z");cabinetRun(L,L+cd,B,Fr,"x");bx(w,2.0,0.05,0,2.68,B+0.025,F.tileW);bx(0.05,2.0,d,L+0.025,2.68,0,F.tileW);if(w-cd>=3)sink(Rr-1.9,B+cd/2+0.1);if(d-cd>=2.4)stove(L+cd/2+0.05,Fr-Math.min(2,(d-cd)/2),true);break}
  case "fridge":bx(w-0.1,0.12,d-0.2,0,0,0,F.black,{edges:false});bx(w-0.1,5.5,d-0.12,0,0.12,0,F.fridge);bx(w-0.08,0.03,0.03,0,3.9,Fr-0.05,F.steelD,{edges:false});bx(0.07,1.1,0.1,Rr-0.32,4.2,Fr+0.0,F.steel);bx(0.07,1.4,0.1,Rr-0.32,2.2,Fr+0.0,F.steel);break;
  case "cyl":cy(0.46,0.46,0.18,0,0,0,F.red);cy(0.5,0.5,1.45,0,0.18,0,F.red,{seg:24});sp(0.5,0,1.63,0,F.red,{sy:0.5});cy(0.24,0.24,0.28,0,1.78,0,F.red);cy(0.07,0.07,0.22,0,1.95,0,F.brass);break;
- case "wcw":bx(0.62,1.2,0.75,0,0,B+0.75,F.ceramic);cy(0.62,0.45,1.2,0,0,B+1.45,F.ceramic,{sx:w*0.4/0.62,sz:0.85/0.62,seg:24});cy(0.64,0.64,0.07,0,1.2,B+1.45,F.seat,{sx:w*0.41/0.64,sz:0.88/0.64,seg:24});
+ case "wcw":bx(0.62,1.2,0.75,0,0,B+0.75,F.ceramic);cy(0.62,0.45,1.2,0,0,B+1.45,F.ceramic,{sx:1.4*0.4/0.62,sz:0.85/0.62,seg:24});cy(0.64,0.64,0.07,0,1.2,B+1.45,F.seat,{sx:1.4*0.41/0.64,sz:0.88/0.64,seg:24});
   bx(1.35,1.25,0.58,0,1.27,B+0.3,F.ceramic);bx(1.42,0.08,0.64,0,2.52,B+0.31,F.ceramic);cy(0.08,0.08,0.03,0,2.6,B+0.31,F.steel,{seg:14});break;
  case "wci":bx(w,0.14,d,0,0,0,F.ceramic);cy(0.42,0.42,0.02,0,0.14,0.1,F.pan,{sz:0.75/0.42,seg:22,edges:false});cy(0.13,0.13,0.025,0,0.145,-0.4,F.steelD,{seg:14,edges:false});[-1,1].forEach(function(s){bx(0.26,0.06,0.7,s*0.55,0.14,0.6,F.ceramic)});cy(0.05,0.05,0.3,0.5,1.8,B+0.12,F.steel,{rx:Math.PI/2});break;
- case "basin":cy(0.17,0.24,2.15,0,0,B+0.55,F.ceramic,{seg:16});cy(0.8,0.55,0.5,0,2.15,B+0.75,F.ceramic,{sx:w*0.45/0.8,sz:0.62/0.8,seg:24});cy(0.68,0.68,0.02,0,2.64,B+0.78,F.pan,{sx:w*0.45/0.8,sz:0.5/0.8,seg:24,edges:false});
+ case "basin":cy(0.17,0.24,2.15,0,0,B+0.55,F.ceramic,{seg:16});cy(0.8,0.55,0.5,0,2.15,B+0.75,F.ceramic,{sx:1.8*0.45/0.8,sz:0.62/0.8,seg:24});cy(0.68,0.68,0.02,0,2.64,B+0.78,F.pan,{sx:1.8*0.45/0.8,sz:0.5/0.8,seg:24,edges:false});
   cy(0.045,0.045,0.38,0,2.65,B+0.22,F.steel);bx(0.06,0.06,0.3,0,2.98,B+0.36,F.steel);bx(1.6,2.1,0.05,0,3.5,B+0.03,F.mirror);break;
  case "shower":bx(w,0.15,d,0,0,0,F.ceramic);var gl=T3.M.glass;bx(w*0.55,6.3,0.04,Rr-w*0.275,0.15,Fr-0.03,gl,{edges:false});bx(0.04,6.3,d,Rr-0.03,0.15,0,gl,{edges:false});bx(w*0.55,0.06,0.06,Rr-w*0.275,6.45,Fr-0.03,F.steel);bx(0.06,0.06,d,Rr-0.03,6.45,0,F.steel);
   cy(0.05,0.05,5.9,0,0.15,B+0.1,F.steel);bx(0.06,0.06,0.6,0,6.0,B+0.38,F.steel);cy(0.32,0.22,0.08,0,5.9,B+0.65,F.steel,{seg:20});cy(0.12,0.12,0.12,0,3.6,B+0.12,F.steel,{rx:Math.PI/2});cy(0.15,0.15,0.01,0,0.15,0,F.steelD,{edges:false});break;
@@ -2835,12 +2880,12 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),w=D.w,d=D.d,L=-w/2,Rr=w/2,B=-d/2,
   bx(w+0.25,0.25,d+0.2,0,6.0,0.05,F.woodD);cy(0.0,0.42,0.45,0,6.25,0,F.brass,{seg:4,ry:Math.PI/4});bx(w-0.3,0.08,d,0,2.4,0,F.woodL);bx(w-0.6,0.3,d*0.5,0,2.48,B+d*0.3,F.woodL);bx(w-1.2,0.3,d*0.4,0,2.78,B+d*0.22,F.woodL);
   cy(0.12,0.16,0.3,0,3.08,B+0.25,F.brass);sp(0.16,0,3.5,B+0.25,F.brass,{sy:1.3});[-1,1].forEach(function(s){cy(0.07,0.12,0.22,s*w/3,2.48,Fr-0.25,F.brass);sp(0.045,s*w/3,2.78,Fr-0.25,F.flame,{sy:1.8})});break}
  }
- G.position.set(f.x,0.005,f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;G.updateMatrix();
+ G.position.set(f.x,0.005+(D.z||0),f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;if(RIG)G.scale.set(D.w/C0.w,1,D.d/C0.d);if(f.h&&!C0.km&&C0.h)G.scale.y=f.h/C0.h;G.updateMatrix();
  G.children.slice().forEach(function(m){m.applyMatrix4(G.matrix);m.castShadow=m.material!==T3.M.glass;m.receiveShadow=true;m.userData.layer=m.material===T3.M.glass?"GLASS3D":"FURN3D";m.userData.real=m.material;T3.model.add(m);
   if(m.userData.edges){var e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,28),T3.M.edgeReal);e.position.copy(m.position);e.quaternion.copy(m.quaternion);e.scale.copy(m.scale);e.userData.layer="FURN3D";T3.edges.add(e)}})}
 
 /* ================= v1.3 LEVELS (multi-floor). Each level keeps its own model; S.pts / S.segs / ... point at the current level ================= */
-var LVK=["pts","segs","labels","ops","furn","cols","beams","dims","notes","spots","dlines","rails","stairs"];
+var LVK=["pts","segs","labels","ops","furn","cols","beams","dims","notes","spots","dlines","rails","stairs","kcs"];
 var LVNAMES=["Ground Floor","First Floor","Second Floor","Third Floor","Fourth Floor","Fifth Floor"];
 /* Stage: Levels - Level tool: data for one floor */
 function newLevel(name,h){var L={id:0,name:name,h:h||10,slab:5,ceil:9.5};LVK.forEach(function(k){L[k]=[]});return L}
@@ -3002,9 +3047,9 @@ function floorPopup(){var L=curLv();modal('<div class="mt">Floor / slab - '+esc(
  $("flOk").onclick=function(){var h=parseFI($("flH").value),t=+$("flT").value,c=parseFI($("flC").value);snapshot();if(h>=7&&h<=30)L.h=h;if(t>=3&&t<=12)L.slab=t;if(c>=6&&c<=L.h)L.ceil=c;closeModal();changed();updLevelBadge()}})}
 
 /* ================= v1.3 MODIFY: select, move, copy, rotate, mirror, array, align, trim/extend, split, offset, pin, delete ================= */
-var EK={seg:"segs",op:"ops",furn:"furn",lab:"labels",col:"cols",beam:"beams",dim:"dims",note:"notes",spot:"spots",dline:"dlines",rail:"rails",grid:"grids",sec:"secs",stair:"stairs"};
-var EKN={seg:"Wall",op:"Door / Window",furn:"Furniture",lab:"Room tag",col:"Column",beam:"Beam",dim:"Dimension",note:"Text",spot:"Spot level",dline:"Detail line",rail:"Railing",grid:"Grid",sec:"Section",stair:"Stair"};
-var EKV={seg:"walls",op:"doors",furn:"furn",lab:"rooms",col:"cols",beam:"beams",dim:"dims",note:"text",spot:"text",dline:"dlines",rail:"rails",grid:"grids",sec:"secs",stair:"stairs"};
+var EK={seg:"segs",op:"ops",furn:"furn",lab:"labels",col:"cols",beam:"beams",dim:"dims",note:"notes",spot:"spots",dline:"dlines",rail:"rails",grid:"grids",sec:"secs",stair:"stairs",kc:"kcs"};
+var EKN={seg:"Wall",op:"Door / Window",furn:"Furniture",lab:"Room tag",col:"Column",beam:"Beam",dim:"Dimension",note:"Text",spot:"Spot level",dline:"Detail line",rail:"Railing",grid:"Grid",sec:"Section",stair:"Stair",kc:"Kitchen counter"};
+var EKV={seg:"walls",op:"doors",furn:"furn",lab:"rooms",col:"cols",beam:"beams",dim:"dims",note:"text",spot:"text",dline:"dlines",rail:"rails",grid:"grids",sec:"secs",stair:"stairs",kc:"furn"};
 function elGet(r){var A=S[EK[r.k]]||[];for(var i=0;i<A.length;i++)if(A[i].id===r.id)return A[i];return null}
 function selHas(k,id){return (UI.sel||[]).some(function(r){return r.k===k&&r.id===id})}
 function selEls(){return (UI.sel||[]).filter(function(r){return elGet(r)})}
@@ -3026,12 +3071,13 @@ function hitList(w,R){var out=[];function add(k,id,d,pri){if(d<=R)out.push({k:k,
  if(visOn("dlines"))S.dlines.forEach(function(m){add("dline",m.id,d2seg(w,m.a,m.b),0.5)});
  if(visOn("grids"))S.grids.forEach(function(m){var G=gridGeom(m);add("grid",m.id,Math.min(d2seg(w,G.a,G.b),Math.hypot(G.ba.x-w.x,G.ba.y-w.y)-G.r,Math.hypot(G.bb.x-w.x,G.bb.y-w.y)-G.r),0)});
  if(visOn("secs"))S.secs.forEach(function(m){add("sec",m.id,d2seg(w,m.a,m.b),0.5)});
+ if(visOn("furn"))(S.kcs||[]).forEach(function(c){var d=kcHitD(c,w);add("kc",c.id,d===0?R*0.3:d,d===0?1:0.5)});
  if(visOn("stairs"))(S.stairs||[]).forEach(function(st){var d=stairHitD(st,w);add("stair",st.id,d===0?R*0.25:d,d===0?1:0.5)});
  if(visOn("walls"))S.segs.forEach(function(s){var q=projSeg(w.x,w.y,pt(s.a),pt(s.b));add("seg",s.id,Math.max(0,q.d-(S.meta.dbl?wallT(s)/2:0)),0)});
  out.sort(function(a,b){return a.d-b.d});return out}
 function hitOne(w){var L=hitList(w,snapR()*1.4);return L.length?{k:L[0].k,id:L[0].id}:null}
 function elPts(r){var e=elGet(r);if(!e)return [];if(r.k==="seg")return [pt(e.a),pt(e.b)];if(r.k==="op"){var G=opWorld(e);return G?[G.p0,G.p1]:[]}
- if(r.k==="furn"){var X=fXform(e),D=fdims(e);return [X(-D.w/2,-D.d/2),X(D.w/2,-D.d/2),X(D.w/2,D.d/2),X(-D.w/2,D.d/2)]}if(r.k==="col")return colPoly(e);if(r.k==="stair")return stairPts(e);if(r.k==="note"){var b=noteBox(e);return [{x:b[0],y:b[1]},{x:b[2],y:b[3]}]}
+ if(r.k==="furn"){var X=fXform(e),D=fdims(e);return [X(-D.w/2,-D.d/2),X(D.w/2,-D.d/2),X(D.w/2,D.d/2),X(-D.w/2,D.d/2)]}if(r.k==="col")return colPoly(e);if(r.k==="stair")return stairPts(e);if(r.k==="kc")return kcPoly(e);if(r.k==="note"){var b=noteBox(e);return [{x:b[0],y:b[1]},{x:b[2],y:b[3]}]}
  if(e.a&&e.b&&e.a.x!=null)return [e.a,e.b];return [{x:e.x,y:e.y}]}
 function elBox(r){var P=elPts(r);if(!P.length)return null;var b=[Infinity,Infinity,-Infinity,-Infinity];P.forEach(function(p){b[0]=Math.min(b[0],p.x);b[1]=Math.min(b[1],p.y);b[2]=Math.max(b[2],p.x);b[3]=Math.max(b[3],p.y)});return b}
 function allRefs(){var out=[];Object.keys(EK).forEach(function(k){if(!visOn(EKV[k]))return;(S[EK[k]]||[]).forEach(function(e){out.push({k:k,id:e.id})})});return out}
@@ -3055,6 +3101,7 @@ function xfRefs(L,f,ang,mir){var seen=new Set(),segMoved={};
  L.forEach(function(r){var e=elGet(r);if(!e||r.k==="op")return;
   if(r.k==="seg"){mv(pt(e.a));mv(pt(e.b));segMoved[e.id]=1;return}
   if(r.k==="stair"){e.pts.forEach(mv);if(e.fit){delete e.fit;delete e.lab}return}
+  if(r.k==="kc"){e.pts.forEach(mv);if(mir!=null)e.side=-(e.side||1);return}
   if(e.a&&e.b&&e.a.x!=null){mv(e.a);mv(e.b);if(mir!=null&&r.k==="dim")e.off=-(e.off||0);return}
   mv(e);if(r.k==="furn"){if(mir!=null)e.rot=((2*mir-(e.rot||0)+180)%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}
   if(r.k==="col"){if(mir!=null)e.rot=((2*mir-(e.rot||0))%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}});
@@ -3144,7 +3191,7 @@ function offsetDistPopup(){modal('<div class="mt">Offset distance</div><div clas
 function drawSelCanvas(){var L=selEls();g.save();
  L.forEach(function(r){var e=elGet(r),P;g.strokeStyle=e.pin?"#7c3aed":"#0ea5e9";g.lineWidth=3;g.setLineDash([]);
   if(r.k==="seg"&&S.meta.dbl){P=wallPoly(e)}else if(r.k==="furn"||r.k==="col")P=elPts(r);
-  if(r.k==="stair")stairSelDraw(e);else if(P){g.beginPath();P.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle="rgba(14,165,233,.28)";g.fill();g.stroke()}
+  if(r.k==="stair")stairSelDraw(e);else if(r.k==="kc")kcSelDraw(e);else if(P){g.beginPath();P.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle="rgba(14,165,233,.28)";g.fill();g.stroke()}
   else{var Q=elPts(r);if(Q.length>=2){var a=w2s(Q[0].x,Q[0].y),b=w2s(Q[1].x,Q[1].y);if(r.k==="note"){g.strokeRect(a.x-3,a.y-3,b.x-a.x+6,b.y-a.y+6)}else{g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineWidth=7;g.globalAlpha=0.45;g.stroke();g.globalAlpha=1}}
    else if(Q.length){var q=w2s(Q[0].x,Q[0].y);g.beginPath();g.arc(q.x,q.y,16,0,7);g.stroke()}}
   if(e.pin){var c=elPts(r)[0],qq=w2s(c.x,c.y);pill(qq.x+10,qq.y-12,"PIN","#7c3aed","#fff",10)}});
@@ -3231,7 +3278,7 @@ function toolMove(w,G,p){if(G.kind==="boxsel"){if(G.moved){UI.box={a:G.w0,b:w};r
  if(G.kind==="line2"){if(G.moved){UI.lp={a:G.a,b:snapLine(w,G.a)};showHud(fi(Math.hypot(UI.lp.b.x-G.a.x,UI.lp.b.y-G.a.y)));render()}return true}
  return false}
 function xfNoPlan(L,dx,dy){var seen=new Set();function mv(p){if(!p||seen.has(p))return;seen.add(p);p.x+=dx;p.y+=dy}var segs={};L.forEach(function(r){if(r.k==="seg")segs[r.id]=1});
- L.forEach(function(r){var e=elGet(r);if(!e)return;if(r.k==="seg"){mv(pt(e.a));mv(pt(e.b))}else if(r.k==="op"){if(segs[e.seg])return;var s=segById(e.seg),G=opWorld(e);if(!s||!G)return;var q=projSeg(G.c.x+dx,G.c.y+dy,pt(s.a),pt(s.b));e.t=clamp(q.t,0,1)}else if(r.k==="stair"){e.pts.forEach(mv);if(e.fit){delete e.fit;delete e.lab}}else if(e.a&&e.b&&e.a.x!=null){mv(e.a);mv(e.b)}else mv(e)})}
+ L.forEach(function(r){var e=elGet(r);if(!e)return;if(r.k==="seg"){mv(pt(e.a));mv(pt(e.b))}else if(r.k==="op"){if(segs[e.seg])return;var s=segById(e.seg),G=opWorld(e);if(!s||!G)return;var q=projSeg(G.c.x+dx,G.c.y+dy,pt(s.a),pt(s.b));e.t=clamp(q.t,0,1)}else if(r.k==="kc"){e.pts.forEach(mv)}else if(r.k==="stair"){e.pts.forEach(mv);if(e.fit){delete e.fit;delete e.lab}}else if(e.a&&e.b&&e.a.x!=null){mv(e.a);mv(e.b)}else mv(e)})}
 function toolUp(G,w){if(G.kind==="boxsel"){var b=UI.box;UI.box=null;if(G.moved&&b)boxSelect(b.a,b.b,UI.addSel);else{var h=hitOne(w);if(h)setSel([h],UI.addSel);else if(!UI.addSel)clearSel()}render();return true}
  if(G.kind==="dragsel"){hideHud();if(G.snap){planarize();changed();updProps()}else{var h2=hitOne(w);if(h2)setSel([h2],UI.addSel)}return true}
  if(G.kind==="line2"){hideHud();var lp=UI.lp;UI.lp=null;if(G.moved&&lp){UI.lpA=null;commitLine(UI.tool,lp.a,lp.b)}else{if(UI.lpA){var b2=snapLine(w,UI.lpA),a=UI.lpA;UI.lpA=null;commitLine(UI.tool,a,b2)}else{UI.lpA=snapLine(w);toast("Start point set - tap the end point (or drag)")}}render();return true}
@@ -3417,7 +3464,7 @@ function build3DLevel(P,i,ti,rc,M){var RI=P.RI,H=P.H,sl=P.sl,PL=PLH,isTop=i===ti
  P.beams.forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);if(L<0.1)return;var u={x:(m.b.x-m.a.x)/L,y:(m.b.y-m.a.y)/L};wallBox(m.a,u,0,L,H-sl-m.d/12,H-sl,m.w/12+0.02,M.coping,"BEAMS3D")});
  P.rails.forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);if(L<0.1)return;var u={x:(m.b.x-m.a.x)/L,y:(m.b.y-m.a.y)/L},h=m.h||3;wallBox(m.a,u,0,L,h-0.15,h,0.2,M.handle,"RAIL3D");var n=Math.max(1,Math.ceil(L/4));for(var k=0;k<=n;k++){var s0=L*k/n;wallBox(m.a,u,Math.max(0,s0-0.06),Math.min(L,s0+0.06)||0.12,0,h-0.15,0.12,M.handle,"RAIL3D",0,{edges:false})}
   var nb=Math.floor(L/0.4);for(var j=1;j<nb;j++){var s1=L*j/nb;wallBox(m.a,u,s1-0.02,s1+0.02,0.3,h-0.15,0.04,M.handle,"RAIL3D",0,{edges:false,cast:false})}});
- (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});
+ (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});try{kc3DAll(0)}catch(e){console.warn("kc",e)}
  RI.faces.forEach(function(f){var l=f.labels[0],name=l?l.name:"Room",at=l||{x:f.cx,y:f.cy};var sp=textSprite((S.L.length>1?S.L[i].name.split(" ")[0]+": ":"")+name.toUpperCase()+"\n"+sizeText(f)+"  "+sq(f.carpet!=null?f.carpet:f.area)+" sq.ft",{bg:"rgba(255,255,255,.88)",size:40});
   var w=Math.min(Math.max(f.w*0.42,3.2),5.5);sp.scale.set(w,w/sp.userData.aspect,1);sp.position.set(at.x,isTop?H+1.2:H*0.55,at.y);T3.labels.add(sp)})}
 function bbox3(){var mx=Infinity,mz=Infinity,Mx=-Infinity,Mz=-Infinity;S.L.forEach(function(L){L.pts.forEach(function(p){mx=Math.min(mx,p.x);mz=Math.min(mz,p.y);Mx=Math.max(Mx,p.x);Mz=Math.max(Mz,p.y)})});if(!isFinite(mx)){mx=mz=0;Mx=Mz=10}
@@ -3445,7 +3492,7 @@ function planExtras(d,R,k){function P(p){return R(p.x,p.y)}function ln(a,b,o){va
    circ(c,3.2,{w:0.3,c:"#111111",L:"SECTION"});d.text(c[0],c[1]+1.1,ascii(m.name),3,{a:"middle",bold:true,L:"SECTION"})})})}
 
 /* ================= v1.3 RIBBON (tabs) + PROPERTIES panel + Visibility/Graphics ================= */
-var ICO=Object.assign({"undo": "<path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/>", "redo": "<path d=\"m15 14 5-5-5-5\"/><path d=\"M20 9H9.5a5.5 5.5 0 0 0 0 11H13\"/>", "fit": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2\"/><rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\"/>", "clean": "<rect x=\"2.5\" y=\"4\" width=\"19\" height=\"16\" rx=\"2\"/><path d=\"M15.5 4v16M15.5 14.5h6\"/>", "menu": "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>", "levels": "<path d=\"m12 3 9 4.5-9 4.5-9-4.5z\"/><path d=\"m3 12 9 4.5 9-4.5\"/><path d=\"m3 16.5 9 4.5 9-4.5\"/>", "props": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M15 3v18\"/>", "close": "<path d=\"m15 18-6-6 6-6\"/>", "cad": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"m8 16 4-9 4 9M9.5 13h5\"/>", "spin": "<path d=\"M21 12a9 9 0 1 1-2.64-6.36L21 8\"/><path d=\"M21 3v5h-5\"/>", "roof": "<path d=\"M2.5 11 12 4l9.5 7\"/><path d=\"M5 9.2V20h14V9.2\"/>", "tag": "<path d=\"M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\"/>", "grid": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M3 15h18M9 3v18M15 3v18\"/>", "img": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21\"/>", "dxf": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/><path d=\"M14 2v5h5\"/><path d=\"m10 12.5-2 2.5 2 2.5M14 12.5l2 2.5-2 2.5\"/>", "cube": "<path d=\"M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z\"/><path d=\"M3.3 7 12 12l8.7-5M12 22V12\"/>", "sofa": "<path d=\"M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3\"/><path d=\"M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z\"/><path d=\"M4 18v2M20 18v2\"/>", "draw": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "wall": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "move": "<path d=\"M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20\"/>", "size": "<path d=\"M4 8v8M20 8v8M4 12h16\"/><path d=\"m7.5 9.5-2.5 2.5 2.5 2.5M16.5 9.5l2.5 2.5-2.5 2.5\"/>", "room": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"1.5\"/><path d=\"M3 12h8v9M11 3v4.5\"/>", "door": "<path d=\"M2 21h20\"/><path d=\"M13 4h3a2 2 0 0 1 2 2v15\"/><path d=\"M13 3.5v17.5l-6-1.8V5.2z\"/><path d=\"M10.2 12.2v.1\"/>", "del": "<path d=\"M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6\"/>", "focus": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3\"/>", "unfocus": "<path d=\"M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3\"/>", "import": "<path d=\"M12 3v12\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M5 21h14\"/>", "fillc": "<path d=\"M4 4h16v6H10v10H4z\" fill=\"currentColor\" fill-opacity=\".35\"/><path d=\"M4 4h16v6H10v10H4z\"/>", "fsave": "<path d=\"M5 3h11l3 3v15H5z\"/><path d=\"M8 3v5h8V3\"/><rect x=\"8\" y=\"13\" width=\"8\" height=\"6\" rx=\"1\"/>", "fopen": "<path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z\"/><path d=\"M3 10h18l-2 9H5z\"/>", "sliders": "<path d=\"M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4\"/>"},{
+var ICO=Object.assign({"undo": "<path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/>", "redo": "<path d=\"m15 14 5-5-5-5\"/><path d=\"M20 9H9.5a5.5 5.5 0 0 0 0 11H13\"/>", "fit": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2\"/><rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\"/>", "clean": "<rect x=\"2.5\" y=\"4\" width=\"19\" height=\"16\" rx=\"2\"/><path d=\"M15.5 4v16M15.5 14.5h6\"/>", "menu": "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>", "levels": "<path d=\"m12 3 9 4.5-9 4.5-9-4.5z\"/><path d=\"m3 12 9 4.5 9-4.5\"/><path d=\"m3 16.5 9 4.5 9-4.5\"/>", "props": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M15 3v18\"/>", "close": "<path d=\"m15 18-6-6 6-6\"/>", "cad": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"m8 16 4-9 4 9M9.5 13h5\"/>", "spin": "<path d=\"M21 12a9 9 0 1 1-2.64-6.36L21 8\"/><path d=\"M21 3v5h-5\"/>", "roof": "<path d=\"M2.5 11 12 4l9.5 7\"/><path d=\"M5 9.2V20h14V9.2\"/>", "tag": "<path d=\"M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\"/>", "grid": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M3 15h18M9 3v18M15 3v18\"/>", "img": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21\"/>", "dxf": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/><path d=\"M14 2v5h5\"/><path d=\"m10 12.5-2 2.5 2 2.5M14 12.5l2 2.5-2 2.5\"/>", "cube": "<path d=\"M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z\"/><path d=\"M3.3 7 12 12l8.7-5M12 22V12\"/>", "sofa": "<path d=\"M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3\"/><path d=\"M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z\"/><path d=\"M4 18v2M20 18v2\"/>", "draw": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "wall": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "move": "<path d=\"M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20\"/>", "size": "<path d=\"M4 8v8M20 8v8M4 12h16\"/><path d=\"m7.5 9.5-2.5 2.5 2.5 2.5M16.5 9.5l2.5 2.5-2.5 2.5\"/>", "room": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"1.5\"/><path d=\"M3 12h8v9M11 3v4.5\"/>", "door": "<path d=\"M2 21h20\"/><path d=\"M13 4h3a2 2 0 0 1 2 2v15\"/><path d=\"M13 3.5v17.5l-6-1.8V5.2z\"/><path d=\"M10.2 12.2v.1\"/>", "del": "<path d=\"M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6\"/>", "focus": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3\"/>", "unfocus": "<path d=\"M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3\"/>", "import": "<path d=\"M12 3v12\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M5 21h14\"/>", "kcount": "<path d=\"M3 6h18v5H3zM3 11h5v8H3\"/><circle cx=\"15\" cy=\"8.5\" r=\"1.4\"/>", "kmod": "<rect x=\"3\" y=\"10\" width=\"8\" height=\"10\"/><rect x=\"13\" y=\"10\" width=\"8\" height=\"10\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"4\" stroke-dasharray=\"2 2\"/><path d=\"M9 15h0M15 15h0\"/>", "ksched": "<rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"1\"/><path d=\"M8 8h8M8 12h8M8 16h5\"/>", "fsize": "<path d=\"M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7\"/>", "fillc": "<path d=\"M4 4h16v6H10v10H4z\" fill=\"currentColor\" fill-opacity=\".35\"/><path d=\"M4 4h16v6H10v10H4z\"/>", "fsave": "<path d=\"M5 3h11l3 3v15H5z\"/><path d=\"M8 3v5h8V3\"/><rect x=\"8\" y=\"13\" width=\"8\" height=\"6\" rx=\"1\"/>", "fopen": "<path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z\"/><path d=\"M3 10h18l-2 9H5z\"/>", "sliders": "<path d=\"M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4\"/>"},{
  sel:'<path d="M5 3l13 7-6 1.6L9.5 18z"/><path d="M12.5 12l5 6"/>',col:'<rect x="8" y="3" width="8" height="18"/><path d="M8 3l8 18M16 3L8 21"/>',beam:'<path d="M2 9h20v6H2z" stroke-dasharray="3 2"/>',
  stair:'<path d="M3 21h4v-4h4v-4h4V9h4V5h2"/>',rail:'<path d="M3 8h18M5 8v12M10 8v12M14 8v12M19 8v12"/>',slab:'<path d="M2 14l10-5 10 5-10 5z"/><path d="M2 14v3l10 5 10-5v-3"/>',
  roof2:'<path d="M2 12L12 4l10 8"/><path d="M5 10v10h14V10"/>',grid2:'<circle cx="12" cy="4" r="2.6"/><path d="M12 6.6V22" stroke-dasharray="4 2 1 2"/><circle cx="4" cy="12" r="2.6"/><path d="M6.6 12H22" stroke-dasharray="4 2 1 2"/>',
@@ -3533,7 +3580,8 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
  else{var r=L[0],e=elGet(r);h+='<div class="pt">'+EKN[r.k]+(e.pin?" · pinned":"")+'</div>';
   if(r.k==="seg"){var run=wallRun(e);h+=pf("Inner length (clear)","",fi(segInner(e).L),{ro:1})+pf("Length (c/c)","seg.len",fi(segLen(e)))+pf("Full straight wall","",fi(run.len),{ro:1})+pf("Thickness (inch)","seg.th",wallIn(e),{num:1})+pf("Function","seg.k",e.k==="I"?"I":"O",{opts:[["O","Exterior"],["I","Interior"]]})+pf("Base level","",lv.name,{ro:1})+pf("Unconnected height","",fi(lv.h),{ro:1})+pf("Openings","",S.ops.filter(function(o){return o.seg===e.id}).length,{ro:1})}
   else if(r.k==="op"){h+=pf("Family","op.dk",opKind(e),{opts:OK5.map(function(k){return [k,k+" "+OKN[k]]})})+pf("Width","op.w",fi(e.w))+pf("Height","op.h",fi(opH(e)))+pf("Sill height","op.sill",fi(opSill(e)))+pf("Lintel level","",lvl(opSill(e)+opH(e)),{ro:1})+pf("Mark","",e._mark||"-",{ro:1})+(e.type==="D"?pf("Swing","op.flip",e.flip?"1":"0",{opts:[["0","Side 1"],["1","Side 2"]]})+pf("Hinge","op.hinge",e.hinge?"1":"0",{opts:[["0","Left"],["1","Right"]]}):"")+pf("Offset along wall","op.t",fmt(e.t*100,0)+"%",{ro:1})}
-  else if(r.k==="furn"){var D=fdims(e);h+=pf("Family","",FURN[e.type].n,{ro:1})+pf("Width","f.w",fi(D.w))+pf("Depth","f.d",fi(D.d))+pf("Rotation (°)","f.rot",e.rot||0,{num:1})}
+  else if(r.k==="furn")h+=furnProps(e);
+  else if(r.k==="kc")h+=kcProps(e);
   else if(r.k==="lab"){var f=LABF[e.id];h+=pf("Name","lab.name",e.name)+(f?pf("Clear size","",sizeText(f),{ro:1})+pf("Carpet area","",sq(f.carpet)+" sq.ft",{ro:1}):"")+(isStair(e.name)?pf("Stair type","lab.st",(e.st&&e.st.type)||"straight",{opts:[["straight","Straight"],["L","L-shape"],["U","U / dog-legged"]]}):"")}
   else if(r.k==="stair")h+=stairProps(e);
   else if(r.k==="col")h+=pf("Width (inch)","col.w",e.w,{num:1})+pf("Depth (inch)","col.d",e.d,{num:1})+pf("Rotation (°)","col.rot",e.rot||0,{num:1})+pf("Material","",e.w>=9?"RCC M20":"RCC",{ro:1})+pf("Height","",fi(lv.h)+" (level)",{ro:1});
@@ -3549,7 +3597,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
  P.innerHTML=h;$("prX").onclick=function(){propsOpen(false)};if($("prPin"))$("prPin").onclick=doPin;if($("prDel"))$("prDel").onclick=doDelete;
  if($("prSec"))$("prSec").onclick=function(){openSheetBy("sec",S.secs.indexOf(elGet(L[0])))};
  P.querySelectorAll("[data-p]").forEach(function(inp){inp.onchange=function(){propSet(inp.dataset.p,inp.value,L)}})}
-function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=parseFloat(v),ft=parseFI(v);if(key.indexOf("stair.")===0){stairPropSet(key,v,e);return}snapshot();var ok=true;
+function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=parseFloat(v),ft=parseFI(v);if(key.indexOf("stair.")===0){stairPropSet(key,v,e);return}if(key.indexOf("fz.")===0){furnPropSet(key,v,e);return}if(key.indexOf("kc.")===0){kcPropSet(key,v,e);return}snapshot();var ok=true;
  switch(key){case "lv.name":lv.name=v.trim()||lv.name;break;case "lv.h":if(ft>=7&&ft<=30)lv.h=ft;else ok=false;break;case "lv.slab":if(num>=3&&num<=12)lv.slab=num;else ok=false;break;case "lv.ceil":if(ft>=6&&ft<=lv.h)lv.ceil=ft;else ok=false;break;
   case "m.tout":if(num>=2&&num<=36)S.meta.tout=num;else ok=false;break;case "m.tin":if(num>=2&&num<=36)S.meta.tin=num;else ok=false;break;
   case "mseg.th":if(num>=2&&num<=36)L.forEach(function(r){setWallTh(elGet(r),num)});else ok=false;break;
@@ -3759,7 +3807,7 @@ function svgI(k){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 /* Stage: v1.4 drawing tools - every rail tool: [label, tooltip, icon] */
 var TD14={draw:["Wall","Draw walls of the selected wall type","draw"],door:["Door","Place a door on a wall (door types)","door"],window:["Window","Place a window / ventilator (window types)","window"],opening:["Opening","Wall opening without shutter","opening"],
  furn:["Component","Furniture & fixtures","sofa"],col:["Column","Structural column (column types)","col"],roof:["Roof","Flat + parapet, gable, hip","roof2"],"a:ceil":["Ceiling","Ceiling height for this level","ceil"],slab:["Floor","Floor slab & floor-to-floor height","slab"],
- stair:["Stair","Straight / L / U stair with risers","stair"],rail:["Railing","Draw a railing","rail"],room:["Room","Tap inside walls to name a room","room"],"a:rtag":["Room Tag","Tag a room (tap inside it)","rtag"],"a:area":["Area","Room areas & built-up per level","area"],
+ stair:["Stair","Straight / L / U stair with risers","stair"],kc:["Counter","Kitchen counter top - drag along the walls (straight / L / U)","kcount"],"a:kmod":["Modular","Modular kitchen units: base, sink, hob, drawer, corner, wall, tall, chimney","kmod"],"a:ksched":["Kitchen List","Modular kitchen schedule: unit, size, count (CSV)","ksched"],rail:["Railing","Draw a railing","rail"],room:["Room","Tap inside walls to name a room","room"],"a:rtag":["Room Tag","Tag a room (tap inside it)","rtag"],"a:area":["Area","Room areas & built-up per level","area"],
  "a:levels":["Level","Levels: add, copy floor up, switch","level"],grid:["Grid","Draw grid lines / auto grids","grid2"],beam:["Beam","Draw a beam (auto on walls)","beam"],"a:found":["Isolated Footing","Footings under columns","footing"],
  dim:["Aligned","Aligned dimension","dim"],spot:["Spot Level","Spot elevation","spot"],dline:["Detail Line","Solid / dashed detail line","dline"],text:["Text","Text note","text"],"a:tag":["Tag","Door / window / room tags","tags"],
  "a:v3d":["3D View","Open the 3D view (all levels)","cube"],sec:["Section","Draw a section line","sec"],"a:elev":["Elevation","N / S / E / W elevations","elev"],"a:plan":["Plan View","Floor plans: switch level","plan"],
@@ -3769,7 +3817,7 @@ var TD14={draw:["Wall","Draw walls of the selected wall type","draw"],door:["Doo
  "a:xpin":["Pin","Pin / unpin the selection","pin"],del:["Delete","Tap items to delete","del"],move:["Edit Corners","Drag corners / room names","corner"],"a:ccopy":["Copy to Clipboard","Copy selection to clipboard","clipcopy"],
  "a:cpaste":["Paste","Paste aligned to the current level","paste"],wall:["Match Type","Tap a wall to change its type","match"],meas:["Measure","Measure between two points","measure"],size:["Size","Tap a wall to type its length","size"]};
 /* Stage: v1.4 ribbon - tabs and panels: Architecture, Structure, Annotate, View (incl. Import), Modify */
-var PANELS={arch:["Architecture",[["Build","Build",["draw","door","window","furn","col","roof","a:ceil","slab"]],["Circulation","Circul.",["stair","rail"]],["Room & Area","Room",["room","a:rtag","a:area"]],["Opening","Opening",["opening"]],["Datum","Datum",["a:levels","grid"]]]],
+var PANELS={arch:["Architecture",[["Build","Build",["draw","door","window","furn","col","roof","a:ceil","slab"]],["Circulation","Circul.",["stair","rail"]],["Kitchen","Kitchen",["kc","a:kmod","a:ksched"]],["Room & Area","Room",["room","a:rtag","a:area"]],["Opening","Opening",["opening"]],["Datum","Datum",["a:levels","grid"]]]],
  struct:["Structure",[["Structure","Struct.",["beam","col","slab"]],["Foundation","Found.",["a:found"]],["Datum","Datum",["grid","a:levels"]]]],
  anno:["Annotate",[["Dimension","Dim.",["dim","spot"]],["Detail","Detail",["dline"]],["Text","Text",["text"]],["Tag","Tag",["a:tag","room"]]]],
  view:["View",[["File","File",["a:fsave","a:fopen"]],["Create","Create",["a:v3d","sec","a:elev","a:plan"]],["Sheet Composition","Sheets",["a:sheets","a:pdf"]],["Import","Import",["a:import"]],["Graphics","Graphics",["a:vg","a:thin","a:fillc"]]]],
@@ -4073,6 +4121,165 @@ var _stCtxA=ctxAction;ctxAction=function(k){if(k==="stw"){fiPopup("New stair wid
  if(k==="stwalk"){snapshot();S.meta.stWalk=!stWalkOn();changed();updCtx();toast("Stair walk line "+(stWalkOn()?"shown":"hidden"));return}return _stCtxA(k)};
 var _stUctx=updCtx;updCtx=function(){_stUctx.apply(this,arguments);if(UI.tool!=="stair")return;var c=$("ctx");if(!c||$("stChips"))return;var sp=document.createElement("span");sp.id="stChips";sp.style.display="contents";
  sp.innerHTML=cb("stw","Width "+fi(UI.stW||ST_DEF.w),"next stair")+cb("stland","Landing","at turns",UI.stLand!==false)+cb("stwalk","Walk line","show / hide",stWalkOn());c.appendChild(sp);
+ sp.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(ev){ev.stopPropagation();ctxAction(b.dataset.c)}})};
+
+/* ================= Furniture size editing + Kitchen counter + Modular kitchen =================
+ Stage: Furniture size editing - tap any item: W x D x H label (tap to edit), Props fields, context menu "Edit size", drag handles on corners / edges (1" snap, rotation kept), ready sizes.
+ Stage: Kitchen - Counter tool (drag along walls: straight / L / U, snaps to the inner wall face) with sink / hob cut-outs; modular units are Component items (cat "Modular"); Kitchen List = schedule (CSV + sheet 2). */
+function fzParse(v){v=String(v||"").trim();if(/mm\s*$/i.test(v))return parseFloat(v)*MM;if(/cm\s*$/i.test(v))return parseFloat(v)*10*MM;if(/m\s*$/i.test(v)&&!/mm/i.test(v))return parseFloat(v)*1000*MM;return parseFI(v)}
+function mmT(ft){return Math.round(ft/MM)}
+function fzText(f){var D=fdims(f);return isKM(f.type)?mmT(D.w)+" × "+mmT(D.d)+" × "+mmT(D.h)+" mm":fi(D.w)+" × "+fi(D.d)+" · H "+fi(D.h)}
+function selFurn(){if(UI.tool==="sel"){var L=selEls();if(L.length===1&&L[0].k==="furn")return elGet(L[0]);return null}if(UI.tool==="furn"&&typeof furnSel==="function")return furnSel()||null;return null}
+function r12(v){return Math.round(v*12)/12}
+/* ---------- size popup (same ft-in keypad as walls) ---------- */
+function furnSizePopup(f){var C=FURN[f.type]||{};
+ function body(){var D=fdims(f),pre=FPRE[f.type]||[];return '<div class="mt">'+esc(C.n||"Item")+' - size</div><div class="ms">'+esc(fzText(f))+(isKM(f.type)?'<br>'+fi(D.w)+' × '+fi(D.d)+' × '+fi(D.h)+(D.z?' · bottom at '+fi(D.z):''):'')+'</div>'+
+  (pre.length?'<div class="grid2">'+pre.map(function(p,i){return '<button class="bb" data-fpre="'+i+'">'+esc(p[0])+(isKM(f.type)?' mm':'')+'</button>'}).join("")+'</div>':'')+
+  '<div class="row"><button class="bb" id="fzW">Width '+fi(D.w)+' ✎</button><button class="bb" id="fzD">Depth '+fi(D.d)+' ✎</button></div>'+
+  '<div class="row"><button class="bb" id="fzH">Height '+fi(D.h)+' ✎</button>'+(isKM(f.type)?'<button class="bb" id="fzZ">Bottom at '+fi(D.z||0)+' ✎</button>':'')+(f.type==="counterL"?'<button class="bb" id="fzC">Counter depth '+fi(f.cd||2)+' ✎</button>':'')+'</div>'+
+  (f.type==="wardrobe"||isKM(f.type)?'<div class="row"><button class="bb" id="fzDm">Doors −</button><div class="bb" style="display:flex;align-items:center;justify-content:center">Doors '+(f.doors||"auto")+'</div><button class="bb" id="fzDp">Doors +</button></div>':'')+
+  '<div class="row"><button class="bb" id="fzR">Rotate 90°</button><button class="bb" id="fzRs">Catalogue size</button></div><div class="row"><button class="bb ok" id="fzOk">Done</button></div>'}
+ function ch(fn){snapshot();fn();changed();updProps();re()}
+ function ask(t,k,cur,min){fiPopup(t,"Type feet-inch (e.g. 5'6\") or mm (e.g. 600mm)",cur,function(v){if(!(v>=min&&v<60)){toast("Value out of range");furnSizePopup(f);return}snapshot();f[k]=Math.round(v*1200)/1200;changed();updProps();furnSizePopup(f)})}
+ function bind(box){var D=fdims(f);box.querySelectorAll("[data-fpre]").forEach(function(b){b.onclick=function(){var p=FPRE[f.type][+b.dataset.fpre];ch(function(){f.w=p[1];f.d=p[2];if(p[3])Object.assign(f,p[3])})}});
+  $("fzW").onclick=function(){ask("Width","w",D.w,0.25)};$("fzD").onclick=function(){ask("Depth","d",D.d,0.25)};$("fzH").onclick=function(){ask("Height","h",D.h,0.1)};
+  if($("fzZ"))$("fzZ").onclick=function(){ask("Bottom elevation (from floor)","z",D.z||0,0)};if($("fzC"))$("fzC").onclick=function(){ask("Counter depth","cd",f.cd||2,1)};
+  if($("fzDm"))$("fzDm").onclick=function(){ch(function(){var n=(f.doors||2)-1;if(n<1)delete f.doors;else f.doors=n})};if($("fzDp"))$("fzDp").onclick=function(){ch(function(){f.doors=Math.min(8,(f.doors||1)+1)})};
+  $("fzR").onclick=function(){ch(function(){f.rot=((f.rot||0)+90)%360})};$("fzRs").onclick=function(){ch(function(){delete f.w;delete f.d;delete f.h;delete f.cd;delete f.doors;delete f.z})};$("fzOk").onclick=closeModal}
+ function re(){$("mbox").innerHTML=body();bind($("mbox"))}modal(body(),bind)}
+/* ---------- properties ---------- */
+function furnProps(e){var D=fdims(e),pre=FPRE[e.type]||[],km=isKM(e.type);
+ return pf("Family","",esc((FURN[e.type]||{}).n||e.type),{ro:1})+(pre.length?pf("Ready size","fz.pre","",{opts:[["","- choose -"]].concat(pre.map(function(p,i){return [String(i),p[0]+(km?" mm":"")]}))}):"")+
+  pf("Width","fz.w",fi(D.w))+pf("Depth","fz.d",fi(D.d))+pf("Height","fz.h",fi(D.h))+(km?pf("Size (mm)","",fzText(e),{ro:1})+pf("Bottom at","fz.z",fi(D.z||0)):"")+
+  (e.type==="counterL"?pf("Counter depth","fz.cd",fi(e.cd||2)):"")+(e.type==="wardrobe"||km?pf("Doors / shutters","fz.doors",e.doors||"",{num:1}):"")+pf("Rotation (°)","fz.rot",e.rot||0,{num:1})+
+  '<button class="bb pri" id="prFsz" style="width:100%;margin-top:6px">Edit size…</button>'}
+function furnPropSet(key,v,e){if(!e)return;var x=fzParse(v),num=parseFloat(v),ok=true;snapshot();
+ switch(key){case "fz.w":if(x>=0.25&&x<60)e.w=x;else ok=false;break;case "fz.d":if(x>=0.25&&x<60)e.d=x;else ok=false;break;case "fz.h":if(x>=0.1&&x<30)e.h=x;else ok=false;break;
+  case "fz.z":if(x>=0&&x<30)e.z=x;else ok=false;break;case "fz.cd":if(x>=1&&x<10)e.cd=x;else ok=false;break;case "fz.doors":if(!v)delete e.doors;else if(num>=1&&num<=8)e.doors=Math.round(num);else ok=false;break;
+  case "fz.rot":e.rot=((num||0)%360+360)%360;break;case "fz.pre":var p=(FPRE[e.type]||[])[+v];if(v!==""&&p){e.w=p[1];e.d=p[2];if(p[3])Object.assign(e,p[3])}else ok=false;break}
+ if(!ok){UNDO.pop();if(key!=="fz.pre")toast("Value out of range")}else changed();updProps()}
+/* ================= Kitchen counter (object kind "kc", per level S.kcs) ================= */
+var KC_DEF={d:2,h:2.75};
+function kcGeo(c){var P=stClean(c.pts);if(P.length<2)return null;var s=c.side||1,d=clamp(+c.d||KC_DEF.d,1,8),h=clamp(+c.h||KC_DEF.h,1,6),legs=[],i;
+ for(i=0;i<P.length-1;i++){var a=P[i],b=P[i+1],L=Math.hypot(b.x-a.x,b.y-a.y),u={x:(b.x-a.x)/L,y:(b.y-a.y)/L};legs.push({a:a,b:b,L:L,u:u,n:{x:-u.y*s,y:u.x*s}})}
+ function inner(dep){var Q=[];for(var j=0;j<P.length;j++){if(j===0){Q.push({x:P[0].x+legs[0].n.x*dep,y:P[0].y+legs[0].n.y*dep});continue}if(j===P.length-1){var g=legs[j-1];Q.push({x:P[j].x+g.n.x*dep,y:P[j].y+g.n.y*dep});continue}
+   var g0=legs[j-1],g1=legs[j],p0={x:P[j].x+g0.n.x*dep,y:P[j].y+g0.n.y*dep},p1={x:P[j].x+g1.n.x*dep,y:P[j].y+g1.n.y*dep},cr=g0.u.x*g1.u.y-g0.u.y*g1.u.x;
+   if(Math.abs(cr)<1e-6){Q.push(p0);continue}var t=((p1.x-p0.x)*g1.u.y-(p1.y-p0.y)*g1.u.x)/cr;Q.push({x:p0.x+g0.u.x*t,y:p0.y+g0.u.y*t})}return Q}
+ var Q=inner(d),poly=P.concat(Q.slice().reverse()),run=legs.reduce(function(a,g){return a+g.L},0);
+ function rectAt(pos,W,off0,off1){var acc=0,k=0;for(;k<legs.length-1;k++){if(pos<=acc+legs[k].L)break;acc+=legs[k].L}var g=legs[k],s0=pos-acc,lo=W/2+(k>0?d:0),hi=g.L-W/2-(k<legs.length-1?d:0);if(hi<lo)s0=g.L/2;else s0=clamp(s0,lo,hi);
+  function q(t,o){return {x:g.a.x+g.u.x*t+g.n.x*o,y:g.a.y+g.u.y*t+g.n.y*o}}return {pts:[q(s0-W/2,off0),q(s0+W/2,off0),q(s0+W/2,off1),q(s0-W/2,off1)],c:q(s0,(off0+off1)/2),u:g.u,n:g.n,pos:acc+s0}}
+ function defPos(kind){var last=legs.length-1;if(kind==="sink"){var acc=0;for(var k=0;k<last;k++)acc+=legs[k].L;return last?acc+(legs[last].L+d)/2:run*0.68}return last?(legs[0].L-d)/2:run*0.25}
+ var G={c:c,P:P,Q:Q,poly:poly,legs:legs,d:d,h:h,run:run,inner:inner};
+ var sW=c.sinkW||(run>=6?2.6:1.6);if(c.sink!==false&&run>=sW+0.6)G.sink=rectAt(c.sinkAt!=null?c.sinkAt:defPos("sink"),sW,d*0.15,d*0.85);
+ if(c.hob!==false&&run>=3.2)G.hob=rectAt(c.hobAt!=null?c.hobAt:defPos("hob"),2.3,d*0.18,d*0.82);return G}
+function kcById(id){return (S.kcs||[]).find(function(c){return c.id===id})}
+function kcPoly(c){var G=kcGeo(c);return G?G.poly:(c.pts||[])}
+function kcHitD(c,w){var G=kcGeo(c);if(!G)return 1e9;if(inPoly(w.x,w.y,G.poly))return 0;var d=1e9;for(var i=0;i<G.poly.length;i++)d=Math.min(d,d2seg(w,G.poly[i],G.poly[(i+1)%G.poly.length]));return d}
+function kcCovers(x,y){return (S.kcs||[]).some(function(c){var G=kcGeo(c);return G&&inPoly(x,y,G.poly)})}
+function kcLegText(G){return G.legs.map(function(g){return fi(g.L)}).join(" + ")}
+/* snap a sketched path to the wall inner faces (each leg to the nearest parallel wall face, ends to a perpendicular wall face) */
+function kcSnapPts(raw){var P=stClean(raw);if(P.length<2)return null;var lines=[],side=0;
+ for(var i=0;i<P.length-1;i++){var a=P[i],b=P[i+1],L=Math.hypot(b.x-a.x,b.y-a.y),u={x:(b.x-a.x)/L,y:(b.y-a.y)/L},m={x:(a.x+b.x)/2,y:(a.y+b.y)/2},best=null;
+  S.segs.forEach(function(s){var A=pt(s.a),B=pt(s.b),SL=Math.hypot(B.x-A.x,B.y-A.y);if(SL<0.1)return;var su={x:(B.x-A.x)/SL,y:(B.y-A.y)/SL};if(Math.abs(u.x*su.y-u.y*su.x)>0.08)return;
+   var nW={x:-su.y,y:su.x},dist=nW.x*(m.x-A.x)+nW.y*(m.y-A.y);if(Math.abs(dist)>3)return;var ta=(a.x-A.x)*su.x+(a.y-A.y)*su.y,tb=(b.x-A.x)*su.x+(b.y-A.y)*su.y;if(Math.max(ta,tb)<-0.5||Math.min(ta,tb)>SL+0.5)return;
+   var t=S.meta.dbl?wallT(s)/2:0,sg=dist>=0?1:-1,gap=Math.abs(Math.abs(dist)-t);if(!best||gap<best.gap)best={gap:gap,p:{x:A.x+nW.x*sg*t,y:A.y+nW.y*sg*t},nIn:{x:nW.x*sg,y:nW.y*sg}}});
+  if(best){lines.push({p:best.p,u:u});if(!side)side=((-u.y)*best.nIn.x+u.x*best.nIn.y)>=0?1:-1}else lines.push({p:a,u:u})}
+ function proj(q,l){var t=(q.x-l.p.x)*l.u.x+(q.y-l.p.y)*l.u.y;return {x:l.p.x+l.u.x*t,y:l.p.y+l.u.y*t}}
+ function isect(l0,l1){var cr=l0.u.x*l1.u.y-l0.u.y*l1.u.x;if(Math.abs(cr)<1e-6)return proj(l1.p,l0);var t=((l1.p.x-l0.p.x)*l1.u.y-(l1.p.y-l0.p.y)*l1.u.x)/cr;return {x:l0.p.x+l0.u.x*t,y:l0.p.y+l0.u.y*t}}
+ var out=[proj(P[0],lines[0])];for(i=1;i<P.length-1;i++)out.push(isect(lines[i-1],lines[i]));out.push(proj(P[P.length-1],lines[lines.length-1]));
+ function endSnap(E,dir){var best=null;S.segs.forEach(function(s){var A=pt(s.a),B=pt(s.b),SL=Math.hypot(B.x-A.x,B.y-A.y);if(SL<0.1)return;var su={x:(B.x-A.x)/SL,y:(B.y-A.y)/SL};if(Math.abs(dir.x*su.x+dir.y*su.y)>0.08)return;
+   var nW={x:-su.y,y:su.x},den=nW.x*dir.x+nW.y*dir.y;if(Math.abs(den)<1e-6)return;var tt=(nW.x*(A.x-E.x)+nW.y*(A.y-E.y))/den,t=S.meta.dbl?wallT(s)/2:0,mv=tt-t;if(Math.abs(mv)>1.5)return;
+   var X={x:E.x+dir.x*mv,y:E.y+dir.y*mv},tp=(X.x-A.x)*su.x+(X.y-A.y)*su.y;if(tp<-1||tp>SL+1)return;if(!best||Math.abs(mv)<Math.abs(best.mv))best={mv:mv,X:X}});return best?best.X:E}
+ var u0=lines[0].u,ue=lines[lines.length-1].u;out[0]=endSnap(out[0],{x:-u0.x,y:-u0.y});out[out.length-1]=endSnap(out[out.length-1],ue);
+ out=out.map(function(p){return {x:Math.round(p.x*1200)/1200,y:Math.round(p.y*1200)/1200}});return {pts:stClean(out),side:side||1}}
+/* plan */
+function kcDrawG(G,col,lw,fill){function poly(P,cl,f2,dash){g.beginPath();P.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});if(cl)g.closePath();if(f2){g.fillStyle=f2;g.fill()}g.setLineDash(dash||[]);g.strokeStyle=col;g.lineWidth=lw;g.stroke();g.setLineDash([])}
+ poly(G.poly,true,fill);for(var i=1;i<G.P.length-1;i++)poly([G.P[i],G.Q[i]],false,null,[4,3]);
+ if(G.sink){var s=G.sink,P=s.pts,m1={x:(P[0].x+P[1].x)/2,y:(P[0].y+P[1].y)/2},m2={x:(P[2].x+P[3].x)/2,y:(P[2].y+P[3].y)/2};poly(P,true,FFILL[4]);poly([m1,m2],false);var q=w2s(s.c.x,s.c.y);g.beginPath();g.arc(q.x,q.y,Math.max(2,0.08*V.s),0,7);g.stroke()}
+ if(G.hob){var hP=G.hob.pts;poly(hP,true,"#e9ecef");var c=G.hob.c;[-0.55,0.55].forEach(function(k){var x={x:c.x+G.hob.u.x*k,y:c.y+G.hob.u.y*k},q2=w2s(x.x,x.y);g.beginPath();g.arc(q2.x,q2.y,0.36*V.s,0,7);g.stroke();g.beginPath();g.arc(q2.x,q2.y,0.14*V.s,0,7);g.stroke()})}}
+function drawKcPlan(){if(!visOn("furn"))return;(S.kcs||[]).forEach(function(c){var G=kcGeo(c);if(G){g.save();kcDrawG(G,"#7a5432",1.3,FFILL[1]);g.restore()}})}
+function kcSelDraw(c){var G=kcGeo(c);if(!G)return;g.save();g.beginPath();G.poly.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle="rgba(14,165,233,.22)";g.fill();g.strokeStyle=c.pin?"#7c3aed":"#0ea5e9";g.lineWidth=2.4;g.stroke();g.restore()}
+function kcSheet(d,RP){(S.kcs||[]).forEach(function(c){var G=kcGeo(c);if(!G)return;var o={w:0.18,c:"#6b4a2b",L:"FURNITURE"};d.poly(G.poly.map(RP),{w:0,fill:FFILL[1],nodxf:true});d.poly(G.poly.map(RP),Object.assign({closed:true},o));
+  if(G.sink)d.poly(G.sink.pts.map(RP),Object.assign({closed:true},o));if(G.hob)d.poly(G.hob.pts.map(RP),Object.assign({closed:true},o))})}
+/* 3D: carcass (set back) + granite top + sink / hob */
+function kcExtrude(P,z0,z1,mat){var sh=new THREE.Shape();P.forEach(function(p,i){i?sh.lineTo(p.x,p.y):sh.moveTo(p.x,p.y)});var geo=new THREE.ExtrudeGeometry(sh,{depth:z1-z0,bevelEnabled:false});geo.rotateX(Math.PI/2);
+ var m=new THREE.Mesh(geo,mat);m.position.y=z1;m.castShadow=true;m.receiveShadow=true;m.userData.layer="FURN3D";m.userData.real=mat;T3.model.add(m);m.updateMatrix();
+ var e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,28),T3.M.edgeReal);e.position.copy(m.position);e.userData.layer="FURN3D";T3.edges.add(e);return m}
+function kc3DAll(){var F=T3.M.F;if(!F)return;(S.kcs||[]).forEach(function(c){var G=kcGeo(c);if(!G)return;var hasM=(S.furn||[]).some(function(f){return FURN[f.type]&&FURN[f.type].km==="base"&&inPoly(f.x,f.y,G.poly)});var body=G.P.concat(G.inner(Math.max(0.5,G.d-(hasM?0.4:0.12))).slice().reverse()),ts=0.13;
+  kcExtrude(body,0.005,G.h-ts,F.lam);kcExtrude(G.poly,G.h-ts,G.h,F.granite);if(G.sink)kcExtrude(G.sink.pts,G.h,G.h+0.02,F.steelD);if(G.hob)kcExtrude(G.hob.pts,G.h,G.h+0.12,F.black)})}
+/* selection label + furniture handles + previews */
+var _kcDsel=drawSelCanvas;drawSelCanvas=function(){var r=_kcDsel.apply(this,arguments);if(UI.clean)return r;UI.fHand=[];
+ if(UI.kcPv&&UI.kcPv.pts&&UI.kcPv.pts.length>1){var G0=kcGeo({pts:UI.kcPv.pts,side:UI.kcPv.side,d:UI.kcD||KC_DEF.d,h:UI.kcH||KC_DEF.h});if(G0){g.save();g.globalAlpha=0.75;kcDrawG(G0,"#2563eb",1.6,"rgba(37,99,235,.12)");g.restore()}}
+ var cvE=$("cv"),cw=cvE?cvE.clientWidth:9999,chh=cvE?cvE.clientHeight:9999;function lab(x,y,t){g.font="600 12px Inter,Roboto,Arial,sans-serif";var lw=g.measureText(t).width+14;return tdLabel(clamp(x,lw/2+6,Math.max(lw/2+6,cw-lw/2-6)),clamp(y,16,Math.max(16,chh-16)),t,true)}
+ UI.tdHits=UI.tdHits||[];
+ var L=selEls();if(UI.tool==="sel"&&L.length===1&&!UI.box&&L[0].k==="kc"){var c=elGet(L[0]),G=kcGeo(c);if(G){var a=w2s(G.P[0].x,G.P[0].y),b=w2s(G.P[1].x,G.P[1].y),n=G.legs[0].n,off=18+G.d*V.s;var hb=lab((a.x+b.x)/2-n.x*24,(a.y+b.y)/2-n.y*24,"Counter "+kcLegText(G)+" · D "+fi(G.d)+" · H "+fi(G.h));hb.kc=c;UI.tdHits.push(hb)}}
+ var f=selFurn();if(f&&!UI.box){var D=fdims(f),X=fXform(f);
+  var fr=X(0,D.d/2),ce=X(0,0),q=w2s(fr.x,fr.y),q0=w2s(ce.x,ce.y),vx=q.x-q0.x,vy=q.y-q0.y,vl=Math.hypot(vx,vy)||1,hb2=lab(q.x+vx/vl*22,q.y+vy/vl*22,fzText(f));hb2.furn=f;UI.tdHits.push(hb2);
+  if(!isPinned({k:"furn",id:f.id})){[-1,0,1].forEach(function(ix){[-1,0,1].forEach(function(iy){if(!ix&&!iy)return;var p=X(ix*D.w/2,iy*D.d/2),s=w2s(p.x,p.y);g.save();g.fillStyle="#fff";g.strokeStyle="#e8590c";g.lineWidth=2;var z=ix&&iy?9:8;g.fillRect(s.x-z/2,s.y-z/2,z,z);g.strokeRect(s.x-z/2,s.y-z/2,z,z);g.restore();UI.fHand.push({x:s.x,y:s.y,ix:ix,iy:iy})})})}}
+ return r};
+function fHandHit(w){var H=UI.fHand||[];if(!H.length)return null;var q=w2s(w.x,w.y),best=null;H.forEach(function(h){var d=Math.hypot(q.x-h.x,q.y-h.y);if(d<=18&&(!best||d<best.d))best={h:h,d:d}});return best?best.h:null}
+var _kcDn=toolDown;toolDown=function(w,G){
+ if((UI.tool==="sel"||UI.tool==="furn")&&!UI.pick){var f=selFurn();if(f){var h=fHandHit(w);if(h){var D=fdims(f);G.kind="fresize";G.f=f;G.h=h;G.o={w:D.w,d:D.d,x:f.x,y:f.y};return true}}
+  if(UI.tool==="furn"){var t=tdHit(w);if(t&&t.furn){G.kind="tdim";G.td=t;return true}}}
+ if(UI.tool==="kc"&&!UI.pick){G.kind="kcdraw";G.path=[w];return true}
+ return _kcDn(w,G)};
+var _kcMv=toolMove;toolMove=function(w,G,p){
+ if(G.kind==="fresize"){if(!G.moved)return true;var f=G.f,o=G.o,h=G.h,a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),dx=w.x-o.x,dy=w.y-o.y,lx=dx*cs+dy*sn,ly=-dx*sn+dy*cs;if(!G.snap){snapshot();G.snap=true}
+  var nw=o.w,nd=o.d,cx=0,cy=0;if(h.ix){nw=Math.max(0.25,r12(h.ix*lx+o.w/2));cx=h.ix*(nw-o.w)/2}if(h.iy){nd=Math.max(0.25,r12(h.iy*ly+o.d/2));cy=h.iy*(nd-o.d)/2}
+  f.w=nw;f.d=nd;f.x=o.x+cx*cs-cy*sn;f.y=o.y+cx*sn+cy*cs;SHEET=null;showHud(isKM(f.type)?mmT(nw)+" × "+mmT(nd)+" mm":fi(nw)+" × "+fi(nd));render();return true}
+ if(G.kind==="kcdraw"){var l=G.path[G.path.length-1];if(Math.hypot(w.x-l.x,w.y-l.y)*V.s>2)G.path.push(w);if(G.moved){UI.kcPv=kcSnapPts(stSnapPath(G.path));if(UI.kcPv){var Gx=kcGeo({pts:UI.kcPv.pts,side:UI.kcPv.side,d:UI.kcD||2});if(Gx)showHud("Counter "+kcLegText(Gx))}render()}return true}
+ return _kcMv(w,G,p)};
+var _kcUp=toolUp;toolUp=function(G,w){
+ if(G.kind==="tdim"&&G.td&&G.td.furn){furnSizePopup(G.td.furn);return true}if(G.kind==="tdim"&&G.td&&G.td.kc){kcPopup(G.td.kc);return true}
+ if(G.kind==="fresize"){if(G.snap){changed();updProps();toast("Size "+fzText(G.f))}else tapTool(w);return true}
+ if(G.kind==="kcdraw"){var pv=G.moved?kcSnapPts(stSnapPath(G.path.concat([w]))):null;UI.kcPv=null;hideHud();if(pv&&pv.pts.length>=2){snapshot();var c={id:nid(),pts:pv.pts,side:pv.side,d:UI.kcD||KC_DEF.d,h:UI.kcH||KC_DEF.h};S.kcs=S.kcs||[];S.kcs.push(c);changed();var Gk=kcGeo(c);toast("Counter "+(Gk?kcLegText(Gk)+" x "+fi(Gk.d):""))}else if(!G.moved)tapTool(w);else render();return true}
+ return _kcUp(G,w)};
+var _kcTap=toolTap;toolTap=function(w){if(UI.tool==="kc"&&!UI.pick){var c=(S.kcs||[]).find(function(x){return kcHitD(x,w)===0});if(c)kcPopup(c);else toast("Drag along the wall to draw a counter top (bend for L / U)");return true}return _kcTap(w)};
+/* counter popup + props */
+function kcSetLeg(c,i,L){var P=c.pts;if(i<0||i>=P.length-1||!(L>0.5))return false;var a=P[i],b=P[i+1],L0=Math.hypot(b.x-a.x,b.y-a.y),ux=(b.x-a.x)/L0,uy=(b.y-a.y)/L0,dl=L-L0;for(var j=i+1;j<P.length;j++){P[j].x=Math.round((P[j].x+ux*dl)*1200)/1200;P[j].y=Math.round((P[j].y+uy*dl)*1200)/1200}return true}
+function kcPopup(c){
+ function body(){var G=kcGeo(c)||{legs:[]};return '<div class="mt">Kitchen counter</div><div class="ms">'+(G.legs.length>2?"U":G.legs.length===2?"L":"Straight")+' counter · run '+fi(G.run||0)+' · depth '+fi(G.d||0)+' · top at '+fi(G.h||0)+'</div>'+
+  '<div class="grid2">'+G.legs.map(function(g2,i){return '<button class="bb" data-kleg="'+i+'">Leg '+(i+1)+' '+fi(g2.L)+' ✎</button>'}).join("")+'</div>'+
+  '<div class="row"><button class="bb" id="kcD">Depth '+fi(G.d)+' ✎</button><button class="bb" id="kcH">Height '+fi(G.h)+' ✎</button><button class="bb" id="kcF">Flip side ⇅</button></div>'+
+  '<div class="row"><button class="bb'+(c.sink!==false?' on':'')+'" id="kcS">Sink cut-out: '+(c.sink!==false?"ON":"OFF")+'</button><button class="bb" id="kcSp"'+(G.sink?'':' disabled')+'>Sink at '+(G.sink?fi(G.sink.pos):"-")+' ✎</button></div>'+
+  '<div class="row"><button class="bb'+(c.hob!==false?' on':'')+'" id="kcB">Hob cut-out: '+(c.hob!==false?"ON":"OFF")+'</button><button class="bb" id="kcBp"'+(G.hob?'':' disabled')+'>Hob at '+(G.hob?fi(G.hob.pos):"-")+' ✎</button></div>'+
+  '<div class="row"><button class="bb" id="kcM">Add modular units…</button></div><div class="row"><button class="bb del" id="kcX">Delete counter</button><button class="bb ok" id="kcOk">Done</button></div>'}
+ function ch(fn){snapshot();fn();changed();updProps();re()}
+ function ask(t,sub,cur,fn){fiPopup(t,sub,cur,function(v){if(!fn(v)){toast("Value out of range")}kcPopup(c)})}
+ function bind(box){var G=kcGeo(c);box.querySelectorAll("[data-kleg]").forEach(function(b){b.onclick=function(){var i=+b.dataset.kleg;ask("Leg "+(i+1)+" length","Along the wall side (outer length). The later legs move with it.",G.legs[i].L,function(v){if(!(v>=1&&v<80))return false;snapshot();kcSetLeg(c,i,v);changed();updProps();return true})}});
+  $("kcD").onclick=function(){ask("Counter depth","Front to back (default 2'-0\")",G.d,function(v){if(!(v>=1&&v<=8))return false;snapshot();c.d=v;changed();updProps();return true})};
+  $("kcH").onclick=function(){ask("Counter height","Top of the counter from the floor (default 2'-9\")",G.h,function(v){if(!(v>=1.5&&v<=5))return false;snapshot();c.h=v;changed();updProps();return true})};
+  $("kcF").onclick=function(){ch(function(){c.side=-(c.side||1)})};$("kcS").onclick=function(){ch(function(){c.sink=c.sink===false})};$("kcB").onclick=function(){ch(function(){c.hob=c.hob===false})};
+  $("kcSp").onclick=function(){if(!G.sink)return;ask("Sink position","Centre of the sink from the start of the counter",G.sink.pos,function(v){if(!(v>=0&&v<=G.run))return false;snapshot();c.sinkAt=v;changed();return true})};
+  $("kcBp").onclick=function(){if(!G.hob)return;ask("Hob position","Centre of the hob from the start of the counter",G.hob.pos,function(v){if(!(v>=0&&v<=G.run))return false;snapshot();c.hobAt=v;changed();return true})};
+  $("kcM").onclick=function(){closeModal();kitModular()};$("kcX").onclick=function(){closeModal();UI.sel=[{k:"kc",id:c.id}];doDelete()};$("kcOk").onclick=closeModal}
+ function re(){if(!kcById(c.id)){closeModal();return}$("mbox").innerHTML=body();bind($("mbox"))}modal(body(),bind)}
+function kcProps(c){var G=kcGeo(c)||{legs:[]};return G.legs.map(function(g2,i){return pf("Leg "+(i+1)+" length","kc.leg"+i,fi(g2.L))}).join("")+pf("Depth","kc.d",fi(G.d))+pf("Height (top)","kc.h",fi(G.h))+
+  pf("Side","kc.side",String(c.side||1),{opts:[["1","Side 1"],["-1","Side 2 (flip)"]]})+pf("Sink cut-out","kc.sink",c.sink===false?"0":"1",{opts:[["1","On"],["0","Off"]]})+(G.sink?pf("Sink at (from start)","kc.sinkAt",fi(G.sink.pos)):"")+
+  pf("Hob cut-out","kc.hob",c.hob===false?"0":"1",{opts:[["1","On"],["0","Off"]]})+(G.hob?pf("Hob at (from start)","kc.hobAt",fi(G.hob.pos)):"")+pf("Total run","",fi(G.run||0),{ro:1})+'<button class="bb pri" id="prKc" style="width:100%;margin-top:6px">Edit counter…</button>'}
+function kcPropSet(key,v,c){if(!c)return;var x=fzParse(v),ok=true;snapshot();var m=/^kc\.leg(\d+)$/.exec(key);
+ if(m)ok=x>=1&&x<80&&kcSetLeg(c,+m[1],x);else switch(key){case "kc.d":if(x>=1&&x<=8)c.d=x;else ok=false;break;case "kc.h":if(x>=1.5&&x<=5)c.h=x;else ok=false;break;case "kc.side":c.side=+v||1;break;
+  case "kc.sink":c.sink=v!=="0";break;case "kc.hob":c.hob=v!=="0";break;case "kc.sinkAt":if(x>=0)c.sinkAt=x;else ok=false;break;case "kc.hobAt":if(x>=0)c.hobAt=x;else ok=false;break}
+ if(!ok){UNDO.pop();toast("Value out of range")}else changed();updProps()}
+var _kcUpd=updProps;updProps=function(){_kcUpd.apply(this,arguments);var L=selEls();if(L.length!==1)return;var e=elGet(L[0]);if($("prFsz"))$("prFsz").onclick=function(){furnSizePopup(e)};if($("prKc"))$("prKc").onclick=function(){kcPopup(e)}};
+/* ---------- modular units + schedule ---------- */
+function kitModular(){setTool("furn");UI.fcat="Modular";var c=s2w(CW/2,CH/2);furnPopup(c.x,c.y)}
+function kitSchedRows(){var M={},rows=[];S.L.forEach(function(Lv,i){withLevel(i,function(){(S.furn||[]).forEach(function(f){if(!isKM(f.type))return;var D=fdims(f),k=FURN[f.type].n+"|"+mmT(D.w)+" x "+mmT(D.d)+" x "+mmT(D.h);M[k]=(M[k]||0)+1});
+  (S.kcs||[]).forEach(function(c){var G=kcGeo(c);if(!G)return;var k="Counter top ("+(G.legs.length>2?"U":G.legs.length===2?"L":"straight")+")|"+G.legs.map(function(g2){return mmT(g2.L)}).join("+")+" x "+mmT(G.d);M[k]=(M[k]||0)+1})})});
+ Object.keys(M).sort().forEach(function(k){var p=k.split("|");rows.push([p[0],p[1],M[k]])});return rows}
+function kitSchedPopup(){var R=kitSchedRows();modal('<div class="mt">Modular kitchen schedule</div><div class="ms">Units placed with Modular / Component and counters drawn with Counter (all levels). Size = width x depth x height in mm.</div>'+
+  (R.length?'<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:left;border-bottom:1px solid #ccc"><th>Unit</th><th>Size (mm)</th><th>Nos</th></tr>'+R.map(function(r){return '<tr style="border-bottom:1px solid #eee"><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td style="text-align:center">'+r[2]+'</td></tr>'}).join("")+'</table>':'<div class="pn">No modular units or counters yet. Use Counter and Modular in the Kitchen group.</div>')+
+  '<div class="row"><button class="bb" id="ksCsv"'+(R.length?'':' disabled')+'>Download CSV</button><button class="bb pri" id="ksAdd">Add units…</button><button class="bb ok" id="ksOk">Close</button></div>',function(){
+  $("ksOk").onclick=closeModal;$("ksAdd").onclick=function(){closeModal();kitModular()};$("ksCsv").onclick=function(){var csv="Unit,Size (mm),Nos\n"+R.map(function(r){return r.map(function(x){return '"'+String(x).replace(/"/g,'""')+'"'}).join(",")}).join("\n");
+   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=((S.meta.proj||S.meta.name||"Kitchen")+" kitchen schedule.csv").replace(/[\\/:*?"<>|]/g,"-");document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}})}
+var _kcRail=railAction;railAction=function(a){if(a==="kmod"){kitModular();return}if(a==="ksched"){kitSchedPopup();return}return _kcRail(a)};
+Object.assign(HINTS,{kc:"Drag along the wall to draw the counter top (bend for L / U) · snaps to the inner wall face · tap a counter to edit"});
+/* option bar chips: Counter tool (depth / height) and Component tool (Size) */
+var _kcCtxA=ctxAction;ctxAction=function(k){if(k==="kcd"){fiPopup("Counter depth","Depth of the next counter",UI.kcD||KC_DEF.d,function(v){if(v>=1&&v<=8){UI.kcD=v;updCtx()}else toast("Depth 1'-0\" to 8'-0\"")});return}
+ if(k==="kch"){fiPopup("Counter height","Top of the next counter from the floor",UI.kcH||KC_DEF.h,function(v){if(v>=1.5&&v<=5){UI.kcH=v;updCtx()}else toast("Height 1'-6\" to 5'-0\"")});return}
+ if(k==="kmods"){kitModular();return}if(k==="ksch"){kitSchedPopup();return}if(k==="fsize"){var f=selFurn();if(f)furnSizePopup(f);else toast("Tap a furniture item first");return}return _kcCtxA(k)};
+var _kcUctx=updCtx;updCtx=function(){_kcUctx.apply(this,arguments);var c=$("ctx");if(!c)return;var h="";if(UI.tool==="kc"&&!$("kcChips"))h=cb("kcd","Depth "+fi(UI.kcD||KC_DEF.d),"next counter")+cb("kch","Height "+fi(UI.kcH||KC_DEF.h),"top")+cb("kmods","Modular units","base / wall / tall")+cb("ksch","Kitchen list","schedule");
+ else if(UI.tool==="furn"&&!$("fzChips"))h=cb("fsize","Size","edit W x D x H")+cb("ksch","Kitchen list","schedule");if(!h)return;var sp=document.createElement("span");sp.id=UI.tool==="kc"?"kcChips":"fzChips";sp.style.display="contents";sp.innerHTML=h;c.appendChild(sp);
  sp.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(ev){ev.stopPropagation();ctxAction(b.dataset.c)}})};
 
 /* ================= JK Sketch Plan Web - IFC / DXF import (parsers -> neutral model in feet) =================
@@ -4408,6 +4615,8 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
+ if(k==="furn"&&e&&typeof furnSizePopup==="function")add("size","fsize","Edit size",function(){furnSizePopup(e)});
+ if(k==="kc"&&e&&typeof kcPopup==="function")add("edit","edit","Edit counter",function(){kcPopup(e)});
  if(k==="stair"&&e&&typeof stairEditPopup==="function")add("edit","edit","Edit stair",function(){stairEditPopup(e)});
  if(typeof selCat==="function"&&selCat())add("type","match","Edit Type",function(){editTypeFor("sel")});
  add("props","props","Props",function(){if(!UI.props)propsOpen(true);else updProps()});

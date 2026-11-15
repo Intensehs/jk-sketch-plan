@@ -151,7 +151,7 @@ function build3DLevel(P,i,ti,rc,M){var RI=P.RI,H=P.H,sl=P.sl,PL=PLH,isTop=i===ti
  P.beams.forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);if(L<0.1)return;var u={x:(m.b.x-m.a.x)/L,y:(m.b.y-m.a.y)/L};wallBox(m.a,u,0,L,H-sl-m.d/12,H-sl,m.w/12+0.02,M.coping,"BEAMS3D")});
  P.rails.forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);if(L<0.1)return;var u={x:(m.b.x-m.a.x)/L,y:(m.b.y-m.a.y)/L},h=m.h||3;wallBox(m.a,u,0,L,h-0.15,h,0.2,M.handle,"RAIL3D");var n=Math.max(1,Math.ceil(L/4));for(var k=0;k<=n;k++){var s0=L*k/n;wallBox(m.a,u,Math.max(0,s0-0.06),Math.min(L,s0+0.06)||0.12,0,h-0.15,0.12,M.handle,"RAIL3D",0,{edges:false})}
   var nb=Math.floor(L/0.4);for(var j=1;j<nb;j++){var s1=L*j/nb;wallBox(m.a,u,s1-0.02,s1+0.02,0.3,h-0.15,0.04,M.handle,"RAIL3D",0,{edges:false,cast:false})}});
- (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});
+ (S.furn||[]).forEach(function(f){try{furn3D(f)}catch(e){console.warn("furn",f.type,e)}});try{kc3DAll(0)}catch(e){console.warn("kc",e)}
  RI.faces.forEach(function(f){var l=f.labels[0],name=l?l.name:"Room",at=l||{x:f.cx,y:f.cy};var sp=textSprite((S.L.length>1?S.L[i].name.split(" ")[0]+": ":"")+name.toUpperCase()+"\n"+sizeText(f)+"  "+sq(f.carpet!=null?f.carpet:f.area)+" sq.ft",{bg:"rgba(255,255,255,.88)",size:40});
   var w=Math.min(Math.max(f.w*0.42,3.2),5.5);sp.scale.set(w,w/sp.userData.aspect,1);sp.position.set(at.x,isTop?H+1.2:H*0.55,at.y);T3.labels.add(sp)})}
 function bbox3(){var mx=Infinity,mz=Infinity,Mx=-Infinity,Mz=-Infinity;S.L.forEach(function(L){L.pts.forEach(function(p){mx=Math.min(mx,p.x);mz=Math.min(mz,p.y);Mx=Math.max(Mx,p.x);Mz=Math.max(Mz,p.y)})});if(!isFinite(mx)){mx=mz=0;Mx=Mz=10}

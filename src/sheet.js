@@ -100,7 +100,7 @@ function buildSheet(O){O=O||{};
  else S.segs.forEach(function(s){var a=RP(pt(s.a)),b=RP(pt(s.b));d.line(a[0],a[1],b[0],b[1],{w:0.7,c:DK,L:"WALLS"})});
  // ---- furniture, staircase ----
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnSheet(d,R,f)});
- stairsSheet(d,RP,RI);
+ stairsSheet(d,RP,RI);if(typeof kcSheet==="function"&&visOn("furn"))kcSheet(d,RP);
  // ---- openings ----
  var cnt={MD:0,D:0,TD:0,OP:0,W:0,V:0};
  G.forEach(function(q){var o=q.o,T=q.T,col=opCol(o),LY=opLayer(o),n=q.n,u=q.u,c=q.c,w=q.w,O={w:0.2,c:DK,L:LY};if(!MARKG||!o._mark)o._mark=opKind(o)+(++cnt[opKind(o)]);
@@ -184,6 +184,7 @@ function sheet2(d,G,RI,sched,O){var m=S.meta;O=O||{};
  var nx=X0+266,nw=X1-nx,lens={};S.L.forEach(function(Lv,li){withLevel(li,function(){S.segs.forEach(function(s){var v=fmt(wallIn(s));lens[v]=(lens[v]||0)+segLen(s)})})});
  var wr=Object.keys(lens).sort(function(a,b){return b-a}).map(function(v){return [v+'" '+thName(v),fmt(lens[v],1)+" rft"]});
  var ny=table(d,nx,ty,[["Wall",nw*0.58,"start"],["Length",nw*0.42]],wr,{rh:4.6,title:"WALL THICKNESS"})+4;
+ if(typeof kitSchedRows==="function"){var kr=kitSchedRows().map(function(r){return [ascii(r[0]),r[1],String(r[2])]});if(kr.length){var mk2=Math.max(1,Math.floor((262-ny)/4.6)-2);if(kr.length>mk2)kr=kr.slice(0,mk2-1).concat([["...","",""]]);ny=table(d,nx,ny,[["Kitchen unit",nw*0.44,"start"],["Size (mm)",nw*0.42],["Nos",nw*0.14]],kr,{rh:4.6,title:"MODULAR KITCHEN"})+4}}
  var notes=["Levels are from finished floor level FFL +0'-0\".","Sill = bottom of window. Lintel = top of opening.","RCC lintel band shown 6\" deep with 6\" bearing each side (typical).","Door swing and hinge side as marked on plan (sheet 1).","Wall lengths are centre-line running feet."];
  noteBox(d,nx,ny,nw,"NOTES",notes,1.9)}
 

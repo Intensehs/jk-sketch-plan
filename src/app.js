@@ -204,7 +204,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  var RI=roomsInfo();
  if(visOn("rooms"))RI.faces.forEach(function(f,i){if(!f.labels.length)return;g.beginPath();f.pts.forEach(function(p,j){var q=w2s(p.x,p.y);j?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle=FILLS[i%FILLS.length];g.globalAlpha=0.55;g.fill();g.globalAlpha=1});
  // staircase symbols
- drawStairsPlan(RI);
+ drawStairsPlan(RI);if(typeof drawKcPlan==="function")drawKcPlan();
  // furniture
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnCanvas(f,UI.tool==="furn"&&f.id===UI.fsel)});
  // walls (double line, filled, per-wall thickness)
@@ -576,7 +576,7 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();newDrawing();toast("New blank sheet")};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
  $("mGrid").onclick=function(){UI.grid=(UI.grid+1)%3;LS.set("jksp_grid",UI.grid);$("mGrid").innerHTML="Grid: "+["Off","Faint","On"][UI.grid]+"<small>கட்டம்</small>";render();updCtx()};
  $("mImp").onclick=importPopup;$("mFill").onclick=function(){fillToggle();this.classList.toggle("on",!!S.meta.fillc);this.innerHTML="Corners: "+(S.meta.fillc?"Filled":"Plain")+"<small>wall joins</small>"};$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
- $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
+ $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];S.kcs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
  $("mHelp").onclick=helpPopup;$("mX").onclick=closeModal})}
 /* Stage: My drawings - open / rename / delete drawings saved in this browser */
 function filesPopup(){autosave();var L=idxList();
