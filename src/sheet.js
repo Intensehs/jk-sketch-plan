@@ -100,9 +100,7 @@ function buildSheet(O){O=O||{};
  else S.segs.forEach(function(s){var a=RP(pt(s.a)),b=RP(pt(s.b));d.line(a[0],a[1],b[0],b[1],{w:0.7,c:DK,L:"WALLS"})});
  // ---- furniture, staircase ----
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnSheet(d,R,f)});
- var STR=visOn("stairs")?stairsAll(RI):[];STR.forEach(function(G2){var o={w:0.22,c:"#222222",L:"STAIRS"};function PL(P,cl,oo){d.poly(P.map(RP),Object.assign({closed:!!cl},oo||o))}
-  PL(G2.box,true,{w:0.3,c:"#222222",L:"STAIRS"});G2.treads.forEach(function(t){PL(t,false)});PL(G2.cut,false,{w:0.3,c:"#222222",L:"STAIRS"});PL(G2.arrow,false,{w:0.3,c:"#222222",L:"STAIRS"});
-  d.poly(G2.head.map(RP),{w:0.1,fill:"#222222",c:"#222222",L:"STAIRS"});var u=RP(G2.up);d.text(u[0],u[1],"UP",2.8,{a:"middle",v:"mid",bold:true,c:"#222222",L:"STAIRS",rot:ang2page(Math.cos(G2.ang),Math.sin(G2.ang))})});
+ stairsSheet(d,RP,RI);
  // ---- openings ----
  var cnt={MD:0,D:0,TD:0,OP:0,W:0,V:0};
  G.forEach(function(q){var o=q.o,T=q.T,col=opCol(o),LY=opLayer(o),n=q.n,u=q.u,c=q.c,w=q.w,O={w:0.2,c:DK,L:LY};if(!MARKG||!o._mark)o._mark=opKind(o)+(++cnt[opKind(o)]);

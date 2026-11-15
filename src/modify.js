@@ -1,7 +1,7 @@
 /* ================= v1.3 MODIFY: select, move, copy, rotate, mirror, array, align, trim/extend, split, offset, pin, delete ================= */
-var EK={seg:"segs",op:"ops",furn:"furn",lab:"labels",col:"cols",beam:"beams",dim:"dims",note:"notes",spot:"spots",dline:"dlines",rail:"rails",grid:"grids",sec:"secs"};
-var EKN={seg:"Wall",op:"Door / Window",furn:"Furniture",lab:"Room tag",col:"Column",beam:"Beam",dim:"Dimension",note:"Text",spot:"Spot level",dline:"Detail line",rail:"Railing",grid:"Grid",sec:"Section"};
-var EKV={seg:"walls",op:"doors",furn:"furn",lab:"rooms",col:"cols",beam:"beams",dim:"dims",note:"text",spot:"text",dline:"dlines",rail:"rails",grid:"grids",sec:"secs"};
+var EK={seg:"segs",op:"ops",furn:"furn",lab:"labels",col:"cols",beam:"beams",dim:"dims",note:"notes",spot:"spots",dline:"dlines",rail:"rails",grid:"grids",sec:"secs",stair:"stairs"};
+var EKN={seg:"Wall",op:"Door / Window",furn:"Furniture",lab:"Room tag",col:"Column",beam:"Beam",dim:"Dimension",note:"Text",spot:"Spot level",dline:"Detail line",rail:"Railing",grid:"Grid",sec:"Section",stair:"Stair"};
+var EKV={seg:"walls",op:"doors",furn:"furn",lab:"rooms",col:"cols",beam:"beams",dim:"dims",note:"text",spot:"text",dline:"dlines",rail:"rails",grid:"grids",sec:"secs",stair:"stairs"};
 function elGet(r){var A=S[EK[r.k]]||[];for(var i=0;i<A.length;i++)if(A[i].id===r.id)return A[i];return null}
 function selHas(k,id){return (UI.sel||[]).some(function(r){return r.k===k&&r.id===id})}
 function selEls(){return (UI.sel||[]).filter(function(r){return elGet(r)})}
@@ -23,11 +23,12 @@ function hitList(w,R){var out=[];function add(k,id,d,pri){if(d<=R)out.push({k:k,
  if(visOn("dlines"))S.dlines.forEach(function(m){add("dline",m.id,d2seg(w,m.a,m.b),0.5)});
  if(visOn("grids"))S.grids.forEach(function(m){var G=gridGeom(m);add("grid",m.id,Math.min(d2seg(w,G.a,G.b),Math.hypot(G.ba.x-w.x,G.ba.y-w.y)-G.r,Math.hypot(G.bb.x-w.x,G.bb.y-w.y)-G.r),0)});
  if(visOn("secs"))S.secs.forEach(function(m){add("sec",m.id,d2seg(w,m.a,m.b),0.5)});
+ if(visOn("stairs"))(S.stairs||[]).forEach(function(st){var d=stairHitD(st,w);add("stair",st.id,d===0?R*0.25:d,d===0?1:0.5)});
  if(visOn("walls"))S.segs.forEach(function(s){var q=projSeg(w.x,w.y,pt(s.a),pt(s.b));add("seg",s.id,Math.max(0,q.d-(S.meta.dbl?wallT(s)/2:0)),0)});
  out.sort(function(a,b){return a.d-b.d});return out}
 function hitOne(w){var L=hitList(w,snapR()*1.4);return L.length?{k:L[0].k,id:L[0].id}:null}
 function elPts(r){var e=elGet(r);if(!e)return [];if(r.k==="seg")return [pt(e.a),pt(e.b)];if(r.k==="op"){var G=opWorld(e);return G?[G.p0,G.p1]:[]}
- if(r.k==="furn"){var X=fXform(e),D=fdims(e);return [X(-D.w/2,-D.d/2),X(D.w/2,-D.d/2),X(D.w/2,D.d/2),X(-D.w/2,D.d/2)]}if(r.k==="col")return colPoly(e);if(r.k==="note"){var b=noteBox(e);return [{x:b[0],y:b[1]},{x:b[2],y:b[3]}]}
+ if(r.k==="furn"){var X=fXform(e),D=fdims(e);return [X(-D.w/2,-D.d/2),X(D.w/2,-D.d/2),X(D.w/2,D.d/2),X(-D.w/2,D.d/2)]}if(r.k==="col")return colPoly(e);if(r.k==="stair")return stairPts(e);if(r.k==="note"){var b=noteBox(e);return [{x:b[0],y:b[1]},{x:b[2],y:b[3]}]}
  if(e.a&&e.b&&e.a.x!=null)return [e.a,e.b];return [{x:e.x,y:e.y}]}
 function elBox(r){var P=elPts(r);if(!P.length)return null;var b=[Infinity,Infinity,-Infinity,-Infinity];P.forEach(function(p){b[0]=Math.min(b[0],p.x);b[1]=Math.min(b[1],p.y);b[2]=Math.max(b[2],p.x);b[3]=Math.max(b[3],p.y)});return b}
 function allRefs(){var out=[];Object.keys(EK).forEach(function(k){if(!visOn(EKV[k]))return;(S[EK[k]]||[]).forEach(function(e){out.push({k:k,id:e.id})})});return out}
@@ -50,6 +51,7 @@ function xfRefs(L,f,ang,mir){var seen=new Set(),segMoved={};
  function mv(p){if(!p||seen.has(p))return;seen.add(p);var q=f(p);p.x=Math.round(q.x*1200)/1200;p.y=Math.round(q.y*1200)/1200}
  L.forEach(function(r){var e=elGet(r);if(!e||r.k==="op")return;
   if(r.k==="seg"){mv(pt(e.a));mv(pt(e.b));segMoved[e.id]=1;return}
+  if(r.k==="stair"){e.pts.forEach(mv);if(e.fit){delete e.fit;delete e.lab}return}
   if(e.a&&e.b&&e.a.x!=null){mv(e.a);mv(e.b);if(mir!=null&&r.k==="dim")e.off=-(e.off||0);return}
   mv(e);if(r.k==="furn"){if(mir!=null)e.rot=((2*mir-(e.rot||0)+180)%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}
   if(r.k==="col"){if(mir!=null)e.rot=((2*mir-(e.rot||0))%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}});
@@ -58,7 +60,7 @@ function xfRefs(L,f,ang,mir){var seen=new Set(),segMoved={};
  planarize()}
 /* copy: duplicates, returns new refs */
 function dupRefs(L){var pm={},sm={},out=[];function np(id){if(pm[id])return pm[id];var p=pt(id),n=nid();S.pts.push({id:n,x:p.x,y:p.y});pm[id]=n;return n}
- L.forEach(function(r){var e=elGet(r);if(!e||r.k==="op")return;var c=JSON.parse(JSON.stringify(e));c.id=nid();delete c.pin;
+ L.forEach(function(r){var e=elGet(r);if(!e||r.k==="op")return;var c=JSON.parse(JSON.stringify(e));c.id=nid();delete c.pin;if(r.k==="stair"){delete c.lab;delete c.fit}
   if(r.k==="seg"){c.a=np(e.a);c.b=np(e.b);sm[e.id]=c.id}if(r.k==="grid")c.name=nextGridName(c);S[EK[r.k]].push(c);out.push({k:r.k,id:c.id})});
  L.forEach(function(r){if(r.k!=="op")return;var o=elGet(r);if(!o)return;var c=JSON.parse(JSON.stringify(o));c.id=nid();if(sm[o.seg])c.seg=sm[o.seg];S.ops.push(c);out.push({k:"op",id:c.id})});
  S.ops.forEach(function(o){if(sm[o.seg]&&!L.some(function(r){return r.k==="op"&&r.id===o.id})){var c=JSON.parse(JSON.stringify(o));c.id=nid();c.seg=sm[o.seg];S.ops.push(c);out.push({k:"op",id:c.id})}});
@@ -139,7 +141,7 @@ function offsetDistPopup(){modal('<div class="mt">Offset distance</div><div clas
 function drawSelCanvas(){var L=selEls();g.save();
  L.forEach(function(r){var e=elGet(r),P;g.strokeStyle=e.pin?"#7c3aed":"#0ea5e9";g.lineWidth=3;g.setLineDash([]);
   if(r.k==="seg"&&S.meta.dbl){P=wallPoly(e)}else if(r.k==="furn"||r.k==="col")P=elPts(r);
-  if(P){g.beginPath();P.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle="rgba(14,165,233,.28)";g.fill();g.stroke()}
+  if(r.k==="stair")stairSelDraw(e);else if(P){g.beginPath();P.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle="rgba(14,165,233,.28)";g.fill();g.stroke()}
   else{var Q=elPts(r);if(Q.length>=2){var a=w2s(Q[0].x,Q[0].y),b=w2s(Q[1].x,Q[1].y);if(r.k==="note"){g.strokeRect(a.x-3,a.y-3,b.x-a.x+6,b.y-a.y+6)}else{g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.lineWidth=7;g.globalAlpha=0.45;g.stroke();g.globalAlpha=1}}
    else if(Q.length){var q=w2s(Q[0].x,Q[0].y);g.beginPath();g.arc(q.x,q.y,16,0,7);g.stroke()}}
   if(e.pin){var c=elPts(r)[0],qq=w2s(c.x,c.y);pill(qq.x+10,qq.y-12,"PIN","#7c3aed","#fff",10)}});

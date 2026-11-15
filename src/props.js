@@ -89,6 +89,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
   else if(r.k==="op"){h+=pf("Family","op.dk",opKind(e),{opts:OK5.map(function(k){return [k,k+" "+OKN[k]]})})+pf("Width","op.w",fi(e.w))+pf("Height","op.h",fi(opH(e)))+pf("Sill height","op.sill",fi(opSill(e)))+pf("Lintel level","",lvl(opSill(e)+opH(e)),{ro:1})+pf("Mark","",e._mark||"-",{ro:1})+(e.type==="D"?pf("Swing","op.flip",e.flip?"1":"0",{opts:[["0","Side 1"],["1","Side 2"]]})+pf("Hinge","op.hinge",e.hinge?"1":"0",{opts:[["0","Left"],["1","Right"]]}):"")+pf("Offset along wall","op.t",fmt(e.t*100,0)+"%",{ro:1})}
   else if(r.k==="furn"){var D=fdims(e);h+=pf("Family","",FURN[e.type].n,{ro:1})+pf("Width","f.w",fi(D.w))+pf("Depth","f.d",fi(D.d))+pf("Rotation (°)","f.rot",e.rot||0,{num:1})}
   else if(r.k==="lab"){var f=LABF[e.id];h+=pf("Name","lab.name",e.name)+(f?pf("Clear size","",sizeText(f),{ro:1})+pf("Carpet area","",sq(f.carpet)+" sq.ft",{ro:1}):"")+(isStair(e.name)?pf("Stair type","lab.st",(e.st&&e.st.type)||"straight",{opts:[["straight","Straight"],["L","L-shape"],["U","U / dog-legged"]]}):"")}
+  else if(r.k==="stair")h+=stairProps(e);
   else if(r.k==="col")h+=pf("Width (inch)","col.w",e.w,{num:1})+pf("Depth (inch)","col.d",e.d,{num:1})+pf("Rotation (°)","col.rot",e.rot||0,{num:1})+pf("Material","",e.w>=9?"RCC M20":"RCC",{ro:1})+pf("Height","",fi(lv.h)+" (level)",{ro:1});
   else if(r.k==="beam")h+=pf("Width (inch)","beam.w",e.w,{num:1})+pf("Depth (inch)","beam.d",e.d,{num:1})+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1})+pf("Top","",lvl(lvElev(S.cur)+lv.h-lv.slab/12)+" (slab soffit)",{ro:1});
   else if(r.k==="dim")h+=pf("Value","dim.val",fi(dimGeom(e).L))+pf("Offset","dim.off",fi(e.off||0))+pf("Lock","dim.lock",e.lock?"1":"0",{opts:[["0","Unlocked"],["1","Locked"]]})+'<div class="pn">Edit Value to move the attached wall (second end moves).</div>';
@@ -102,7 +103,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
  P.innerHTML=h;$("prX").onclick=function(){propsOpen(false)};if($("prPin"))$("prPin").onclick=doPin;if($("prDel"))$("prDel").onclick=doDelete;
  if($("prSec"))$("prSec").onclick=function(){openSheetBy("sec",S.secs.indexOf(elGet(L[0])))};
  P.querySelectorAll("[data-p]").forEach(function(inp){inp.onchange=function(){propSet(inp.dataset.p,inp.value,L)}})}
-function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=parseFloat(v),ft=parseFI(v);snapshot();var ok=true;
+function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=parseFloat(v),ft=parseFI(v);if(key.indexOf("stair.")===0){stairPropSet(key,v,e);return}snapshot();var ok=true;
  switch(key){case "lv.name":lv.name=v.trim()||lv.name;break;case "lv.h":if(ft>=7&&ft<=30)lv.h=ft;else ok=false;break;case "lv.slab":if(num>=3&&num<=12)lv.slab=num;else ok=false;break;case "lv.ceil":if(ft>=6&&ft<=lv.h)lv.ceil=ft;else ok=false;break;
   case "m.tout":if(num>=2&&num<=36)S.meta.tout=num;else ok=false;break;case "m.tin":if(num>=2&&num<=36)S.meta.tin=num;else ok=false;break;
   case "mseg.th":if(num>=2&&num<=36)L.forEach(function(r){setWallTh(elGet(r),num)});else ok=false;break;

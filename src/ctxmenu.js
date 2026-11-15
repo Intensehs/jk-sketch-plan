@@ -11,6 +11,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
+ if(k==="stair"&&e&&typeof stairEditPopup==="function")add("edit","edit","Edit stair",function(){stairEditPopup(e)});
  if(typeof selCat==="function"&&selCat())add("type","match","Edit Type",function(){editTypeFor("sel")});
  add("props","props","Props",function(){if(!UI.props)propsOpen(true);else updProps()});
  add("pin","pin",(L.every(isPinned)?"Unpin":"Pin"),function(){ctxAction("xpin")});

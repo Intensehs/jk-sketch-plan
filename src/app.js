@@ -204,10 +204,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  var RI=roomsInfo();
  if(visOn("rooms"))RI.faces.forEach(function(f,i){if(!f.labels.length)return;g.beginPath();f.pts.forEach(function(p,j){var q=w2s(p.x,p.y);j?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle=FILLS[i%FILLS.length];g.globalAlpha=0.55;g.fill();g.globalAlpha=1});
  // staircase symbols
- (visOn("stairs")?stairsAll(RI):[]).forEach(function(G){function ln(P,col,w,dash){g.beginPath();P.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.strokeStyle=col;g.lineWidth=w;g.setLineDash(dash||[]);g.stroke();g.setLineDash([])}
-  ln(G.box.concat([G.box[0]]),"#2f7a3b",1.6);G.treads.forEach(function(t){ln(t,"#2f7a3b",1.2)});ln(G.cut,"#2f7a3b",1.6);ln(G.arrow,"#14532d",2);
-  g.beginPath();G.head.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.fillStyle="#14532d";g.fill();
-  var u=w2s(G.up.x,G.up.y);pill(u.x,u.y,"UP",'#14532d','#fff',13)});
+ drawStairsPlan(RI);
  // furniture
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnCanvas(f,UI.tool==="furn"&&f.id===UI.fsel)});
  // walls (double line, filled, per-wall thickness)
@@ -579,7 +576,7 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();newDrawing();toast("New blank sheet")};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
  $("mGrid").onclick=function(){UI.grid=(UI.grid+1)%3;LS.set("jksp_grid",UI.grid);$("mGrid").innerHTML="Grid: "+["Off","Faint","On"][UI.grid]+"<small>கட்டம்</small>";render();updCtx()};
  $("mImp").onclick=importPopup;$("mFill").onclick=function(){fillToggle();this.classList.toggle("on",!!S.meta.fillc);this.innerHTML="Corners: "+(S.meta.fillc?"Filled":"Plain")+"<small>wall joins</small>"};$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
- $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
+ $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
  $("mHelp").onclick=helpPopup;$("mX").onclick=closeModal})}
 /* Stage: My drawings - open / rename / delete drawings saved in this browser */
 function filesPopup(){autosave();var L=idxList();
