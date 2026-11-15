@@ -40,6 +40,20 @@ function nid(){return S.nid++}
 function pt(id){for(var i=0;i<S.pts.length;i++)if(S.pts[i].id===id)return S.pts[i];return null}
 function segById(id){for(var i=0;i<S.segs.length;i++)if(S.segs[i].id===id)return S.segs[i];return null}
 function segLen(s){var a=pt(s.a),b=pt(s.b);return Math.hypot(b.x-a.x,b.y-a.y)}
+/* Stage: Inner-to-inner wall dimensions - labels, live drawing length and the Size / value editor show the CLEAR length
+   between the inner faces of the walls joined at each end (c-c minus half the joined wall's thickness at each end; for a
+   sloped join half-thickness / sin(angle)). A free end, or an end that only continues straight, is measured to the wall's
+   own end point (no deduction). The data model stays centre-to-centre. */
+function jCut(p,u,skip,extra){var c=0;function cand(qa,qb,tq){var L=Math.hypot(qb.x-qa.x,qb.y-qa.y);if(L<1e-6)return;
+  if(!(Math.hypot(qa.x-p.x,qa.y-p.y)<0.02||Math.hypot(qb.x-p.x,qb.y-p.y)<0.02)){var q=projSeg(p.x,p.y,qa,qb);if(!(q.t>0&&q.t<1&&q.d<0.02))return}
+  var cr=Math.abs(u.x*(qb.y-qa.y)/L-u.y*(qb.x-qa.x)/L);if(cr<0.1)return;c=Math.max(c,tq/2/Math.max(cr,0.25))}
+ S.segs.forEach(function(q){if(skip&&skip[q.id])return;var A=pt(q.a),B=pt(q.b);if(A&&B)cand(A,B,wallT(q))});(extra||[]).forEach(function(e){cand(e.a,e.b,e.t)});return c}
+function innerEnds(a,b,skip,extra){var L=Math.hypot(b.x-a.x,b.y-a.y);if(L<1e-6)return {a:a,b:b,L:0,ca:0,cb:0,cc:0};var u={x:(b.x-a.x)/L,y:(b.y-a.y)/L},ca=jCut(a,u,skip,extra),cb=jCut(b,{x:-u.x,y:-u.y},skip,extra);
+ if(ca+cb>L-0.05){ca=0;cb=0}return {a:{x:a.x+u.x*ca,y:a.y+u.y*ca},b:{x:b.x-u.x*cb,y:b.y-u.y*cb},L:L-ca-cb,ca:ca,cb:cb,cc:L}}
+function segInner(s){var k={};k[s.id]=1;return innerEnds(pt(s.a),pt(s.b),k)}
+function runInner(R){var k={};R.ids.forEach(function(i){k[i]=1});return innerEnds(pt(R.a),pt(R.b),k)}
+function pvInner(pv,i){var t=wallT({k:UI.kind,th:UI.wth}),ex=[];pv.forEach(function(o,j){if(j!==i)ex.push({a:o.a,b:o.b,t:t})});return innerEnds(pv[i].a,pv[i].b,null,ex)}
+function innerSelSeg(){if(UI.tool!=="sel"||UI.box||UI.clean)return null;var L=typeof selEls==="function"?selEls():[];return L.length===1&&L[0].k==="seg"?L[0].id:null}
 function fi(L){var t=Math.round(Math.abs(L)*12),f=Math.floor(t/12),i=t%12;return f+"'-"+i+'"'}
 function sq(n){return (Math.round(n*10)/10).toFixed(1)}
 function gsnap(v){return Math.round(v*2)/2}
@@ -202,7 +216,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  if(visOn("doors"))S.ops.forEach(function(o){drawOpCanvas(o)});
  drawStructCanvas();
  // length labels
- var dblW=S.meta.dbl;if(visOn("walls")&&(visOn("dims")||UI.tool==="wall"))S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b);if(UI.tool==="wall"){var A=w2s(a.x,a.y),B=w2s(b.x,b.y);if(Math.hypot(B.x-A.x,B.y-A.y)>30)pill((A.x+B.x)/2,(A.y+B.y)/2,thTxt(wallIn(s)),thCol(wallIn(s)),"#fff",13);return}lenLabel(a,b,fi(segLen(s)),false,dblW?wallT(s)/2*V.s:0)});
+ var dblW=S.meta.dbl;if(visOn("walls")&&(visOn("dims")||UI.tool==="wall"))S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b);if(UI.tool==="wall"){var A=w2s(a.x,a.y),B=w2s(b.x,b.y);if(Math.hypot(B.x-A.x,B.y-A.y)>30)pill((A.x+B.x)/2,(A.y+B.y)/2,thTxt(wallIn(s)),thCol(wallIn(s)),"#fff",13);return}if(s.id===innerSelSeg())return;var I=segInner(s);lenLabel(I.a,I.b,fi(I.L),false,dblW?wallT(s)/2*V.s:0)});
  // points
  S.pts.forEach(function(p){var q=w2s(p.x,p.y);g.beginPath();g.arc(q.x,q.y,UI.tool==="move"?8:4,0,7);g.fillStyle=UI.tool==="move"?"#ffd58a":"#14253b";g.fill();if(UI.tool==="move"){g.strokeStyle="#14253b";g.lineWidth=1.5;g.stroke()}});
  // room labels
@@ -217,7 +231,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  if(UI.mark){var q=w2s(UI.mark.x,UI.mark.y);g.beginPath();g.arc(q.x,q.y,10,0,7);g.fillStyle="rgba(232,89,12,.35)";g.fill();g.strokeStyle="#e8590c";g.lineWidth=2;g.stroke()}
  // preview
  var pv=UI.preview;if(pv&&pv.length){pv.forEach(function(sg){var a=w2s(sg.a.x,sg.a.y),b=w2s(sg.b.x,sg.b.y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#e8590c";g.lineWidth=4;g.lineCap="round";g.stroke()});
-  pv.forEach(function(sg){lenLabel(sg.a,sg.b,fi(Math.hypot(sg.b.x-sg.a.x,sg.b.y-sg.a.y)),true)});
+  pv.forEach(function(sg,i){var I=pvInner(pv,i);lenLabel(I.a,I.b,fi(I.L),true)});
   var e=pv[pv.length-1].b,q=w2s(e.x,e.y);
   if(e.snap){g.beginPath();if(e.snap==="pt")g.arc(q.x,q.y,10,0,7);else g.rect(q.x-8,q.y-8,16,16);g.strokeStyle="#1c7c43";g.lineWidth=2.5;g.stroke()}
   if(e.snap==="align"){var A=w2s(e.ax,e.ay);g.beginPath();g.moveTo(A.x,A.y);g.lineTo(q.x,q.y);g.strokeStyle="#1c7c43";g.setLineDash([5,4]);g.lineWidth=1;g.stroke();g.setLineDash([])}}
@@ -376,7 +390,7 @@ function onMove(e){if(!PT[e.pointerId])return;e.preventDefault();var p=lp(e);PT[
  var w=s2w(p.x,p.y);
  if(toolMove(w,GS,p))return;
  if(GS.kind==="stroke"){var last=GS.path[GS.path.length-1];if(Math.hypot(w.x-last.x,w.y-last.y)*V.s>2)GS.path.push(w);
-  if(GS.moved){UI.rawPath=GS.path;UI.preview=buildPreview(GS.start,GS.path);var pv=UI.preview;showHud(pv.length?fi(Math.hypot(pv[pv.length-1].b.x-pv[pv.length-1].a.x,pv[pv.length-1].b.y-pv[pv.length-1].a.y)):"0'-0\"");render()}return}
+  if(GS.moved){UI.rawPath=GS.path;UI.preview=buildPreview(GS.start,GS.path);var pv=UI.preview;showHud(pv.length?fi(pvInner(pv,pv.length-1).L):"0'-0\"");render()}return}
  if(GS.kind==="dragpt"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var P=pt(GS.pid),q=findPoint(w.x,w.y,snapR(),GS.pid);P.x=q?q.x:gsnap(w.x);P.y=q?q.y:gsnap(w.y);SHEET=null;render();return}
  if(GS.kind==="dragfurn"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var F2=furnSel();if(F2){F2.x=Math.round((w.x+GS.dx)*4)/4;F2.y=Math.round((w.y+GS.dy)*4)/4;snapFurn(F2,false);SHEET=null;render()}return}
  if(GS.kind==="draglab"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var L=S.labels.find(function(l){return l.id===GS.lab});L.x=w.x;L.y=w.y;render();return}
@@ -442,19 +456,19 @@ function bindKeypad(box,L){var t=Math.round(L*12),st={f:String(Math.floor(t/12))
  box.querySelectorAll(".kp button").forEach(function(b){b.onclick=function(){var k=b.dataset.k,v=st[st.cur];if(st.fresh&&k!=="⌫"){v="";st.fresh=false;if(st.cur==="f")st.i="0"}
   if(k==="⌫"){v=v.slice(0,-1);st.fresh=false}else if(k==="."){if(v.indexOf(".")<0)v=(v||"0")+"."}else if(v.length<6)v=(v==="0"?"":v)+k;st[st.cur]=v;show()}});
  show();return function(){var f=parseFloat(st.f)||0,i=parseFloat(st.i)||0;return f+i/12}}
-function sizePopup(s){var run=wallRun(s),L=segLen(s),useRun=run.ids.length>1&&Math.abs(run.len-L)>0.01;
+function sizePopup(s){var run=wallRun(s),L=segLen(s),useRun=run.ids.length>1&&Math.abs(run.len-L)>0.01,IS=segInner(s),IR=runInner(run);
  var st={full:false,flip:false};
  function ends(){var a=st.full?pt(run.a):pt(s.a),b=st.full?pt(run.b):pt(s.b),horiz=Math.abs(b.x-a.x)>=Math.abs(b.y-a.y),bMoves=horiz?b.x>=a.x:b.y>=a.y;if(st.flip)bMoves=!bMoves;return bMoves?{anc:a,mov:b,horiz:horiz}:{anc:b,mov:a,horiz:horiz}}
  function dirTxt(){var E=ends(),dx=E.mov.x-E.anc.x,dy=E.mov.y-E.anc.y;return Math.abs(dx)>=Math.abs(dy)?(dx>=0?"→ right end moves":"← left end moves"):(dy>=0?"↓ bottom end moves":"↑ top end moves")}
  function mark(){UI.selSeg=st.full?run.ids:[s.id];var E=ends();UI.mark={x:E.mov.x,y:E.mov.y};render()}
  modal('<div class="mt">Wall size / சுவர் அளவு</div><div class="ms" id="szNow"></div>'+
-  (useRun?'<div class="row"><button class="bb on" id="szPart">This part<small>'+fi(L)+'</small></button><button class="bb" id="szFull">Full wall<small>'+fi(run.len)+'</small></button></div>':'')+
+  (useRun?'<div class="row"><button class="bb on" id="szPart">This part<small>'+fi(IS.L)+'</small></button><button class="bb" id="szFull">Full wall<small>'+fi(IR.L)+'</small></button></div>':'')+
   keypadHTML()+'<div class="row"><button class="bb" id="szDir"></button></div><div class="row"><button class="bb" id="szCancel">Cancel</button><button class="bb ok" id="szOk">OK</button></div>',function(box){
-  var get=bindKeypad(box,L);
-  function upd(){$("szNow").textContent="Drawn now: "+fi(st.full?run.len:L)+"  ·  type the real size (feet + inches). Other walls stay attached.";$("szDir").innerHTML=dirTxt()+"<small>tap to change which end moves</small>";mark()}
+  var get=bindKeypad(box,IS.L);
+  function upd(){var I=st.full?IR:IS;$("szNow").textContent="Inner (clear) now: "+fi(I.L)+"  ·  c/c "+fi(I.cc)+"  ·  type the real inner size (feet + inches). Other walls stay attached.";$("szDir").innerHTML=dirTxt()+"<small>tap to change which end moves</small>";mark()}
   if(useRun){$("szPart").onclick=function(){st.full=false;$("szPart").classList.add("on");$("szFull").classList.remove("on");upd()};$("szFull").onclick=function(){st.full=true;$("szFull").classList.add("on");$("szPart").classList.remove("on");upd()}}
   $("szDir").onclick=function(){st.flip=!st.flip;upd()};$("szCancel").onclick=closeModal;
-  $("szOk").onclick=function(){var v=get();if(!(v>0.05)){toast("Enter a length");return}var E=ends();closeModal();setLength(E.anc,E.mov,v)};upd()})}
+  $("szOk").onclick=function(){var v=get();if(!(v>0.05)){toast("Enter a length");return}var E=ends(),I=st.full?IR:IS;closeModal();setLength(E.anc,E.mov,v+I.ca+I.cb);toast("Inner (clear) set to "+fi(v)+" · c/c "+fi(v+I.ca+I.cb))};upd()})}
 /* stretch: anchor stays, moving end and everything beyond it (same connected drawing) shifts along the wall direction */
 function setLength(anc,mov,Lnew){var dx=mov.x-anc.x,dy=mov.y-anc.y,cur=Math.hypot(dx,dy);if(cur<1e-6)return;var ux=dx/cur,uy=dy/cur,dl=Lnew-cur;
  snapshot();var comp=component(mov.id),moved=[];
@@ -465,7 +479,7 @@ function setLength(anc,mov,Lnew){var dx=mov.x-anc.x,dy=mov.y-anc.y,cur=Math.hypo
  moved.forEach(function(p){p.x+=ux*dl;p.y+=uy*dl;if(Math.abs(p.x-Math.round(p.x*1200)/1200)<1e-9)p.x=Math.round(p.x*1200)/1200;if(Math.abs(p.y-Math.round(p.y*1200)/1200)<1e-9)p.y=Math.round(p.y*1200)/1200});
  planarize();changed();toast("Set to "+fi(Lnew))}
 function segPopup(s){UI.selSeg=[s.id];render();
- modal('<div class="mt">Wall '+fi(segLen(s))+'</div><div class="ms">Choose wall type or action</div><div class="row"><button class="bb '+(s.k!=="I"?"on":"")+'" id="kO">Outer wall<small>'+fmt(S.meta.tout)+'" thick</small></button><button class="bb '+(s.k==="I"?"on":"")+'" id="kI">Inner wall<small>'+fmt(S.meta.tin)+'" thick</small></button></div>'+
+ modal('<div class="mt">Wall '+fi(segInner(s).L)+' clear</div><div class="ms">Choose wall type or action</div><div class="row"><button class="bb '+(s.k!=="I"?"on":"")+'" id="kO">Outer wall<small>'+fmt(S.meta.tout)+'" thick</small></button><button class="bb '+(s.k==="I"?"on":"")+'" id="kI">Inner wall<small>'+fmt(S.meta.tin)+'" thick</small></button></div>'+
   '<div class="row"><button class="bb" id="kRun">Whole straight wall<small>apply type to full line</small></button></div><div class="row"><button class="bb" id="kTh">Thickness '+thTxt(wallIn(s))+'<small>4½" / 6" / 8" / 9" / custom</small></button></div><div class="row"><button class="bb pri" id="kLen">Set size</button><button class="bb del" id="kDel">Delete</button></div><div class="row"><button class="bb" id="kX">Close</button></div>',function(){
   function setK(k,all){snapshot();(all?wallRun(s).ids.map(segById):[s]).forEach(function(q){q.k=k});closeModal();changed();toast(k==="I"?"Inner wall":"Outer wall")}
   $("kO").onclick=function(){setK("O")};$("kI").onclick=function(){setK("I")};$("kRun").onclick=function(){setK(s.k==="I"?"I":"O",true)};

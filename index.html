@@ -1591,6 +1591,20 @@ function nid(){return S.nid++}
 function pt(id){for(var i=0;i<S.pts.length;i++)if(S.pts[i].id===id)return S.pts[i];return null}
 function segById(id){for(var i=0;i<S.segs.length;i++)if(S.segs[i].id===id)return S.segs[i];return null}
 function segLen(s){var a=pt(s.a),b=pt(s.b);return Math.hypot(b.x-a.x,b.y-a.y)}
+/* Stage: Inner-to-inner wall dimensions - labels, live drawing length and the Size / value editor show the CLEAR length
+   between the inner faces of the walls joined at each end (c-c minus half the joined wall's thickness at each end; for a
+   sloped join half-thickness / sin(angle)). A free end, or an end that only continues straight, is measured to the wall's
+   own end point (no deduction). The data model stays centre-to-centre. */
+function jCut(p,u,skip,extra){var c=0;function cand(qa,qb,tq){var L=Math.hypot(qb.x-qa.x,qb.y-qa.y);if(L<1e-6)return;
+  if(!(Math.hypot(qa.x-p.x,qa.y-p.y)<0.02||Math.hypot(qb.x-p.x,qb.y-p.y)<0.02)){var q=projSeg(p.x,p.y,qa,qb);if(!(q.t>0&&q.t<1&&q.d<0.02))return}
+  var cr=Math.abs(u.x*(qb.y-qa.y)/L-u.y*(qb.x-qa.x)/L);if(cr<0.1)return;c=Math.max(c,tq/2/Math.max(cr,0.25))}
+ S.segs.forEach(function(q){if(skip&&skip[q.id])return;var A=pt(q.a),B=pt(q.b);if(A&&B)cand(A,B,wallT(q))});(extra||[]).forEach(function(e){cand(e.a,e.b,e.t)});return c}
+function innerEnds(a,b,skip,extra){var L=Math.hypot(b.x-a.x,b.y-a.y);if(L<1e-6)return {a:a,b:b,L:0,ca:0,cb:0,cc:0};var u={x:(b.x-a.x)/L,y:(b.y-a.y)/L},ca=jCut(a,u,skip,extra),cb=jCut(b,{x:-u.x,y:-u.y},skip,extra);
+ if(ca+cb>L-0.05){ca=0;cb=0}return {a:{x:a.x+u.x*ca,y:a.y+u.y*ca},b:{x:b.x-u.x*cb,y:b.y-u.y*cb},L:L-ca-cb,ca:ca,cb:cb,cc:L}}
+function segInner(s){var k={};k[s.id]=1;return innerEnds(pt(s.a),pt(s.b),k)}
+function runInner(R){var k={};R.ids.forEach(function(i){k[i]=1});return innerEnds(pt(R.a),pt(R.b),k)}
+function pvInner(pv,i){var t=wallT({k:UI.kind,th:UI.wth}),ex=[];pv.forEach(function(o,j){if(j!==i)ex.push({a:o.a,b:o.b,t:t})});return innerEnds(pv[i].a,pv[i].b,null,ex)}
+function innerSelSeg(){if(UI.tool!=="sel"||UI.box||UI.clean)return null;var L=typeof selEls==="function"?selEls():[];return L.length===1&&L[0].k==="seg"?L[0].id:null}
 function fi(L){var t=Math.round(Math.abs(L)*12),f=Math.floor(t/12),i=t%12;return f+"'-"+i+'"'}
 function sq(n){return (Math.round(n*10)/10).toFixed(1)}
 function gsnap(v){return Math.round(v*2)/2}
@@ -1753,7 +1767,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  if(visOn("doors"))S.ops.forEach(function(o){drawOpCanvas(o)});
  drawStructCanvas();
  // length labels
- var dblW=S.meta.dbl;if(visOn("walls")&&(visOn("dims")||UI.tool==="wall"))S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b);if(UI.tool==="wall"){var A=w2s(a.x,a.y),B=w2s(b.x,b.y);if(Math.hypot(B.x-A.x,B.y-A.y)>30)pill((A.x+B.x)/2,(A.y+B.y)/2,thTxt(wallIn(s)),thCol(wallIn(s)),"#fff",13);return}lenLabel(a,b,fi(segLen(s)),false,dblW?wallT(s)/2*V.s:0)});
+ var dblW=S.meta.dbl;if(visOn("walls")&&(visOn("dims")||UI.tool==="wall"))S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b);if(UI.tool==="wall"){var A=w2s(a.x,a.y),B=w2s(b.x,b.y);if(Math.hypot(B.x-A.x,B.y-A.y)>30)pill((A.x+B.x)/2,(A.y+B.y)/2,thTxt(wallIn(s)),thCol(wallIn(s)),"#fff",13);return}if(s.id===innerSelSeg())return;var I=segInner(s);lenLabel(I.a,I.b,fi(I.L),false,dblW?wallT(s)/2*V.s:0)});
  // points
  S.pts.forEach(function(p){var q=w2s(p.x,p.y);g.beginPath();g.arc(q.x,q.y,UI.tool==="move"?8:4,0,7);g.fillStyle=UI.tool==="move"?"#ffd58a":"#14253b";g.fill();if(UI.tool==="move"){g.strokeStyle="#14253b";g.lineWidth=1.5;g.stroke()}});
  // room labels
@@ -1768,7 +1782,7 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  if(UI.mark){var q=w2s(UI.mark.x,UI.mark.y);g.beginPath();g.arc(q.x,q.y,10,0,7);g.fillStyle="rgba(232,89,12,.35)";g.fill();g.strokeStyle="#e8590c";g.lineWidth=2;g.stroke()}
  // preview
  var pv=UI.preview;if(pv&&pv.length){pv.forEach(function(sg){var a=w2s(sg.a.x,sg.a.y),b=w2s(sg.b.x,sg.b.y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#e8590c";g.lineWidth=4;g.lineCap="round";g.stroke()});
-  pv.forEach(function(sg){lenLabel(sg.a,sg.b,fi(Math.hypot(sg.b.x-sg.a.x,sg.b.y-sg.a.y)),true)});
+  pv.forEach(function(sg,i){var I=pvInner(pv,i);lenLabel(I.a,I.b,fi(I.L),true)});
   var e=pv[pv.length-1].b,q=w2s(e.x,e.y);
   if(e.snap){g.beginPath();if(e.snap==="pt")g.arc(q.x,q.y,10,0,7);else g.rect(q.x-8,q.y-8,16,16);g.strokeStyle="#1c7c43";g.lineWidth=2.5;g.stroke()}
   if(e.snap==="align"){var A=w2s(e.ax,e.ay);g.beginPath();g.moveTo(A.x,A.y);g.lineTo(q.x,q.y);g.strokeStyle="#1c7c43";g.setLineDash([5,4]);g.lineWidth=1;g.stroke();g.setLineDash([])}}
@@ -1927,7 +1941,7 @@ function onMove(e){if(!PT[e.pointerId])return;e.preventDefault();var p=lp(e);PT[
  var w=s2w(p.x,p.y);
  if(toolMove(w,GS,p))return;
  if(GS.kind==="stroke"){var last=GS.path[GS.path.length-1];if(Math.hypot(w.x-last.x,w.y-last.y)*V.s>2)GS.path.push(w);
-  if(GS.moved){UI.rawPath=GS.path;UI.preview=buildPreview(GS.start,GS.path);var pv=UI.preview;showHud(pv.length?fi(Math.hypot(pv[pv.length-1].b.x-pv[pv.length-1].a.x,pv[pv.length-1].b.y-pv[pv.length-1].a.y)):"0'-0\"");render()}return}
+  if(GS.moved){UI.rawPath=GS.path;UI.preview=buildPreview(GS.start,GS.path);var pv=UI.preview;showHud(pv.length?fi(pvInner(pv,pv.length-1).L):"0'-0\"");render()}return}
  if(GS.kind==="dragpt"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var P=pt(GS.pid),q=findPoint(w.x,w.y,snapR(),GS.pid);P.x=q?q.x:gsnap(w.x);P.y=q?q.y:gsnap(w.y);SHEET=null;render();return}
  if(GS.kind==="dragfurn"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var F2=furnSel();if(F2){F2.x=Math.round((w.x+GS.dx)*4)/4;F2.y=Math.round((w.y+GS.dy)*4)/4;snapFurn(F2,false);SHEET=null;render()}return}
  if(GS.kind==="draglab"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var L=S.labels.find(function(l){return l.id===GS.lab});L.x=w.x;L.y=w.y;render();return}
@@ -1993,19 +2007,19 @@ function bindKeypad(box,L){var t=Math.round(L*12),st={f:String(Math.floor(t/12))
  box.querySelectorAll(".kp button").forEach(function(b){b.onclick=function(){var k=b.dataset.k,v=st[st.cur];if(st.fresh&&k!=="⌫"){v="";st.fresh=false;if(st.cur==="f")st.i="0"}
   if(k==="⌫"){v=v.slice(0,-1);st.fresh=false}else if(k==="."){if(v.indexOf(".")<0)v=(v||"0")+"."}else if(v.length<6)v=(v==="0"?"":v)+k;st[st.cur]=v;show()}});
  show();return function(){var f=parseFloat(st.f)||0,i=parseFloat(st.i)||0;return f+i/12}}
-function sizePopup(s){var run=wallRun(s),L=segLen(s),useRun=run.ids.length>1&&Math.abs(run.len-L)>0.01;
+function sizePopup(s){var run=wallRun(s),L=segLen(s),useRun=run.ids.length>1&&Math.abs(run.len-L)>0.01,IS=segInner(s),IR=runInner(run);
  var st={full:false,flip:false};
  function ends(){var a=st.full?pt(run.a):pt(s.a),b=st.full?pt(run.b):pt(s.b),horiz=Math.abs(b.x-a.x)>=Math.abs(b.y-a.y),bMoves=horiz?b.x>=a.x:b.y>=a.y;if(st.flip)bMoves=!bMoves;return bMoves?{anc:a,mov:b,horiz:horiz}:{anc:b,mov:a,horiz:horiz}}
  function dirTxt(){var E=ends(),dx=E.mov.x-E.anc.x,dy=E.mov.y-E.anc.y;return Math.abs(dx)>=Math.abs(dy)?(dx>=0?"→ right end moves":"← left end moves"):(dy>=0?"↓ bottom end moves":"↑ top end moves")}
  function mark(){UI.selSeg=st.full?run.ids:[s.id];var E=ends();UI.mark={x:E.mov.x,y:E.mov.y};render()}
  modal('<div class="mt">Wall size / சுவர் அளவு</div><div class="ms" id="szNow"></div>'+
-  (useRun?'<div class="row"><button class="bb on" id="szPart">This part<small>'+fi(L)+'</small></button><button class="bb" id="szFull">Full wall<small>'+fi(run.len)+'</small></button></div>':'')+
+  (useRun?'<div class="row"><button class="bb on" id="szPart">This part<small>'+fi(IS.L)+'</small></button><button class="bb" id="szFull">Full wall<small>'+fi(IR.L)+'</small></button></div>':'')+
   keypadHTML()+'<div class="row"><button class="bb" id="szDir"></button></div><div class="row"><button class="bb" id="szCancel">Cancel</button><button class="bb ok" id="szOk">OK</button></div>',function(box){
-  var get=bindKeypad(box,L);
-  function upd(){$("szNow").textContent="Drawn now: "+fi(st.full?run.len:L)+"  ·  type the real size (feet + inches). Other walls stay attached.";$("szDir").innerHTML=dirTxt()+"<small>tap to change which end moves</small>";mark()}
+  var get=bindKeypad(box,IS.L);
+  function upd(){var I=st.full?IR:IS;$("szNow").textContent="Inner (clear) now: "+fi(I.L)+"  ·  c/c "+fi(I.cc)+"  ·  type the real inner size (feet + inches). Other walls stay attached.";$("szDir").innerHTML=dirTxt()+"<small>tap to change which end moves</small>";mark()}
   if(useRun){$("szPart").onclick=function(){st.full=false;$("szPart").classList.add("on");$("szFull").classList.remove("on");upd()};$("szFull").onclick=function(){st.full=true;$("szFull").classList.add("on");$("szPart").classList.remove("on");upd()}}
   $("szDir").onclick=function(){st.flip=!st.flip;upd()};$("szCancel").onclick=closeModal;
-  $("szOk").onclick=function(){var v=get();if(!(v>0.05)){toast("Enter a length");return}var E=ends();closeModal();setLength(E.anc,E.mov,v)};upd()})}
+  $("szOk").onclick=function(){var v=get();if(!(v>0.05)){toast("Enter a length");return}var E=ends(),I=st.full?IR:IS;closeModal();setLength(E.anc,E.mov,v+I.ca+I.cb);toast("Inner (clear) set to "+fi(v)+" · c/c "+fi(v+I.ca+I.cb))};upd()})}
 /* stretch: anchor stays, moving end and everything beyond it (same connected drawing) shifts along the wall direction */
 function setLength(anc,mov,Lnew){var dx=mov.x-anc.x,dy=mov.y-anc.y,cur=Math.hypot(dx,dy);if(cur<1e-6)return;var ux=dx/cur,uy=dy/cur,dl=Lnew-cur;
  snapshot();var comp=component(mov.id),moved=[];
@@ -2016,7 +2030,7 @@ function setLength(anc,mov,Lnew){var dx=mov.x-anc.x,dy=mov.y-anc.y,cur=Math.hypo
  moved.forEach(function(p){p.x+=ux*dl;p.y+=uy*dl;if(Math.abs(p.x-Math.round(p.x*1200)/1200)<1e-9)p.x=Math.round(p.x*1200)/1200;if(Math.abs(p.y-Math.round(p.y*1200)/1200)<1e-9)p.y=Math.round(p.y*1200)/1200});
  planarize();changed();toast("Set to "+fi(Lnew))}
 function segPopup(s){UI.selSeg=[s.id];render();
- modal('<div class="mt">Wall '+fi(segLen(s))+'</div><div class="ms">Choose wall type or action</div><div class="row"><button class="bb '+(s.k!=="I"?"on":"")+'" id="kO">Outer wall<small>'+fmt(S.meta.tout)+'" thick</small></button><button class="bb '+(s.k==="I"?"on":"")+'" id="kI">Inner wall<small>'+fmt(S.meta.tin)+'" thick</small></button></div>'+
+ modal('<div class="mt">Wall '+fi(segInner(s).L)+' clear</div><div class="ms">Choose wall type or action</div><div class="row"><button class="bb '+(s.k!=="I"?"on":"")+'" id="kO">Outer wall<small>'+fmt(S.meta.tout)+'" thick</small></button><button class="bb '+(s.k==="I"?"on":"")+'" id="kI">Inner wall<small>'+fmt(S.meta.tin)+'" thick</small></button></div>'+
   '<div class="row"><button class="bb" id="kRun">Whole straight wall<small>apply type to full line</small></button></div><div class="row"><button class="bb" id="kTh">Thickness '+thTxt(wallIn(s))+'<small>4½" / 6" / 8" / 9" / custom</small></button></div><div class="row"><button class="bb pri" id="kLen">Set size</button><button class="bb del" id="kDel">Delete</button></div><div class="row"><button class="bb" id="kX">Close</button></div>',function(){
   function setK(k,all){snapshot();(all?wallRun(s).ids.map(segById):[s]).forEach(function(q){q.k=k});closeModal();changed();toast(k==="I"?"Inner wall":"Outer wall")}
   $("kO").onclick=function(){setK("O")};$("kI").onclick=function(){setK("I")};$("kRun").onclick=function(){setK(s.k==="I"?"I":"O",true)};
@@ -3490,7 +3504,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
    pf("Walls / openings","",lv.segs.length+" / "+lv.ops.length,{ro:1})+pf("Default outer wall","m.tout",S.meta.tout,{num:1})+pf("Default inner wall","m.tin",S.meta.tin,{num:1})+pf("Roof","",roofCfg().type,{ro:1})+'<div class="pn">Tap an element (Modify → Select) to edit its type, size, level and offset.</div>'}
  else if(L.length>1){var cnt={};L.forEach(function(r){cnt[r.k]=(cnt[r.k]||0)+1});h+='<div class="pt">'+L.length+' elements</div>'+Object.keys(cnt).map(function(k){return pf(EKN[k],"",cnt[k],{ro:1})}).join("")+(cnt.seg===L.length?pf("Thickness (inch) - all","mseg.th",""):"")+'<div class="pn">Use Move / Copy / Rotate / Mirror / Array in the bar above.</div>'}
  else{var r=L[0],e=elGet(r);h+='<div class="pt">'+EKN[r.k]+(e.pin?" · pinned":"")+'</div>';
-  if(r.k==="seg"){var run=wallRun(e);h+=pf("Length","seg.len",fi(segLen(e)))+pf("Full straight wall","",fi(run.len),{ro:1})+pf("Thickness (inch)","seg.th",wallIn(e),{num:1})+pf("Function","seg.k",e.k==="I"?"I":"O",{opts:[["O","Exterior"],["I","Interior"]]})+pf("Base level","",lv.name,{ro:1})+pf("Unconnected height","",fi(lv.h),{ro:1})+pf("Openings","",S.ops.filter(function(o){return o.seg===e.id}).length,{ro:1})}
+  if(r.k==="seg"){var run=wallRun(e);h+=pf("Inner length (clear)","",fi(segInner(e).L),{ro:1})+pf("Length (c/c)","seg.len",fi(segLen(e)))+pf("Full straight wall","",fi(run.len),{ro:1})+pf("Thickness (inch)","seg.th",wallIn(e),{num:1})+pf("Function","seg.k",e.k==="I"?"I":"O",{opts:[["O","Exterior"],["I","Interior"]]})+pf("Base level","",lv.name,{ro:1})+pf("Unconnected height","",fi(lv.h),{ro:1})+pf("Openings","",S.ops.filter(function(o){return o.seg===e.id}).length,{ro:1})}
   else if(r.k==="op"){h+=pf("Family","op.dk",opKind(e),{opts:OK5.map(function(k){return [k,k+" "+OKN[k]]})})+pf("Width","op.w",fi(e.w))+pf("Height","op.h",fi(opH(e)))+pf("Sill height","op.sill",fi(opSill(e)))+pf("Lintel level","",lvl(opSill(e)+opH(e)),{ro:1})+pf("Mark","",e._mark||"-",{ro:1})+(e.type==="D"?pf("Swing","op.flip",e.flip?"1":"0",{opts:[["0","Side 1"],["1","Side 2"]]})+pf("Hinge","op.hinge",e.hinge?"1":"0",{opts:[["0","Left"],["1","Right"]]}):"")+pf("Offset along wall","op.t",fmt(e.t*100,0)+"%",{ro:1})}
   else if(r.k==="furn"){var D=fdims(e);h+=pf("Family","",FURN[e.type].n,{ro:1})+pf("Width","f.w",fi(D.w))+pf("Depth","f.d",fi(D.d))+pf("Rotation (°)","f.rot",e.rot||0,{num:1})}
   else if(r.k==="lab"){var f=LABF[e.id];h+=pf("Name","lab.name",e.name)+(f?pf("Clear size","",sizeText(f),{ro:1})+pf("Carpet area","",sq(f.carpet)+" sq.ft",{ro:1}):"")+(isStair(e.name)?pf("Stair type","lab.st",(e.st&&e.st.type)||"straight",{opts:[["straight","Straight"],["L","L-shape"],["U","U / dog-legged"]]}):"")}
@@ -3874,6 +3888,9 @@ function lockGlyph(x,y){g.save();g.strokeStyle="#7c3aed";g.fillStyle="#fff";g.li
 var _dsel0=drawSelCanvas;drawSelCanvas=function(){var r=_dsel0.apply(this,arguments);UI.tdHits=[];if(UI.clean)return r;
  if(visOn("dims"))S.dims.forEach(function(m){if(m.lock){var G=dimGeom(m),q=W2(G.T);lockGlyph(q.x+18,q.y-12)}});
  var L=selEls();if(UI.tool!=="sel"||L.length!==1||UI.box)return r;var e=elGet(L[0]);
+ /* Stage: Inner-to-inner wall dimensions - selected wall: its clear (inner) length as a tappable value; tap -> Size editor (inner) */
+ if(L[0].k==="seg"&&visOn("walls")){var I=segInner(e),A0=w2s(I.a.x,I.a.y),B0=w2s(I.b.x,I.b.y),ang=Math.atan2(B0.y-A0.y,B0.x-A0.x);if(ang>Math.PI/2+1e-6)ang-=Math.PI;if(ang<=-Math.PI/2+1e-6)ang+=Math.PI;
+  var off=14+(S.meta.dbl?wallT(e)/2*V.s:0)+6,ix=(A0.x+B0.x)/2+Math.sin(ang)*off,iy=(A0.y+B0.y)/2-Math.cos(ang)*off,ib=tdLabel(ix,iy,fi(I.L),true);ib.inner=e;ib.innerV=I.L;UI.tdHits.push(ib)}
  if(L[0].k==="seg"){tempDims(e).forEach(function(td){var A=W2(td.p1),B=W2(td.p2);g.save();g.strokeStyle="#2563eb";g.lineWidth=1.2;g.setLineDash([]);g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();
   var nx=B.y-A.y,ny=A.x-B.x,l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;[A,B].forEach(function(P){g.beginPath();g.moveTo(P.x-nx*6,P.y-ny*6);g.lineTo(P.x+nx*6,P.y+ny*6);g.stroke()});g.restore();
   var hb=tdLabel((A.x+B.x)/2,(A.y+B.y)/2,fi(td.clear),false);hb.td=td;UI.tdHits.push(hb)})}
@@ -3882,7 +3899,7 @@ var _dsel0=drawSelCanvas;drawSelCanvas=function(){var r=_dsel0.apply(this,argume
 function tdHit(w){var H=UI.tdHits||[];if(!H.length)return null;var q=w2s(w.x,w.y);for(var i=0;i<H.length;i++){var b=H[i];if(Math.abs(q.x-b.x)<=b.w/2+6&&Math.abs(q.y-b.y)<=b.h/2+6)return b}return null}
 var _tdn0=toolDown;toolDown=function(w,G){if(UI.tool==="sel"&&!UI.pick){var h=tdHit(w);if(h){G.kind="tdim";G.td=h;return true}}return _tdn0(w,G)};
 var _tmv0=toolMove;toolMove=function(w,G,p){if(G.kind==="tdim")return true;return _tmv0(w,G,p)};
-var _tup0=toolUp;toolUp=function(G,w){if(G.kind==="tdim"){var h=G.td;if(h.td)tempDimPopup(h.td);else if(h.dim)dimValuePopup(h.dim);return true}return _tup0(G,w)};
+var _tup0=toolUp;toolUp=function(G,w){if(G.kind==="tdim"){var h=G.td;if(h.td)tempDimPopup(h.td);else if(h.dim)dimValuePopup(h.dim);else if(h.inner)sizePopup(h.inner);return true}return _tup0(G,w)};
 
 /* ================= JK Sketch Plan Web - IFC / DXF import (parsers -> neutral model in feet) =================
    Model: {src, units, levels:[{name,elev,h,walls:[{a:{x,y},b:{x,y},th,h,name}],ops:[{x,y,w,h,sill,type,dk,name,host}]}], skipped:{reason:count}, notes:[]}
@@ -4212,6 +4229,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  function add(id,icon,label,fn){A.push({id:id,icon:icon,label:label,fn:fn})}
  add("move","mv","Move",function(){ctxAction("xmove")});add("copy","copy","Copy",function(){ctxAction("xcopy")});
  add("rotate","rotate","Rotate",function(){ctxAction("xrot")});add("mirror","mirror","Mirror",function(){ctxAction("xmir")});
+ if(k==="seg"&&e&&typeof sizePopup==="function")add("len","size","Length",function(){sizePopup(e)});
  if(k==="op"&&e&&e.type==="D")add("flip","mirror","Flip",function(){snapshot();e.flip=!e.flip;changed();updProps();toast("Door swing flipped")});
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
@@ -4229,7 +4247,11 @@ function cxmOpen(cx,cy){cxmClose();var L=selEls();if(!L.length)return;var items=
  items.forEach(function(it){d.querySelector('[data-cx="'+it.id+'"]').onclick=function(e){e.stopPropagation();cxmClose();it.fn()}});
  /* anchor the top-left corner at the tap point; shift only as much as needed to stay on screen */
  var w=d.offsetWidth,h=d.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,m=4,x=cx,y=cy;
- if(x+w>vw-m)x=Math.max(m,vw-m-w);if(y+h>vh-m)y=Math.max(m,vh-m-h);d.style.left=x+"px";d.style.top=y+"px";CXM.pos={x:x,y:y,tapX:cx,tapY:cy}}
+ /* one menu corner always sits on the tap point; pick the first corner whose menu does not cover a value label (inner length / clear distance) */
+ var cr=$("cv").getBoundingClientRect(),H=(UI.tdHits||[]).map(function(b){return {l:cr.left+b.x-b.w/2-3,r:cr.left+b.x+b.w/2+3,t:cr.top+b.y-b.h/2-3,b:cr.top+b.y+b.h/2+3}});
+ function fit(px,py){if(px+w>vw-m)px=Math.max(m,vw-m-w);if(py+h>vh-m)py=Math.max(m,vh-m-h);if(px<m)px=m;if(py<m)py=m;return {x:px,y:py}}
+ function hits(P){return H.some(function(B){return P.x<B.r&&P.x+w>B.l&&P.y<B.b&&P.y+h>B.t})}
+ var C=[fit(cx,cy),fit(cx-w,cy),fit(cx,cy-h),fit(cx-w,cy-h)],P=C[0];for(var ci=0;ci<C.length;ci++){if(!hits(C[ci])){P=C[ci];break}}x=P.x;y=P.y;d.style.left=x+"px";d.style.top=y+"px";CXM.pos={x:x,y:y,tapX:cx,tapY:cy}}
 function cxmInit(){var c=$("cv");if(!c||c.__cxm)return;c.__cxm=1;
  c.addEventListener("pointerdown",function(e){if(e.isPrimary)CXM.ptrs={};CXM.ptrs[e.pointerId]=1;if(Object.keys(CXM.ptrs).length===1)CXM.down={x:e.clientX,y:e.clientY,t:Date.now(),multi:false};else if(CXM.down)CXM.down.multi=true;cxmClose()});
  c.addEventListener("pointermove",function(e){if(CXM.down&&Math.hypot(e.clientX-CXM.down.x,e.clientY-CXM.down.y)>6)CXM.down.moved=true});

@@ -47,6 +47,9 @@ function lockGlyph(x,y){g.save();g.strokeStyle="#7c3aed";g.fillStyle="#fff";g.li
 var _dsel0=drawSelCanvas;drawSelCanvas=function(){var r=_dsel0.apply(this,arguments);UI.tdHits=[];if(UI.clean)return r;
  if(visOn("dims"))S.dims.forEach(function(m){if(m.lock){var G=dimGeom(m),q=W2(G.T);lockGlyph(q.x+18,q.y-12)}});
  var L=selEls();if(UI.tool!=="sel"||L.length!==1||UI.box)return r;var e=elGet(L[0]);
+ /* Stage: Inner-to-inner wall dimensions - selected wall: its clear (inner) length as a tappable value; tap -> Size editor (inner) */
+ if(L[0].k==="seg"&&visOn("walls")){var I=segInner(e),A0=w2s(I.a.x,I.a.y),B0=w2s(I.b.x,I.b.y),ang=Math.atan2(B0.y-A0.y,B0.x-A0.x);if(ang>Math.PI/2+1e-6)ang-=Math.PI;if(ang<=-Math.PI/2+1e-6)ang+=Math.PI;
+  var off=14+(S.meta.dbl?wallT(e)/2*V.s:0)+6,ix=(A0.x+B0.x)/2+Math.sin(ang)*off,iy=(A0.y+B0.y)/2-Math.cos(ang)*off,ib=tdLabel(ix,iy,fi(I.L),true);ib.inner=e;ib.innerV=I.L;UI.tdHits.push(ib)}
  if(L[0].k==="seg"){tempDims(e).forEach(function(td){var A=W2(td.p1),B=W2(td.p2);g.save();g.strokeStyle="#2563eb";g.lineWidth=1.2;g.setLineDash([]);g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.stroke();
   var nx=B.y-A.y,ny=A.x-B.x,l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;[A,B].forEach(function(P){g.beginPath();g.moveTo(P.x-nx*6,P.y-ny*6);g.lineTo(P.x+nx*6,P.y+ny*6);g.stroke()});g.restore();
   var hb=tdLabel((A.x+B.x)/2,(A.y+B.y)/2,fi(td.clear),false);hb.td=td;UI.tdHits.push(hb)})}
@@ -55,4 +58,4 @@ var _dsel0=drawSelCanvas;drawSelCanvas=function(){var r=_dsel0.apply(this,argume
 function tdHit(w){var H=UI.tdHits||[];if(!H.length)return null;var q=w2s(w.x,w.y);for(var i=0;i<H.length;i++){var b=H[i];if(Math.abs(q.x-b.x)<=b.w/2+6&&Math.abs(q.y-b.y)<=b.h/2+6)return b}return null}
 var _tdn0=toolDown;toolDown=function(w,G){if(UI.tool==="sel"&&!UI.pick){var h=tdHit(w);if(h){G.kind="tdim";G.td=h;return true}}return _tdn0(w,G)};
 var _tmv0=toolMove;toolMove=function(w,G,p){if(G.kind==="tdim")return true;return _tmv0(w,G,p)};
-var _tup0=toolUp;toolUp=function(G,w){if(G.kind==="tdim"){var h=G.td;if(h.td)tempDimPopup(h.td);else if(h.dim)dimValuePopup(h.dim);return true}return _tup0(G,w)};
+var _tup0=toolUp;toolUp=function(G,w){if(G.kind==="tdim"){var h=G.td;if(h.td)tempDimPopup(h.td);else if(h.dim)dimValuePopup(h.dim);else if(h.inner)sizePopup(h.inner);return true}return _tup0(G,w)};
