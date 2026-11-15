@@ -3611,7 +3611,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
  else if(L.length>1){var cnt={};L.forEach(function(r){cnt[r.k]=(cnt[r.k]||0)+1});h+='<div class="pt">'+L.length+' elements</div>'+Object.keys(cnt).map(function(k){return pf(EKN[k],"",cnt[k],{ro:1})}).join("")+(cnt.seg===L.length?pf("Thickness (inch) - all","mseg.th",""):"")+'<div class="pn">Use Move / Copy / Rotate / Mirror / Array in the bar above.</div>'}
  else{var r=L[0],e=elGet(r);h+='<div class="pt">'+EKN[r.k]+(e.pin?" · pinned":"")+'</div>';
   if(r.k==="seg"){var run=wallRun(e);h+=pf("Inner length (clear)","",fi(segInner(e).L),{ro:1})+pf("Length (c/c)","seg.len",fi(segLen(e)))+pf("Full straight wall","",fi(run.len),{ro:1})+pf("Thickness (inch)","seg.th",wallIn(e),{num:1})+pf("Function","seg.k",e.k==="I"?"I":"O",{opts:[["O","Exterior"],["I","Interior"]]})+pf("Base level","",lv.name,{ro:1})+pf("Unconnected height","",fi(lv.h),{ro:1})+pf("Openings","",S.ops.filter(function(o){return o.seg===e.id}).length,{ro:1})}
-  else if(r.k==="op"){h+=pf("Family","op.dk",opKind(e),{opts:OK5.map(function(k){return [k,k+" "+OKN[k]]})})+pf("Width","op.w",fi(e.w))+pf("Height","op.h",fi(opH(e)))+pf("Sill height","op.sill",fi(opSill(e)))+pf("Lintel level","",lvl(opSill(e)+opH(e)),{ro:1})+pf("Mark","",e._mark||"-",{ro:1})+(e.type==="D"?pf("Swing","op.flip",e.flip?"1":"0",{opts:[["0","Side 1"],["1","Side 2"]]})+pf("Hinge","op.hinge",e.hinge?"1":"0",{opts:[["0","Left"],["1","Right"]]}):"")+pf("Offset along wall","op.t",fmt(e.t*100,0)+"%",{ro:1})}
+  else if(r.k==="op"){h+=pf("Family","op.dk",opKind(e),{opts:OK5.map(function(k){return [k,k+" "+OKN[k]]})})+pf("Width","op.w",fi(e.w))+pf("Height","op.h",fi(opH(e)))+pf("Sill height","op.sill",fi(opSill(e)))+pf("Lintel level","",lvl(opSill(e)+opH(e)),{ro:1})+pf("Mark","",e._mark||"-",{ro:1})+(e.type==="D"?pf("Opens (In / Out)","op.flip",e.flip?"1":"0",{opts:(function(){var a=typeof dsSwing==="function"?dsSwing(Object.assign({},e,{flip:false})).txt:"Side 1",b=typeof dsSwing==="function"?dsSwing(Object.assign({},e,{flip:true})).txt:"Side 2";return [["0",a],["1",b]]})()})+pf("Hinge (Left / Right)","op.hinge",e.hinge?"1":"0",{opts:[["0","Left"],["1","Right"]]}):"")+pf("Offset along wall","op.t",fmt(e.t*100,0)+"%",{ro:1})}
   else if(r.k==="furn")h+=furnProps(e);
   else if(r.k==="kc")h+=kcProps(e);
   else if(r.k==="lab"){var f=LABF[e.id];h+=pf("Name","lab.name",e.name)+(f?pf("Clear size","",sizeText(f),{ro:1})+pf("Carpet area","",sq(f.carpet)+" sq.ft",{ro:1}):"")+(isStair(e.name)?pf("Stair type","lab.st",(e.st&&e.st.type)||"straight",{opts:[["straight","Straight"],["L","L-shape"],["U","U / dog-legged"]]}):"")}
@@ -3898,6 +3898,7 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
   if(T==="wall")h+=CDV+cbI("wdef","wall","Defaults: outer "+thTxt(S.meta.tout)+" · inner "+thTxt(S.meta.tin),"",true)+TY("wall").map(function(t){return '<span class="cb" style="pointer-events:none"><i style="width:10px;height:10px;border-radius:3px;background:'+thCol(t.th)+'"></i>'+esc(tName("wall",t))+'</span>'}).join("");
   if(T==="sel"){var n=selEls().length,sc=selCat(),st=sc?selType():undefined;h+=CDV+'<span class="cnt">'+n+' selected</span>';
    if(sc){h+=CDV+'<span class="tlab">Type</span>'+tselHTML("sel",st||null,{cat:sc,none:st===undefined?"(varies)":"Custom (no type)"})+cbI("tedit:sel","edit","","Edit Type")+(n===1?cbI("xsame","same","All instances","Select all instances of this type (this level)"):"")}
+   if(typeof dsCtxHTML==="function")h+=dsCtxHTML();
    if(n===1&&UI.sel[0].k==="dim"){var de=elGet(UI.sel[0]);h+=CDV+cbI("dval","edit","Edit value","Type a new dimension value - moves the attached wall")+cbI("dlock",de.lock?"lock":"unlock",de.lock?"Locked":"Lock","Lock this dimension",!!de.lock)}
    h+=CDV+cbI("xmove","mv","Move")+cbI("xcopy","copy","Copy")+cbI("xrot","rotate","Rotate")+cbI("xmir","mirror","Mirror")+cbI("xarr","array","Array")+cbI("xpin","pin",n&&selEls().every(isPinned)?"Unpin":"Pin")+cbI("xdel","del","Delete","",false,"warn")+CDV+cbI("xfil","filter","Filter")+cbI("xall","selall","All")+cbI("xadd","plus","Add","Multi-select",UI.addSel)+cbI("xclr","x","Clear")+CDV+cbI("ccopy","clipcopy","","Copy to clipboard")+cbI("cpaste","paste","","Paste aligned",false)}
   if(T==="beam")h+=CDV+BEAMSZ.map(function(z){var on=(UI.beamSz||[9,18])[0]===z[0]&&(UI.beamSz||[9,18])[1]===z[1];return cb("bs:"+z[0]+"x"+z[1],z[0]+'"×'+z[1]+'"',"width x depth",on)}).join("")+cbI("bauto","plus","Auto on walls","",false,"ok2");
@@ -4314,6 +4315,38 @@ var _kcUctx=updCtx;updCtx=function(){_kcUctx.apply(this,arguments);var c=$("ctx"
  else if(UI.tool==="furn"&&!$("fzChips"))h=cb("fsize","Size","edit W x D x H")+cb("ksch","Kitchen list","schedule");if(!h)return;var sp=document.createElement("span");sp.id=UI.tool==="kc"?"kcChips":"fzChips";sp.style.display="contents";sp.innerHTML=h;c.appendChild(sp);
  sp.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(ev){ev.stopPropagation();ctxAction(b.dataset.c)}})};
 
+/* Stage: Door side - one-tap Left/Right (hinge) and In/Out (swing side) chips drawn right beside a selected door.
+   Uses the door's existing fields only: o.hinge (false = Left, true = Right, same as Props) and o.flip (which side of the
+   wall the leaf swings to). In/Out is worked out from the rooms: "In" = swings into a room, "Out" = swings outside the
+   building; between two rooms the chip names the room it opens into. Placement, flip, 3D, PDF and DXF are unchanged. */
+function dsDoor(){if(UI.clean||UI.pick)return null;if(UI.tool==="sel"){var L=selEls();if(L.length===1&&L[0].k==="op"){var o=elGet(L[0]);if(o&&o.type==="D"&&o.dk!=="OP")return o}return null}
+ if(UI.tool==="open"&&UI.dsLast){var q=(S.ops||[]).find(function(x){return x.id===UI.dsLast});if(q&&q.type==="D"&&q.dk!=="OP")return q}return null}
+function dsHingeTxt(o){return o.hinge?"Right":"Left"}
+/* which side the leaf swings to: {txt:"In"/"Out"/room name/"Side 1|2", kind} */
+function dsSwing(o){var G=opWorld(o);if(!G)return {txt:o.flip?"Side 2":"Side 1",kind:"side"};var T=S.meta.dbl?wallT(G.s):0.3,sd=o.flip?-1:1,RI=roomsInfo();
+ function room(sg){var p={x:G.c.x+G.n.x*sg*(T/2+0.8),y:G.c.y+G.n.y*sg*(T/2+0.8)},hit=null;RI.faces.forEach(function(f){if(!hit&&inPoly(p.x,p.y,f.pts))hit=f});return hit}
+ var a=room(sd),b=room(-sd);if(a&&!b)return {txt:"In",kind:"in"};if(!a&&b)return {txt:"Out",kind:"out"};
+ if(a&&b){var nm=a.labels&&a.labels[0]?a.labels[0].name:"";return {txt:nm?"Into "+nm:(o.flip?"Side 2":"Side 1"),kind:"room"}}return {txt:o.flip?"Side 2":"Side 1",kind:"side"}}
+function dsToggle(o,what){if(!o)return;snapshot();if(what==="hinge"){o.hinge=!o.hinge;changed();toast("Hinge: "+dsHingeTxt(o))}else{o.flip=!o.flip;changed();toast("Door opens: "+dsSwing(o).txt)}updProps();updCtx();render()}
+var _dsDsel=drawSelCanvas;drawSelCanvas=function(){var r=_dsDsel.apply(this,arguments);UI.dsHits=[];var o=dsDoor();if(!o)return r;var G=opWorld(o);if(!G)return r;
+ var T=S.meta.dbl?wallT(G.s):0.3,sd=o.flip?-1:1,big=(window.matchMedia&&matchMedia("(pointer:coarse)").matches)||CW<700,H=big?36:30,fs=big?14:13,gap=8;
+ /* place the chips on the side away from the swing (so they never cover the leaf), just past the wall face */
+ var off=T/2*V.s+H/2+34,c=w2s(G.c.x,G.c.y),nx=-G.n.x*sd,ny=-G.n.y*sd,cx=c.x+nx*off,cy=c.y+ny*off;
+ var items=[{k:"hinge",t:"\u21c6 "+dsHingeTxt(o),tip:"Left / Right"},{k:"swing",t:"\u21c5 "+dsSwing(o).txt,tip:"In / Out"}];
+ g.save();g.font="bold "+fs+"px Roboto,Arial,sans-serif";var ws=items.map(function(it){return Math.max(H+20,g.measureText(it.t).width+22)}),tot=ws[0]+ws[1]+gap,x=cx-tot/2;
+ x=Math.max(6,Math.min(CW-tot-6,x));var y=Math.max(6,Math.min(CH-H-6,cy-H/2));
+ items.forEach(function(it,i){var w=ws[i];g.fillStyle="rgba(255,255,255,.97)";rr(x,y,w,H,H/2);g.fill();g.lineWidth=2;g.strokeStyle="#e8590c";g.stroke();g.fillStyle="#9a3b06";g.textAlign="center";g.textBaseline="middle";g.fillText(it.t,x+w/2,y+H/2+0.5);
+  UI.dsHits.push({k:it.k,x0:x,y0:y,x1:x+w,y1:y+H,door:o.id});x+=w+gap});g.restore();return r};
+function dsHit(w){var H=UI.dsHits||[];if(!H.length)return null;var q=w2s(w.x,w.y);for(var i=0;i<H.length;i++){var h=H[i];if(q.x>=h.x0-4&&q.x<=h.x1+4&&q.y>=h.y0-4&&q.y<=h.y1+4)return h}return null}
+var _dsDn=toolDown;toolDown=function(w,G){if((UI.tool==="sel"||UI.tool==="open")&&!UI.pick){var h=dsHit(w);if(h){G.kind="dside";G.ds=h;return true}}return _dsDn(w,G)};
+var _dsMv=toolMove;toolMove=function(w,G,p){if(G.kind==="dside")return true;return _dsMv(w,G,p)};
+var _dsUp=toolUp;toolUp=function(G,w){if(G.kind==="dside"){var o=(S.ops||[]).find(function(x){return x.id===G.ds.door});if(o)dsToggle(o,G.ds.k);return true}return _dsUp(G,w)};
+/* remember the door just placed / edited with the Door tool so its chips show there too */
+var _dsCh=changed;changed=function(){var r=_dsCh.apply(this,arguments);try{var n=(S.ops||[]).length;if(UI.tool==="open"){if(UI._dsN!=null&&n>UI._dsN){var l=S.ops[n-1];if(l&&l.type==="D")UI.dsLast=l.id}}UI._dsN=n}catch(e){}return r};
+/* option bar + context menu actions */
+var _dsCtx=ctxAction;ctxAction=function(k){if(k==="dhinge"||k==="dswing"){dsToggle(dsDoor()||(function(){var L=selEls();return L.length===1&&L[0].k==="op"?elGet(L[0]):null})(),k==="dhinge"?"hinge":"swing");return}return _dsCtx(k)};
+function dsCtxHTML(){var o=dsDoor();if(!o)return "";return CDV+'<span class="tlab">Door</span>'+cbI("dhinge","",'\u21c6 '+dsHingeTxt(o),"Hinge side - Left / Right (one tap)",false,"ok2")+cbI("dswing","",'\u21c5 '+dsSwing(o).txt,"Opens - In / Out (one tap)",false,"ok2")}
+
 /* ================= JK Sketch Plan Web - IFC / DXF import (parsers -> neutral model in feet) =================
    Model: {src, units, levels:[{name,elev,h,walls:[{a:{x,y},b:{x,y},th,h,name}],ops:[{x,y,w,h,sill,type,dk,name,host}]}], skipped:{reason:count}, notes:[]}
    x/y in feet, CAD Y-up (flipped to the app's Y-down later); th in inches. */
@@ -4644,6 +4677,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  add("rotate","rotate","Rotate",function(){ctxAction("xrot")});add("mirror","mirror","Mirror",function(){ctxAction("xmir")});
  if(k==="seg"&&e&&typeof sizePopup==="function")add("len","size","Length",function(){sizePopup(e)});
  if(k==="op"&&e&&e.type==="D")add("flip","mirror","Flip",function(){snapshot();e.flip=!e.flip;changed();updProps();toast("Door swing flipped")});
+ if(k==="op"&&e&&e.type==="D"&&e.dk!=="OP"&&typeof dsToggle==="function"){add("hinge","mirror",(e.hinge?"Right":"Left")+" ⇆",function(){dsToggle(e,"hinge")});add("swing","mirror",(typeof dsSwing==="function"?dsSwing(e).txt:"In/Out")+" ⇅",function(){dsToggle(e,"swing")})}
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});

@@ -8,6 +8,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  add("rotate","rotate","Rotate",function(){ctxAction("xrot")});add("mirror","mirror","Mirror",function(){ctxAction("xmir")});
  if(k==="seg"&&e&&typeof sizePopup==="function")add("len","size","Length",function(){sizePopup(e)});
  if(k==="op"&&e&&e.type==="D")add("flip","mirror","Flip",function(){snapshot();e.flip=!e.flip;changed();updProps();toast("Door swing flipped")});
+ if(k==="op"&&e&&e.type==="D"&&e.dk!=="OP"&&typeof dsToggle==="function"){add("hinge","mirror",(e.hinge?"Right":"Left")+" ⇆",function(){dsToggle(e,"hinge")});add("swing","mirror",(typeof dsSwing==="function"?dsSwing(e).txt:"In/Out")+" ⇅",function(){dsToggle(e,"swing")})}
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
