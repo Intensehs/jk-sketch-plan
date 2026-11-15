@@ -74,7 +74,8 @@ function furnSym(type,w,d,f){var P=[],L=-w/2,Rr=w/2,B=-d/2,F=d/2,mn=Math.min(w,d
  default:r(L,B,Rr,F)}
  return P}
 var FFILL={1:"#fbf6ee",2:"#e7d6bd",3:"#ffffff",4:"#d9e6f2"};
-function fXform(f){var a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);return function(x,y){return {x:f.x+x*cs-y*sn,y:f.y+x*sn+y*cs}}}
+/* Stage: Furniture mirror - f.fx = mirrored (local left-right flip, applied before rotation) */
+function fXform(f){var a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),sx=f.fx?-1:1;return function(x,y){x*=sx;return {x:f.x+x*cs-y*sn,y:f.y+x*sn+y*cs}}}
 function primPolys(pr){if(pr.t==="r")return [[pr.x0,pr.y0],[pr.x1,pr.y0],[pr.x1,pr.y1],[pr.x0,pr.y1]];if(pr.t==="l")return [[pr.x0,pr.y0],[pr.x1,pr.y1]];return pr.pts}
 /* draw onto the plan canvas */
 function drawFurnCanvas(f,sel){var D=fdims(f),X=fXform(f),P=furnSym(f.type,D.w,D.d,f);

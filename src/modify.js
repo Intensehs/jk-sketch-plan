@@ -55,7 +55,7 @@ function xfRefs(L,f,ang,mir){var seen=new Set(),segMoved={};
   if(r.k==="stair"){e.pts.forEach(mv);if(e.fit){delete e.fit;delete e.lab}return}
   if(r.k==="kc"){e.pts.forEach(mv);if(mir!=null)e.side=-(e.side||1);return}
   if(e.a&&e.b&&e.a.x!=null){mv(e.a);mv(e.b);if(mir!=null&&r.k==="dim")e.off=-(e.off||0);return}
-  mv(e);if(r.k==="furn"){if(mir!=null)e.rot=((2*mir-(e.rot||0)+180)%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}
+  mv(e);if(r.k==="furn"){if(mir!=null){e.rot=((2*mir-(e.rot||0)+180)%360+360)%360;e.rot=Math.round(e.rot*1e6)/1e6%360;if(e.fx)delete e.fx;else e.fx=true}else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}
   if(r.k==="col"){if(mir!=null)e.rot=((2*mir-(e.rot||0))%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}});
  if(mir!=null)S.ops.forEach(function(o){if(segMoved[o.seg])o.flip=!o.flip});
  opsC.forEach(function(q){if(!q.c||selSegs[q.o.seg])return;var c=f(q.c),s=segById(q.o.seg);if(!s)return;var P=projSeg(c.x,c.y,pt(s.a),pt(s.b));q.o.t=clamp(P.t,0,1)});
@@ -95,11 +95,11 @@ function rotatePopup(){var st={copy:false};modal('<div class="mt">Rotate</div><d
  box.querySelectorAll("[data-ra]").forEach(function(b){b.onclick=function(){closeModal();doRotate(+b.dataset.ra,st.copy)}});$("raX").onclick=closeModal;$("raOk").onclick=function(){var a=+$("raC").value;closeModal();if(a)doRotate(a,st.copy)}})}
 function mirrorPopup(){var st={copy:true};var c=selCenter();if(!c){toast("Select something first");return}
  modal('<div class="mt">Mirror</div><div class="ms">Mirror axis through the selection edge or centre, or pick an axis line (2 taps)</div><div class="grid2">'+
- '<button class="bb" data-mx="R">Copy to the RIGHT<small>axis = right edge</small></button><button class="bb" data-mx="L">Copy to the LEFT<small>axis = left edge</small></button><button class="bb" data-mx="D">Copy DOWN<small>axis = bottom edge</small></button><button class="bb" data-mx="U">Copy UP<small>axis = top edge</small></button><button class="bb" data-mx="V">Flip left-right<small>about centre</small></button><button class="bb" data-mx="H">Flip up-down<small>about centre</small></button></div>'+
+ '<button class="bb" data-mx="R">Copy to the RIGHT<small>axis = right edge</small></button><button class="bb" data-mx="L">Copy to the LEFT<small>axis = left edge</small></button><button class="bb" data-mx="D">Copy DOWN<small>axis = bottom edge</small></button><button class="bb" data-mx="U">Copy UP<small>axis = top edge</small></button><button class="bb" data-mx="V">Flip left-right<small>in place, about centre</small></button><button class="bb" data-mx="H">Flip up-down<small>in place, about centre</small></button></div>'+
  '<div class="row"><button class="bb" id="mxPick">Pick axis (tap 2 points)</button><button class="bb on" id="mxCp">Keep original: ON</button></div><div class="row"><button class="bb" id="mxX">Cancel</button></div>',function(box){
  $("mxCp").onclick=function(){st.copy=!st.copy;this.textContent="Keep original: "+(st.copy?"ON":"OFF");this.classList.toggle("on",st.copy)};$("mxX").onclick=closeModal;
  box.querySelectorAll("[data-mx]").forEach(function(b){b.onclick=function(){var k=b.dataset.mx,B=c.b;closeModal();
-  if(k==="R")doMirror({x:B[2],y:0},90,st.copy);else if(k==="L")doMirror({x:B[0],y:0},90,st.copy);else if(k==="D")doMirror({x:0,y:B[3]},0,st.copy);else if(k==="U")doMirror({x:0,y:B[1]},0,st.copy);else if(k==="V")doMirror(c,90,st.copy);else doMirror(c,0,st.copy)}});
+  if(k==="R")doMirror({x:B[2],y:0},90,st.copy);else if(k==="L")doMirror({x:B[0],y:0},90,st.copy);else if(k==="D")doMirror({x:0,y:B[3]},0,st.copy);else if(k==="U")doMirror({x:0,y:B[1]},0,st.copy);else if(k==="V")doMirror(c,90,false);else doMirror(c,0,false)}});
  $("mxPick").onclick=function(){closeModal();UI.pick={k:"mirror",copy:st.copy,pts:[]};updCtx();toast("Tap first point of the mirror axis")}})}
 function arrayPopup(){if(!selEls().length){toast("Select something first");return}dirDist("Array (linear)",function(dx,dy,n){if(!(n>=2&&n<=50)){toast("Count 2 to 50");return}doArray(n,dx,dy)},{count:3,L:5})}
 function filterPopup(){var L=selEls(),cnt={};L.forEach(function(r){cnt[r.k]=(cnt[r.k]||0)+1});var keys=Object.keys(cnt);if(!keys.length){toast("Nothing selected");return}var on={};keys.forEach(function(k){on[k]=true});

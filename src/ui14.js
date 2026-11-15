@@ -132,12 +132,12 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
   if(T==="roof")h+=CDV+cbI("rfr","roof2","Roof: "+roofCfg().type,"Roof settings",true);
   if(T==="meas"&&UI.meas)h+=CDV+'<span class="cnt">'+fi(UI.meas.L)+'</span><span class="tlab">ΔX '+fi(UI.meas.dx)+' · ΔY '+fi(UI.meas.dy)+'</span>';
   if(T==="align"||T==="trim"||(UI.pick&&UI.pick.k))h+=cbI("pickx","x","Cancel pick");
-  h+=CDV+cbI("pen","pen","Pen",UI.penOnly?"Pen only ON (palm safe)":"Pen only OFF",UI.penOnly)+cbI("grid","grid",["Grid off","Grid","Grid+"][UI.grid],"Background grid",!!UI.grid)+cbI("thin","thin","Thin","Thin lines",UI.thin)+cbI("fillc","fillc","Filled","Filled wall corners",!!S.meta.fillc)}
+  h+=CDV+cbI("pen","pen","Pen",UI.penOnly?"Pen only ON (palm safe)":"Pen only OFF",UI.penOnly)+cbI("grid","grid",["Grid off","Grid","Grid+"][UI.grid],"Background grid",!!UI.grid)+cbI("thin","thin","Thin","Thin lines",UI.thin)+cbI("fillc","fillc","Filled","Filled wall corners",!!S.meta.fillc)+(S.meta.fillc&&typeof fillHeals==="function"&&fillHeals().length?cbI("fjoin","corner","Join ends","Join wall ends that stop short of / run past a corner",false,"ok2"):"")}
  c.innerHTML=h;c.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){ctxAction(b.dataset.c)}});
  bindTsel(c,function(key,id){if(key==="sel")setSelType(id);else pickType(key,id);updCtx();updProps();render()});
  var hn=$("hint");if(hn)hn.textContent=UI.clean?"Sheets":(UI.pick&&UI.pick.k==="mirror"?"Tap 2 points for the mirror axis":HINTS[T]||"");updLevelBadge();var bo=$("bOpt");if(bo)bo.classList.toggle("on",!UI.noopt)}
 var _ctx0=ctxAction;ctxAction=function(k){if(k.indexOf("tedit:")===0){editTypeFor(k.slice(6));return}
- if(k==="xsame"){selectSame();return}if(k==="fillc"){fillToggle();return}if(k==="ccopy"){clipCopy();return}if(k==="cpaste"){clipPaste();return}
+ if(k==="xsame"){selectSame();return}if(k==="fillc"){fillToggle();return}if(k==="fjoin"){fillJoinApply();return}if(k==="ccopy"){clipCopy();return}if(k==="cpaste"){clipPaste();return}
  if(k==="dval"){var e=selEls()[0];if(e&&e.k==="dim")dimValuePopup(elGet(e));return}if(k==="dlock"){var r=selEls()[0];if(r&&r.k==="dim"){var d=elGet(r);snapshot();d.lock=!d.lock;changed();updCtx();updProps();toast(d.lock?"Dimension locked":"Dimension unlocked")}return}
  return _ctx0(k)};
 /* ---------- properties: slide-over with Type Selector ---------- */

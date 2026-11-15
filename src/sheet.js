@@ -80,7 +80,7 @@ function buildSheet(O){O=O||{};
  function RP(p){return R(p.x,p.y)}
  var G=S.ops.map(function(o){var q=opWorld(o);if(q){q.o=o;q.T=dbl?wallT(q.s):0.5}return q}).filter(Boolean);
  // ---- walls: union of thick wall rectangles minus openings -> clean double lines + solid fill ----
- if(dbl){var rects=[],holes=[],oblique=[];
+ var _wb=function(){if(dbl){var rects=[],holes=[],oblique=[];
   var FCo=(typeof fillOn==="function"&&fillOn())?function(q){var A=pt(q.a),B=pt(q.b);return Math.abs(A.x-B.x)<1e-6||Math.abs(A.y-B.y)<1e-6}:null;
   S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),t=wallT(s)/2,e0=nodeExt(s,s.a,FCo),e1=nodeExt(s,s.b,FCo);
    if(Math.abs(a.y-b.y)<1e-6){var lo=a.x<b.x?[a.x-e0,b.x+e1]:[b.x-e1,a.x+e0];rects.push([lo[0],a.y-t,lo[1],a.y+t])}
@@ -98,6 +98,7 @@ function buildSheet(O){O=O||{};
    OP.concat(PP).forEach(function(P){d.poly(P,{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true})});SP.forEach(function(P){d.poly(P,{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true,nodxf:true})})}
   else oblique.forEach(function(s){var P=wallPoly(s).map(RP);d.poly(P,{w:0.45,c:DK,fill:"#3a3a3a",L:"WALLS"})})}
  else S.segs.forEach(function(s){var a=RP(pt(s.a)),b=RP(pt(s.b));d.line(a[0],a[1],b[0],b[1],{w:0.7,c:DK,L:"WALLS"})});
+ };if(typeof fillOn==="function"&&fillOn())withFillGeom(_wb);else _wb();
  // ---- furniture, staircase ----
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnSheet(d,R,f)});
  stairsSheet(d,RP,RI);if(typeof kcSheet==="function"&&visOn("furn"))kcSheet(d,RP);

@@ -12,6 +12,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
  if(k==="furn"&&e&&typeof furnSizePopup==="function")add("size","fsize","Edit size",function(){furnSizePopup(e)});
+ if(k==="furn"&&e)add("flip","mirror","Flip",function(){doMirror({x:e.x,y:e.y},(e.rot||0)+90,false)});
  if(k==="kc"&&e&&typeof kcPopup==="function")add("edit","edit","Edit counter",function(){kcPopup(e)});
  if(k==="stair"&&e&&typeof stairEditPopup==="function")add("edit","edit","Edit stair",function(){stairEditPopup(e)});
  if(typeof selCat==="function"&&selCat())add("type","match","Edit Type",function(){editTypeFor("sel")});

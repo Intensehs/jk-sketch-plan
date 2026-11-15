@@ -74,6 +74,6 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),C0=FURN[f.type]||{},RIG={basin:1,
   bx(w+0.25,0.25,d+0.2,0,6.0,0.05,F.woodD);cy(0.0,0.42,0.45,0,6.25,0,F.brass,{seg:4,ry:Math.PI/4});bx(w-0.3,0.08,d,0,2.4,0,F.woodL);bx(w-0.6,0.3,d*0.5,0,2.48,B+d*0.3,F.woodL);bx(w-1.2,0.3,d*0.4,0,2.78,B+d*0.22,F.woodL);
   cy(0.12,0.16,0.3,0,3.08,B+0.25,F.brass);sp(0.16,0,3.5,B+0.25,F.brass,{sy:1.3});[-1,1].forEach(function(s){cy(0.07,0.12,0.22,s*w/3,2.48,Fr-0.25,F.brass);sp(0.045,s*w/3,2.78,Fr-0.25,F.flame,{sy:1.8})});break}
  }
- G.position.set(f.x,0.005+(D.z||0),f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;if(RIG)G.scale.set(D.w/C0.w,1,D.d/C0.d);if(f.h&&!C0.km&&C0.h)G.scale.y=f.h/C0.h;G.updateMatrix();
+ G.position.set(f.x,0.005+(D.z||0),f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;if(RIG)G.scale.set(D.w/C0.w,1,D.d/C0.d);if(f.h&&!C0.km&&C0.h)G.scale.y=f.h/C0.h;if(f.fx)G.scale.x=-G.scale.x;G.updateMatrix();
  G.children.slice().forEach(function(m){m.applyMatrix4(G.matrix);m.castShadow=m.material!==T3.M.glass;m.receiveShadow=true;m.userData.layer=m.material===T3.M.glass?"GLASS3D":"FURN3D";m.userData.real=m.material;T3.model.add(m);
   if(m.userData.edges){var e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,28),T3.M.edgeReal);e.position.copy(m.position);e.quaternion.copy(m.quaternion);e.scale.copy(m.scale);e.userData.layer="FURN3D";T3.edges.add(e)}})}

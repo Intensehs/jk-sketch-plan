@@ -1819,7 +1819,7 @@ function wallPoly(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;v
 /* Stage: Filled corners - optional solid wall joins (S.meta.fillc, saved with the drawing). Only how joins are DRAWN changes:
    each wall is drawn to its node, and every node with 2+ walls gets a patch between neighbouring walls (mitred to where their
    faces meet; bevelled if the angle is very sharp). Wall geometry and all measurements are unchanged. */
-function fillToggle(){snapshot();S.meta.fillc=!S.meta.fillc;changed();if(typeof updCtx==="function")updCtx();if(typeof buildRail==="function")buildRail();toast("Filled corners "+(S.meta.fillc?"ON":"OFF")+(S.meta.fillc&&!S.meta.dbl?" (shows with double-line walls)":""))}
+function fillToggle(){snapshot();S.meta.fillc=!S.meta.fillc;var sw=false;if(S.meta.fillc&&!S.meta.dbl){S.meta.dbl=true;sw=true}changed();if(typeof updCtx==="function")updCtx();if(typeof buildRail==="function")buildRail();var nh=S.meta.fillc?fillHeals().length:0;toast("Filled corners "+(S.meta.fillc?"ON":"OFF")+(sw?" · double-line walls switched on":"")+(nh?" · "+nh+" open wall end"+(nh>1?"s":"")+" drawn joined (tap Join ends to fix)":""))}
 function fillOn(){return !!(S&&S.meta&&S.meta.fillc&&S.meta.dbl)}
 function wallPolyF(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,h=wallT(s)/2,nx=-uy*h,ny=ux*h;
  return [{x:a.x+nx,y:a.y+ny},{x:b.x+nx,y:b.y+ny},{x:b.x-nx,y:b.y-ny},{x:a.x-nx,y:a.y-ny}]}
@@ -1832,16 +1832,46 @@ function cornerPatches(only){var by={},out=[];S.segs.forEach(function(s){if(segL
    var den=P.u.x*Q.u.y-P.u.y*Q.u.x;if(Math.abs(den)>0.02&&Math.abs(gap-Math.PI)>0.02){var wx=Rq.x-Lp.x,wy=Rq.y-Lp.y,r=(wx*Q.u.y-wy*Q.u.x)/den,C={x:Lp.x+P.u.x*r,y:Lp.y+P.u.y*r};
     if(Math.hypot(C.x-N.x,C.y-N.y)<=4*Math.max(P.t,Q.t)+1e-6)poly.push(C)}
    poly.push(Rq);out.push({P:poly,s:P.t>=Q.t?P.s:Q.s,a:P.s,b:Q.s,N:N})}});return out}
+/* Stage: Filled corners - near-miss joins. Hand-drawn walls often stop just short of / run just past another wall
+   instead of sharing its corner point. fillHeals() finds free wall ends within ~one wall thickness of another wall and
+   returns where they should meet (L: both centre lines meet; T: end lands on the other wall). With Filled ON these are
+   drawn joined (render only, measurements untouched); "Join ends" (fillJoinApply) writes them into the drawing (undo-able). */
+function lineX(a,b,c,d){var r={x:b.x-a.x,y:b.y-a.y},q={x:d.x-c.x,y:d.y-c.y},den=r.x*q.y-r.y*q.x;if(Math.abs(den)<1e-9)return null;var t=((c.x-a.x)*q.y-(c.y-a.y)*q.x)/den,u=((c.x-a.x)*r.y-(c.y-a.y)*r.x)/den;return {x:a.x+r.x*t,y:a.y+r.y*t,t:t,u:u}}
+function fillHeals(){var deg={},out=[],used={};S.segs.forEach(function(s){if(segLen(s)<1e-6)return;deg[s.a]=(deg[s.a]||0)+1;deg[s.b]=(deg[s.b]||0)+1});
+ function sinA(s,q){var a=pt(s.a),b=pt(s.b),c=pt(q.a),d=pt(q.b),L1=segLen(s),L2=segLen(q);return Math.abs(((b.x-a.x)*(d.y-c.y)-(b.y-a.y)*(d.x-c.x))/(L1*L2))}
+ var ends=[],stub={};
+ // overshoot stubs: a short free piece sticking out past a crossing (walls drawn through each other)
+ S.segs.forEach(function(s){var L=segLen(s);if(L<1e-6)return;[[s.a,s.b],[s.b,s.a]].forEach(function(e){if(deg[e[0]]!==1||deg[e[1]]<3||stub[s.id])return;var mx=0;S.segs.forEach(function(q){if(q!==s&&(q.a===e[1]||q.b===e[1]))mx=Math.max(mx,wallT(q))});
+   if(L<=mx/2+0.35){stub[s.id]=1;out.push({k:"S",s:s.id,pid:e[0]})}})});
+ S.segs.forEach(function(s){if(segLen(s)<1e-6||stub[s.id])return;[s.a,s.b].forEach(function(pid){if(deg[pid]===1)ends.push({s:s,pid:pid})})});
+ // L: two free ends close together
+ ends.forEach(function(E,i){if(used[E.pid])return;var best=null;ends.forEach(function(F,j){if(j===i||used[F.pid]||F.s===E.s)return;if(sinA(E.s,F.s)<0.17)return;
+   var X=lineX(pt(E.s.a),pt(E.s.b),pt(F.s.a),pt(F.s.b));if(!X)return;var tol=Math.max(wallT(E.s),wallT(F.s))+0.2,pE=pt(E.pid),pF=pt(F.pid),dE=Math.hypot(X.x-pE.x,X.y-pE.y),dF=Math.hypot(X.x-pF.x,X.y-pF.y);
+   if(dE>1e-4&&dE<=tol*1.5&&dF<=tol*1.5&&dE+dF<segLen(E.s)*0.5+segLen(F.s)*0.5&&(!best||dE+dF<best.d))best={F:F,X:X,d:dE+dF}});
+  if(best){used[E.pid]=used[best.F.pid]=1;out.push({k:"L",pid:E.pid,pid2:best.F.pid,x:best.X.x,y:best.X.y,s:E.s.id,s2:best.F.s.id})}});
+ // T: free end close to the body of another wall (falls short or runs past it)
+ ends.forEach(function(E){if(used[E.pid])return;var pE=pt(E.pid),best=null;S.segs.forEach(function(q){if(q===E.s||q.a===E.pid||q.b===E.pid||segLen(q)<1e-6)return;if(sinA(E.s,q)<0.17)return;
+   var o=E.s.a===E.pid?pt(E.s.b):pt(E.s.a),X=lineX(o,pE,pt(q.a),pt(q.b));if(!X||X.u<0.001||X.u>0.999)return;var tol=Math.max(wallT(E.s),wallT(q))/2+wallT(q)/2+0.2,dE=Math.hypot(X.x-pE.x,X.y-pE.y);
+   if(dE>1e-4&&dE<=tol&&X.t>0.5&&(!best||dE<best.d))best={q:q,X:X,d:dE}});
+  if(best){used[E.pid]=1;out.push({k:"T",pid:E.pid,x:best.X.x,y:best.X.y,s:E.s.id,q:best.q.id})}});
+ return out}
+/* run fn with a temporary copy of the walls where near-miss ends are joined (render only) */
+function withFillGeom(fn){var H=fillHeals();if(!H.length)return fn();var P0=S.pts,S0=S.segs,mp={},P=P0.map(function(p){var c={};for(var k in p)c[k]=p[k];mp[p.id]=c;return c}),G=S0.map(function(s){var c={};for(var k in s)c[k]=s[k];return c}),nid0=-1;
+ var drop={};H.forEach(function(h){if(h.k==="S")drop[h.s]=1});G=G.filter(function(s){return !drop[s.id]});
+ H.forEach(function(h){if(h.k==="S")return;if(h.k==="L"){mp[h.pid].x=h.x;mp[h.pid].y=h.y;G.forEach(function(s){if(s.a===h.pid2)s.a=h.pid;if(s.b===h.pid2)s.b=h.pid})}
+  else{mp[h.pid].x=h.x;mp[h.pid].y=h.y;for(var i=0;i<G.length;i++){var q=G[i],a=mp[q.a],b=mp[q.b];if(q.id!==h.q)continue;var pr=projSeg(h.x,h.y,a,b);if(pr.t>1e-4&&pr.t<1-1e-4){var n={};for(var k in q)n[k]=q[k];n.a=h.pid;q.b=h.pid;n.b=b.id;G.push(n)}break}}});
+ S.pts=P;S.segs=G;try{return fn()}finally{S.pts=P0;S.segs=S0}}
+function fillJoinApply(){var H=fillHeals();if(!H.length){toast("No open wall ends to join");return 0}snapshot();var drop={};H.forEach(function(h){if(h.k==="S"){drop[h.s]=1;if(typeof dropOps==="function")dropOps(h.s)}});S.segs=S.segs.filter(function(s){return !drop[s.id]});H.forEach(function(h){if(h.k==="S")return;var p=pt(h.pid);p.x=h.x;p.y=h.y;if(h.k==="L"){var q=pt(h.pid2);q.x=h.x;q.y=h.y}});planarize();if(typeof cleanup==="function")cleanup();changed();if(typeof updCtx==="function")updCtx();toast(H.length+" wall end"+(H.length>1?"s":"")+" joined");return H.length}
 /* Stage: Plan view - Wall tool output: filled double-line walls */
 function drawWallsCanvas(){var sel=UI.selSeg||[];
  if(!S.meta.dbl){S.segs.forEach(function(s){var a=w2s(pt(s.a).x,pt(s.a).y),b=w2s(pt(s.b).x,pt(s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);
   var on=sel.indexOf(s.id)>=0;g.strokeStyle=on?"#e8590c":(s.k==="I"?"#4f6d8f":"#14253b");g.lineWidth=on?5:(s.k==="I"?2.2:3.4);g.lineCap="round";g.stroke()});return}
- var FC=fillOn(),Q=[];S.segs.forEach(function(s){var P=FC?wallPolyF(s):wallPoly(s);if(P)Q.push({s:s,P:P.map(function(p){return w2s(p.x,p.y)})})});
- if(FC)cornerPatches().forEach(function(c){Q.push({s:c.s,P:c.P.map(function(p){return w2s(p.x,p.y)}),patch:1})});
+ var FC=fillOn(),Q=[];function build(){S.segs.forEach(function(s){var P=FC?wallPolyF(s):wallPoly(s);if(P)Q.push({s:s,P:P.map(function(p){return w2s(p.x,p.y)})})});
+ if(FC)cornerPatches().forEach(function(c){Q.push({s:c.s,P:c.P.map(function(p){return w2s(p.x,p.y)}),patch:1})})}if(FC)withFillGeom(build);else build();
  function path(P){g.beginPath();P.forEach(function(p,i){i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)});g.closePath()}
  g.lineJoin="miter";g.setLineDash([]);
  Q.forEach(function(q){path(q.P);g.strokeStyle="#0b1a2e";g.lineWidth=UI.thin?1:2.6;g.stroke()});
- Q.forEach(function(q){path(q.P);var on=!q.patch&&sel.indexOf(q.s.id)>=0;g.fillStyle=on?"#f08c4a":(UI.tool==="wall"?thCol(wallIn(q.s)):"#5d6c80");g.fill()});
+ Q.forEach(function(q){path(q.P);var on=!q.patch&&sel.indexOf(q.s.id)>=0;g.fillStyle=on?"#f08c4a":(UI.tool==="wall"?thCol(wallIn(q.s)):(FC?"#2a3442":"#5d6c80"));g.fill()});
  // very thin on screen (zoomed out): keep a visible centre line
  if(V.s*S.meta.tin/12<3)Q.forEach(function(q){var a=w2s(pt(q.s.a).x,pt(q.s.a).y),b=w2s(pt(q.s.b).x,pt(q.s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#0b1a2e";g.lineWidth=2;g.stroke()})}
 /* one door / window / ventilator in architectural plan style */
@@ -2305,7 +2335,7 @@ function buildSheet(O){O=O||{};
  function RP(p){return R(p.x,p.y)}
  var G=S.ops.map(function(o){var q=opWorld(o);if(q){q.o=o;q.T=dbl?wallT(q.s):0.5}return q}).filter(Boolean);
  // ---- walls: union of thick wall rectangles minus openings -> clean double lines + solid fill ----
- if(dbl){var rects=[],holes=[],oblique=[];
+ var _wb=function(){if(dbl){var rects=[],holes=[],oblique=[];
   var FCo=(typeof fillOn==="function"&&fillOn())?function(q){var A=pt(q.a),B=pt(q.b);return Math.abs(A.x-B.x)<1e-6||Math.abs(A.y-B.y)<1e-6}:null;
   S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),t=wallT(s)/2,e0=nodeExt(s,s.a,FCo),e1=nodeExt(s,s.b,FCo);
    if(Math.abs(a.y-b.y)<1e-6){var lo=a.x<b.x?[a.x-e0,b.x+e1]:[b.x-e1,a.x+e0];rects.push([lo[0],a.y-t,lo[1],a.y+t])}
@@ -2323,6 +2353,7 @@ function buildSheet(O){O=O||{};
    OP.concat(PP).forEach(function(P){d.poly(P,{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true})});SP.forEach(function(P){d.poly(P,{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true,nodxf:true})})}
   else oblique.forEach(function(s){var P=wallPoly(s).map(RP);d.poly(P,{w:0.45,c:DK,fill:"#3a3a3a",L:"WALLS"})})}
  else S.segs.forEach(function(s){var a=RP(pt(s.a)),b=RP(pt(s.b));d.line(a[0],a[1],b[0],b[1],{w:0.7,c:DK,L:"WALLS"})});
+ };if(typeof fillOn==="function"&&fillOn())withFillGeom(_wb);else _wb();
  // ---- furniture, staircase ----
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnSheet(d,R,f)});
  stairsSheet(d,RP,RI);if(typeof kcSheet==="function"&&visOn("furn"))kcSheet(d,RP);
@@ -2542,7 +2573,8 @@ function furnSym(type,w,d,f){var P=[],L=-w/2,Rr=w/2,B=-d/2,F=d/2,mn=Math.min(w,d
  default:r(L,B,Rr,F)}
  return P}
 var FFILL={1:"#fbf6ee",2:"#e7d6bd",3:"#ffffff",4:"#d9e6f2"};
-function fXform(f){var a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);return function(x,y){return {x:f.x+x*cs-y*sn,y:f.y+x*sn+y*cs}}}
+/* Stage: Furniture mirror - f.fx = mirrored (local left-right flip, applied before rotation) */
+function fXform(f){var a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),sx=f.fx?-1:1;return function(x,y){x*=sx;return {x:f.x+x*cs-y*sn,y:f.y+x*sn+y*cs}}}
 function primPolys(pr){if(pr.t==="r")return [[pr.x0,pr.y0],[pr.x1,pr.y0],[pr.x1,pr.y1],[pr.x0,pr.y1]];if(pr.t==="l")return [[pr.x0,pr.y0],[pr.x1,pr.y1]];return pr.pts}
 /* draw onto the plan canvas */
 function drawFurnCanvas(f,sel){var D=fdims(f),X=fXform(f),P=furnSym(f.type,D.w,D.d,f);
@@ -2880,7 +2912,7 @@ function furn3D(f){var M=T3.M,F=M.F,D=fdims(f),C0=FURN[f.type]||{},RIG={basin:1,
   bx(w+0.25,0.25,d+0.2,0,6.0,0.05,F.woodD);cy(0.0,0.42,0.45,0,6.25,0,F.brass,{seg:4,ry:Math.PI/4});bx(w-0.3,0.08,d,0,2.4,0,F.woodL);bx(w-0.6,0.3,d*0.5,0,2.48,B+d*0.3,F.woodL);bx(w-1.2,0.3,d*0.4,0,2.78,B+d*0.22,F.woodL);
   cy(0.12,0.16,0.3,0,3.08,B+0.25,F.brass);sp(0.16,0,3.5,B+0.25,F.brass,{sy:1.3});[-1,1].forEach(function(s){cy(0.07,0.12,0.22,s*w/3,2.48,Fr-0.25,F.brass);sp(0.045,s*w/3,2.78,Fr-0.25,F.flame,{sy:1.8})});break}
  }
- G.position.set(f.x,0.005+(D.z||0),f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;if(RIG)G.scale.set(D.w/C0.w,1,D.d/C0.d);if(f.h&&!C0.km&&C0.h)G.scale.y=f.h/C0.h;G.updateMatrix();
+ G.position.set(f.x,0.005+(D.z||0),f.y);G.rotation.y=-(f.rot||0)*Math.PI/180;if(RIG)G.scale.set(D.w/C0.w,1,D.d/C0.d);if(f.h&&!C0.km&&C0.h)G.scale.y=f.h/C0.h;if(f.fx)G.scale.x=-G.scale.x;G.updateMatrix();
  G.children.slice().forEach(function(m){m.applyMatrix4(G.matrix);m.castShadow=m.material!==T3.M.glass;m.receiveShadow=true;m.userData.layer=m.material===T3.M.glass?"GLASS3D":"FURN3D";m.userData.real=m.material;T3.model.add(m);
   if(m.userData.edges){var e=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,28),T3.M.edgeReal);e.position.copy(m.position);e.quaternion.copy(m.quaternion);e.scale.copy(m.scale);e.userData.layer="FURN3D";T3.edges.add(e)}})}
 
@@ -3103,7 +3135,7 @@ function xfRefs(L,f,ang,mir){var seen=new Set(),segMoved={};
   if(r.k==="stair"){e.pts.forEach(mv);if(e.fit){delete e.fit;delete e.lab}return}
   if(r.k==="kc"){e.pts.forEach(mv);if(mir!=null)e.side=-(e.side||1);return}
   if(e.a&&e.b&&e.a.x!=null){mv(e.a);mv(e.b);if(mir!=null&&r.k==="dim")e.off=-(e.off||0);return}
-  mv(e);if(r.k==="furn"){if(mir!=null)e.rot=((2*mir-(e.rot||0)+180)%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}
+  mv(e);if(r.k==="furn"){if(mir!=null){e.rot=((2*mir-(e.rot||0)+180)%360+360)%360;e.rot=Math.round(e.rot*1e6)/1e6%360;if(e.fx)delete e.fx;else e.fx=true}else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}
   if(r.k==="col"){if(mir!=null)e.rot=((2*mir-(e.rot||0))%360+360)%360;else if(ang)e.rot=(((e.rot||0)+ang)%360+360)%360}});
  if(mir!=null)S.ops.forEach(function(o){if(segMoved[o.seg])o.flip=!o.flip});
  opsC.forEach(function(q){if(!q.c||selSegs[q.o.seg])return;var c=f(q.c),s=segById(q.o.seg);if(!s)return;var P=projSeg(c.x,c.y,pt(s.a),pt(s.b));q.o.t=clamp(P.t,0,1)});
@@ -3143,11 +3175,11 @@ function rotatePopup(){var st={copy:false};modal('<div class="mt">Rotate</div><d
  box.querySelectorAll("[data-ra]").forEach(function(b){b.onclick=function(){closeModal();doRotate(+b.dataset.ra,st.copy)}});$("raX").onclick=closeModal;$("raOk").onclick=function(){var a=+$("raC").value;closeModal();if(a)doRotate(a,st.copy)}})}
 function mirrorPopup(){var st={copy:true};var c=selCenter();if(!c){toast("Select something first");return}
  modal('<div class="mt">Mirror</div><div class="ms">Mirror axis through the selection edge or centre, or pick an axis line (2 taps)</div><div class="grid2">'+
- '<button class="bb" data-mx="R">Copy to the RIGHT<small>axis = right edge</small></button><button class="bb" data-mx="L">Copy to the LEFT<small>axis = left edge</small></button><button class="bb" data-mx="D">Copy DOWN<small>axis = bottom edge</small></button><button class="bb" data-mx="U">Copy UP<small>axis = top edge</small></button><button class="bb" data-mx="V">Flip left-right<small>about centre</small></button><button class="bb" data-mx="H">Flip up-down<small>about centre</small></button></div>'+
+ '<button class="bb" data-mx="R">Copy to the RIGHT<small>axis = right edge</small></button><button class="bb" data-mx="L">Copy to the LEFT<small>axis = left edge</small></button><button class="bb" data-mx="D">Copy DOWN<small>axis = bottom edge</small></button><button class="bb" data-mx="U">Copy UP<small>axis = top edge</small></button><button class="bb" data-mx="V">Flip left-right<small>in place, about centre</small></button><button class="bb" data-mx="H">Flip up-down<small>in place, about centre</small></button></div>'+
  '<div class="row"><button class="bb" id="mxPick">Pick axis (tap 2 points)</button><button class="bb on" id="mxCp">Keep original: ON</button></div><div class="row"><button class="bb" id="mxX">Cancel</button></div>',function(box){
  $("mxCp").onclick=function(){st.copy=!st.copy;this.textContent="Keep original: "+(st.copy?"ON":"OFF");this.classList.toggle("on",st.copy)};$("mxX").onclick=closeModal;
  box.querySelectorAll("[data-mx]").forEach(function(b){b.onclick=function(){var k=b.dataset.mx,B=c.b;closeModal();
-  if(k==="R")doMirror({x:B[2],y:0},90,st.copy);else if(k==="L")doMirror({x:B[0],y:0},90,st.copy);else if(k==="D")doMirror({x:0,y:B[3]},0,st.copy);else if(k==="U")doMirror({x:0,y:B[1]},0,st.copy);else if(k==="V")doMirror(c,90,st.copy);else doMirror(c,0,st.copy)}});
+  if(k==="R")doMirror({x:B[2],y:0},90,st.copy);else if(k==="L")doMirror({x:B[0],y:0},90,st.copy);else if(k==="D")doMirror({x:0,y:B[3]},0,st.copy);else if(k==="U")doMirror({x:0,y:B[1]},0,st.copy);else if(k==="V")doMirror(c,90,false);else doMirror(c,0,false)}});
  $("mxPick").onclick=function(){closeModal();UI.pick={k:"mirror",copy:st.copy,pts:[]};updCtx();toast("Tap first point of the mirror axis")}})}
 function arrayPopup(){if(!selEls().length){toast("Select something first");return}dirDist("Array (linear)",function(dx,dy,n){if(!(n>=2&&n<=50)){toast("Count 2 to 50");return}doArray(n,dx,dy)},{count:3,L:5})}
 function filterPopup(){var L=selEls(),cnt={};L.forEach(function(r){cnt[r.k]=(cnt[r.k]||0)+1});var keys=Object.keys(cnt);if(!keys.length){toast("Nothing selected");return}var on={};keys.forEach(function(k){on[k]=true});
@@ -3880,12 +3912,12 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
   if(T==="roof")h+=CDV+cbI("rfr","roof2","Roof: "+roofCfg().type,"Roof settings",true);
   if(T==="meas"&&UI.meas)h+=CDV+'<span class="cnt">'+fi(UI.meas.L)+'</span><span class="tlab">ΔX '+fi(UI.meas.dx)+' · ΔY '+fi(UI.meas.dy)+'</span>';
   if(T==="align"||T==="trim"||(UI.pick&&UI.pick.k))h+=cbI("pickx","x","Cancel pick");
-  h+=CDV+cbI("pen","pen","Pen",UI.penOnly?"Pen only ON (palm safe)":"Pen only OFF",UI.penOnly)+cbI("grid","grid",["Grid off","Grid","Grid+"][UI.grid],"Background grid",!!UI.grid)+cbI("thin","thin","Thin","Thin lines",UI.thin)+cbI("fillc","fillc","Filled","Filled wall corners",!!S.meta.fillc)}
+  h+=CDV+cbI("pen","pen","Pen",UI.penOnly?"Pen only ON (palm safe)":"Pen only OFF",UI.penOnly)+cbI("grid","grid",["Grid off","Grid","Grid+"][UI.grid],"Background grid",!!UI.grid)+cbI("thin","thin","Thin","Thin lines",UI.thin)+cbI("fillc","fillc","Filled","Filled wall corners",!!S.meta.fillc)+(S.meta.fillc&&typeof fillHeals==="function"&&fillHeals().length?cbI("fjoin","corner","Join ends","Join wall ends that stop short of / run past a corner",false,"ok2"):"")}
  c.innerHTML=h;c.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){ctxAction(b.dataset.c)}});
  bindTsel(c,function(key,id){if(key==="sel")setSelType(id);else pickType(key,id);updCtx();updProps();render()});
  var hn=$("hint");if(hn)hn.textContent=UI.clean?"Sheets":(UI.pick&&UI.pick.k==="mirror"?"Tap 2 points for the mirror axis":HINTS[T]||"");updLevelBadge();var bo=$("bOpt");if(bo)bo.classList.toggle("on",!UI.noopt)}
 var _ctx0=ctxAction;ctxAction=function(k){if(k.indexOf("tedit:")===0){editTypeFor(k.slice(6));return}
- if(k==="xsame"){selectSame();return}if(k==="fillc"){fillToggle();return}if(k==="ccopy"){clipCopy();return}if(k==="cpaste"){clipPaste();return}
+ if(k==="xsame"){selectSame();return}if(k==="fillc"){fillToggle();return}if(k==="fjoin"){fillJoinApply();return}if(k==="ccopy"){clipCopy();return}if(k==="cpaste"){clipPaste();return}
  if(k==="dval"){var e=selEls()[0];if(e&&e.k==="dim")dimValuePopup(elGet(e));return}if(k==="dlock"){var r=selEls()[0];if(r&&r.k==="dim"){var d=elGet(r);snapshot();d.lock=!d.lock;changed();updCtx();updProps();toast(d.lock?"Dimension locked":"Dimension unlocked")}return}
  return _ctx0(k)};
 /* ---------- properties: slide-over with Type Selector ---------- */
@@ -4224,9 +4256,9 @@ var _kcDn=toolDown;toolDown=function(w,G){
  if(UI.tool==="kc"&&!UI.pick){G.kind="kcdraw";G.path=[w];return true}
  return _kcDn(w,G)};
 var _kcMv=toolMove;toolMove=function(w,G,p){
- if(G.kind==="fresize"){if(!G.moved)return true;var f=G.f,o=G.o,h=G.h,a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),dx=w.x-o.x,dy=w.y-o.y,lx=dx*cs+dy*sn,ly=-dx*sn+dy*cs;if(!G.snap){snapshot();G.snap=true}
+ if(G.kind==="fresize"){if(!G.moved)return true;var f=G.f,o=G.o,h=G.h,a=(f.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),dx=w.x-o.x,dy=w.y-o.y,lx=dx*cs+dy*sn,ly=-dx*sn+dy*cs,sxf=f.fx?-1:1;lx*=sxf;if(!G.snap){snapshot();G.snap=true}
   var nw=o.w,nd=o.d,cx=0,cy=0;if(h.ix){nw=Math.max(0.25,r12(h.ix*lx+o.w/2));cx=h.ix*(nw-o.w)/2}if(h.iy){nd=Math.max(0.25,r12(h.iy*ly+o.d/2));cy=h.iy*(nd-o.d)/2}
-  f.w=nw;f.d=nd;f.x=o.x+cx*cs-cy*sn;f.y=o.y+cx*sn+cy*cs;SHEET=null;showHud(isKM(f.type)?mmT(nw)+" × "+mmT(nd)+" mm":fi(nw)+" × "+fi(nd));render();return true}
+  f.w=nw;f.d=nd;f.x=o.x+sxf*cx*cs-cy*sn;f.y=o.y+sxf*cx*sn+cy*cs;SHEET=null;showHud(isKM(f.type)?mmT(nw)+" × "+mmT(nd)+" mm":fi(nw)+" × "+fi(nd));render();return true}
  if(G.kind==="kcdraw"){var l=G.path[G.path.length-1];if(Math.hypot(w.x-l.x,w.y-l.y)*V.s>2)G.path.push(w);if(G.moved){UI.kcPv=kcSnapPts(stSnapPath(G.path));if(UI.kcPv){var Gx=kcGeo({pts:UI.kcPv.pts,side:UI.kcPv.side,d:UI.kcD||2});if(Gx)showHud("Counter "+kcLegText(Gx))}render()}return true}
  return _kcMv(w,G,p)};
 var _kcUp=toolUp;toolUp=function(G,w){
@@ -4616,6 +4648,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
  if(k==="furn"&&e&&typeof furnSizePopup==="function")add("size","fsize","Edit size",function(){furnSizePopup(e)});
+ if(k==="furn"&&e)add("flip","mirror","Flip",function(){doMirror({x:e.x,y:e.y},(e.rot||0)+90,false)});
  if(k==="kc"&&e&&typeof kcPopup==="function")add("edit","edit","Edit counter",function(){kcPopup(e)});
  if(k==="stair"&&e&&typeof stairEditPopup==="function")add("edit","edit","Edit stair",function(){stairEditPopup(e)});
  if(typeof selCat==="function"&&selCat())add("type","match","Edit Type",function(){editTypeFor("sel")});

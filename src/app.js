@@ -264,7 +264,7 @@ function wallPoly(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;v
 /* Stage: Filled corners - optional solid wall joins (S.meta.fillc, saved with the drawing). Only how joins are DRAWN changes:
    each wall is drawn to its node, and every node with 2+ walls gets a patch between neighbouring walls (mitred to where their
    faces meet; bevelled if the angle is very sharp). Wall geometry and all measurements are unchanged. */
-function fillToggle(){snapshot();S.meta.fillc=!S.meta.fillc;changed();if(typeof updCtx==="function")updCtx();if(typeof buildRail==="function")buildRail();toast("Filled corners "+(S.meta.fillc?"ON":"OFF")+(S.meta.fillc&&!S.meta.dbl?" (shows with double-line walls)":""))}
+function fillToggle(){snapshot();S.meta.fillc=!S.meta.fillc;var sw=false;if(S.meta.fillc&&!S.meta.dbl){S.meta.dbl=true;sw=true}changed();if(typeof updCtx==="function")updCtx();if(typeof buildRail==="function")buildRail();var nh=S.meta.fillc?fillHeals().length:0;toast("Filled corners "+(S.meta.fillc?"ON":"OFF")+(sw?" · double-line walls switched on":"")+(nh?" · "+nh+" open wall end"+(nh>1?"s":"")+" drawn joined (tap Join ends to fix)":""))}
 function fillOn(){return !!(S&&S.meta&&S.meta.fillc&&S.meta.dbl)}
 function wallPolyF(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,h=wallT(s)/2,nx=-uy*h,ny=ux*h;
  return [{x:a.x+nx,y:a.y+ny},{x:b.x+nx,y:b.y+ny},{x:b.x-nx,y:b.y-ny},{x:a.x-nx,y:a.y-ny}]}
@@ -277,16 +277,46 @@ function cornerPatches(only){var by={},out=[];S.segs.forEach(function(s){if(segL
    var den=P.u.x*Q.u.y-P.u.y*Q.u.x;if(Math.abs(den)>0.02&&Math.abs(gap-Math.PI)>0.02){var wx=Rq.x-Lp.x,wy=Rq.y-Lp.y,r=(wx*Q.u.y-wy*Q.u.x)/den,C={x:Lp.x+P.u.x*r,y:Lp.y+P.u.y*r};
     if(Math.hypot(C.x-N.x,C.y-N.y)<=4*Math.max(P.t,Q.t)+1e-6)poly.push(C)}
    poly.push(Rq);out.push({P:poly,s:P.t>=Q.t?P.s:Q.s,a:P.s,b:Q.s,N:N})}});return out}
+/* Stage: Filled corners - near-miss joins. Hand-drawn walls often stop just short of / run just past another wall
+   instead of sharing its corner point. fillHeals() finds free wall ends within ~one wall thickness of another wall and
+   returns where they should meet (L: both centre lines meet; T: end lands on the other wall). With Filled ON these are
+   drawn joined (render only, measurements untouched); "Join ends" (fillJoinApply) writes them into the drawing (undo-able). */
+function lineX(a,b,c,d){var r={x:b.x-a.x,y:b.y-a.y},q={x:d.x-c.x,y:d.y-c.y},den=r.x*q.y-r.y*q.x;if(Math.abs(den)<1e-9)return null;var t=((c.x-a.x)*q.y-(c.y-a.y)*q.x)/den,u=((c.x-a.x)*r.y-(c.y-a.y)*r.x)/den;return {x:a.x+r.x*t,y:a.y+r.y*t,t:t,u:u}}
+function fillHeals(){var deg={},out=[],used={};S.segs.forEach(function(s){if(segLen(s)<1e-6)return;deg[s.a]=(deg[s.a]||0)+1;deg[s.b]=(deg[s.b]||0)+1});
+ function sinA(s,q){var a=pt(s.a),b=pt(s.b),c=pt(q.a),d=pt(q.b),L1=segLen(s),L2=segLen(q);return Math.abs(((b.x-a.x)*(d.y-c.y)-(b.y-a.y)*(d.x-c.x))/(L1*L2))}
+ var ends=[],stub={};
+ // overshoot stubs: a short free piece sticking out past a crossing (walls drawn through each other)
+ S.segs.forEach(function(s){var L=segLen(s);if(L<1e-6)return;[[s.a,s.b],[s.b,s.a]].forEach(function(e){if(deg[e[0]]!==1||deg[e[1]]<3||stub[s.id])return;var mx=0;S.segs.forEach(function(q){if(q!==s&&(q.a===e[1]||q.b===e[1]))mx=Math.max(mx,wallT(q))});
+   if(L<=mx/2+0.35){stub[s.id]=1;out.push({k:"S",s:s.id,pid:e[0]})}})});
+ S.segs.forEach(function(s){if(segLen(s)<1e-6||stub[s.id])return;[s.a,s.b].forEach(function(pid){if(deg[pid]===1)ends.push({s:s,pid:pid})})});
+ // L: two free ends close together
+ ends.forEach(function(E,i){if(used[E.pid])return;var best=null;ends.forEach(function(F,j){if(j===i||used[F.pid]||F.s===E.s)return;if(sinA(E.s,F.s)<0.17)return;
+   var X=lineX(pt(E.s.a),pt(E.s.b),pt(F.s.a),pt(F.s.b));if(!X)return;var tol=Math.max(wallT(E.s),wallT(F.s))+0.2,pE=pt(E.pid),pF=pt(F.pid),dE=Math.hypot(X.x-pE.x,X.y-pE.y),dF=Math.hypot(X.x-pF.x,X.y-pF.y);
+   if(dE>1e-4&&dE<=tol*1.5&&dF<=tol*1.5&&dE+dF<segLen(E.s)*0.5+segLen(F.s)*0.5&&(!best||dE+dF<best.d))best={F:F,X:X,d:dE+dF}});
+  if(best){used[E.pid]=used[best.F.pid]=1;out.push({k:"L",pid:E.pid,pid2:best.F.pid,x:best.X.x,y:best.X.y,s:E.s.id,s2:best.F.s.id})}});
+ // T: free end close to the body of another wall (falls short or runs past it)
+ ends.forEach(function(E){if(used[E.pid])return;var pE=pt(E.pid),best=null;S.segs.forEach(function(q){if(q===E.s||q.a===E.pid||q.b===E.pid||segLen(q)<1e-6)return;if(sinA(E.s,q)<0.17)return;
+   var o=E.s.a===E.pid?pt(E.s.b):pt(E.s.a),X=lineX(o,pE,pt(q.a),pt(q.b));if(!X||X.u<0.001||X.u>0.999)return;var tol=Math.max(wallT(E.s),wallT(q))/2+wallT(q)/2+0.2,dE=Math.hypot(X.x-pE.x,X.y-pE.y);
+   if(dE>1e-4&&dE<=tol&&X.t>0.5&&(!best||dE<best.d))best={q:q,X:X,d:dE}});
+  if(best){used[E.pid]=1;out.push({k:"T",pid:E.pid,x:best.X.x,y:best.X.y,s:E.s.id,q:best.q.id})}});
+ return out}
+/* run fn with a temporary copy of the walls where near-miss ends are joined (render only) */
+function withFillGeom(fn){var H=fillHeals();if(!H.length)return fn();var P0=S.pts,S0=S.segs,mp={},P=P0.map(function(p){var c={};for(var k in p)c[k]=p[k];mp[p.id]=c;return c}),G=S0.map(function(s){var c={};for(var k in s)c[k]=s[k];return c}),nid0=-1;
+ var drop={};H.forEach(function(h){if(h.k==="S")drop[h.s]=1});G=G.filter(function(s){return !drop[s.id]});
+ H.forEach(function(h){if(h.k==="S")return;if(h.k==="L"){mp[h.pid].x=h.x;mp[h.pid].y=h.y;G.forEach(function(s){if(s.a===h.pid2)s.a=h.pid;if(s.b===h.pid2)s.b=h.pid})}
+  else{mp[h.pid].x=h.x;mp[h.pid].y=h.y;for(var i=0;i<G.length;i++){var q=G[i],a=mp[q.a],b=mp[q.b];if(q.id!==h.q)continue;var pr=projSeg(h.x,h.y,a,b);if(pr.t>1e-4&&pr.t<1-1e-4){var n={};for(var k in q)n[k]=q[k];n.a=h.pid;q.b=h.pid;n.b=b.id;G.push(n)}break}}});
+ S.pts=P;S.segs=G;try{return fn()}finally{S.pts=P0;S.segs=S0}}
+function fillJoinApply(){var H=fillHeals();if(!H.length){toast("No open wall ends to join");return 0}snapshot();var drop={};H.forEach(function(h){if(h.k==="S"){drop[h.s]=1;if(typeof dropOps==="function")dropOps(h.s)}});S.segs=S.segs.filter(function(s){return !drop[s.id]});H.forEach(function(h){if(h.k==="S")return;var p=pt(h.pid);p.x=h.x;p.y=h.y;if(h.k==="L"){var q=pt(h.pid2);q.x=h.x;q.y=h.y}});planarize();if(typeof cleanup==="function")cleanup();changed();if(typeof updCtx==="function")updCtx();toast(H.length+" wall end"+(H.length>1?"s":"")+" joined");return H.length}
 /* Stage: Plan view - Wall tool output: filled double-line walls */
 function drawWallsCanvas(){var sel=UI.selSeg||[];
  if(!S.meta.dbl){S.segs.forEach(function(s){var a=w2s(pt(s.a).x,pt(s.a).y),b=w2s(pt(s.b).x,pt(s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);
   var on=sel.indexOf(s.id)>=0;g.strokeStyle=on?"#e8590c":(s.k==="I"?"#4f6d8f":"#14253b");g.lineWidth=on?5:(s.k==="I"?2.2:3.4);g.lineCap="round";g.stroke()});return}
- var FC=fillOn(),Q=[];S.segs.forEach(function(s){var P=FC?wallPolyF(s):wallPoly(s);if(P)Q.push({s:s,P:P.map(function(p){return w2s(p.x,p.y)})})});
- if(FC)cornerPatches().forEach(function(c){Q.push({s:c.s,P:c.P.map(function(p){return w2s(p.x,p.y)}),patch:1})});
+ var FC=fillOn(),Q=[];function build(){S.segs.forEach(function(s){var P=FC?wallPolyF(s):wallPoly(s);if(P)Q.push({s:s,P:P.map(function(p){return w2s(p.x,p.y)})})});
+ if(FC)cornerPatches().forEach(function(c){Q.push({s:c.s,P:c.P.map(function(p){return w2s(p.x,p.y)}),patch:1})})}if(FC)withFillGeom(build);else build();
  function path(P){g.beginPath();P.forEach(function(p,i){i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)});g.closePath()}
  g.lineJoin="miter";g.setLineDash([]);
  Q.forEach(function(q){path(q.P);g.strokeStyle="#0b1a2e";g.lineWidth=UI.thin?1:2.6;g.stroke()});
- Q.forEach(function(q){path(q.P);var on=!q.patch&&sel.indexOf(q.s.id)>=0;g.fillStyle=on?"#f08c4a":(UI.tool==="wall"?thCol(wallIn(q.s)):"#5d6c80");g.fill()});
+ Q.forEach(function(q){path(q.P);var on=!q.patch&&sel.indexOf(q.s.id)>=0;g.fillStyle=on?"#f08c4a":(UI.tool==="wall"?thCol(wallIn(q.s)):(FC?"#2a3442":"#5d6c80"));g.fill()});
  // very thin on screen (zoomed out): keep a visible centre line
  if(V.s*S.meta.tin/12<3)Q.forEach(function(q){var a=w2s(pt(q.s.a).x,pt(q.s.a).y),b=w2s(pt(q.s.b).x,pt(q.s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#0b1a2e";g.lineWidth=2;g.stroke()})}
 /* one door / window / ventilator in architectural plan style */
