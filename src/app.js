@@ -258,21 +258,38 @@ function opWorld(o){var s=segById(o.seg);if(!s)return null;var a=pt(s.a),b=pt(s.
 
 /* ---------- thick walls on the drawing canvas ---------- */
 /* how far wall s must run past its end node pid so that corners / T-joins close cleanly */
-function nodeExt(s,pid){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return 0;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,e=0,ts=wallT(s)/2;
- S.segs.forEach(function(q){if(q===s||(q.a!==pid&&q.b!==pid))return;var c=pt(q.a),d=pt(q.b),Lq=segLen(q);if(Lq<1e-6)return;
+function nodeExt(s,pid,only){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return 0;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,e=0,ts=wallT(s)/2;
+ S.segs.forEach(function(q){if(q===s||(q.a!==pid&&q.b!==pid))return;if(only&&!only(q))return;var c=pt(q.a),d=pt(q.b),Lq=segLen(q);if(Lq<1e-6)return;
   var cr=Math.abs(((d.x-c.x)*uy-(d.y-c.y)*ux)/Lq),co=Math.abs(((d.x-c.x)*ux+(d.y-c.y)*uy)/Lq);if(cr<0.05)return;
   e=Math.max(e,Math.min(wallT(q)/2/cr+ts*co/cr,4*Math.max(wallT(q),wallT(s))))});return e}
 function wallPoly(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,h=wallT(s)/2,nx=-uy*h,ny=ux*h,e0=nodeExt(s,s.a),e1=nodeExt(s,s.b);
  var A={x:a.x-ux*e0,y:a.y-uy*e0},B={x:b.x+ux*e1,y:b.y+uy*e1};return [{x:A.x+nx,y:A.y+ny},{x:B.x+nx,y:B.y+ny},{x:B.x-nx,y:B.y-ny},{x:A.x-nx,y:A.y-ny}]}
+/* Stage: Filled corners - optional solid wall joins (S.meta.fillc, saved with the drawing). Only how joins are DRAWN changes:
+   each wall is drawn to its node, and every node with 2+ walls gets a patch between neighbouring walls (mitred to where their
+   faces meet; bevelled if the angle is very sharp). Wall geometry and all measurements are unchanged. */
+function fillToggle(){snapshot();S.meta.fillc=!S.meta.fillc;changed();if(typeof updCtx==="function")updCtx();if(typeof buildRail==="function")buildRail();toast("Filled corners "+(S.meta.fillc?"ON":"OFF")+(S.meta.fillc&&!S.meta.dbl?" (shows with double-line walls)":""))}
+function fillOn(){return !!(S&&S.meta&&S.meta.fillc&&S.meta.dbl)}
+function wallPolyF(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<1e-6)return null;var ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,h=wallT(s)/2,nx=-uy*h,ny=ux*h;
+ return [{x:a.x+nx,y:a.y+ny},{x:b.x+nx,y:b.y+ny},{x:b.x-nx,y:b.y-ny},{x:a.x-nx,y:a.y-ny}]}
+function cornerPatches(only){var by={},out=[];S.segs.forEach(function(s){if(segLen(s)<1e-6)return;[s.a,s.b].forEach(function(p){(by[p]=by[p]||[]).push(s)})});
+ Object.keys(by).forEach(function(pid){var W=by[pid];if(W.length<2)return;if(only&&!W.some(only))return;var N=pt(+pid);
+  var A=W.map(function(s){var o=pt(s.a===+pid?s.b:s.a),L=Math.hypot(o.x-N.x,o.y-N.y),u={x:(o.x-N.x)/L,y:(o.y-N.y)/L};return {s:s,u:u,n:{x:-u.y,y:u.x},t:wallT(s)/2,ang:Math.atan2(u.y,u.x)}}).sort(function(p,q){return p.ang-q.ang});
+  if(A.length===2&&Math.abs(A[0].u.x*A[1].u.y-A[0].u.y*A[1].u.x)<0.02&&A[0].u.x*A[1].u.x+A[0].u.y*A[1].u.y<0)return;
+  for(var i=0;i<A.length;i++){var P=A[i],Q=A[(i+1)%A.length],gap=Q.ang-P.ang;if(gap<=1e-9)gap+=2*Math.PI;if(A.length===1)break;
+   var Lp={x:N.x+P.n.x*P.t,y:N.y+P.n.y*P.t},Rq={x:N.x-Q.n.x*Q.t,y:N.y-Q.n.y*Q.t},poly=[{x:N.x,y:N.y},Lp];
+   var den=P.u.x*Q.u.y-P.u.y*Q.u.x;if(Math.abs(den)>0.02&&Math.abs(gap-Math.PI)>0.02){var wx=Rq.x-Lp.x,wy=Rq.y-Lp.y,r=(wx*Q.u.y-wy*Q.u.x)/den,C={x:Lp.x+P.u.x*r,y:Lp.y+P.u.y*r};
+    if(Math.hypot(C.x-N.x,C.y-N.y)<=4*Math.max(P.t,Q.t)+1e-6)poly.push(C)}
+   poly.push(Rq);out.push({P:poly,s:P.t>=Q.t?P.s:Q.s,a:P.s,b:Q.s,N:N})}});return out}
 /* Stage: Plan view - Wall tool output: filled double-line walls */
 function drawWallsCanvas(){var sel=UI.selSeg||[];
  if(!S.meta.dbl){S.segs.forEach(function(s){var a=w2s(pt(s.a).x,pt(s.a).y),b=w2s(pt(s.b).x,pt(s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);
   var on=sel.indexOf(s.id)>=0;g.strokeStyle=on?"#e8590c":(s.k==="I"?"#4f6d8f":"#14253b");g.lineWidth=on?5:(s.k==="I"?2.2:3.4);g.lineCap="round";g.stroke()});return}
- var Q=[];S.segs.forEach(function(s){var P=wallPoly(s);if(P)Q.push({s:s,P:P.map(function(p){return w2s(p.x,p.y)})})});
+ var FC=fillOn(),Q=[];S.segs.forEach(function(s){var P=FC?wallPolyF(s):wallPoly(s);if(P)Q.push({s:s,P:P.map(function(p){return w2s(p.x,p.y)})})});
+ if(FC)cornerPatches().forEach(function(c){Q.push({s:c.s,P:c.P.map(function(p){return w2s(p.x,p.y)}),patch:1})});
  function path(P){g.beginPath();P.forEach(function(p,i){i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y)});g.closePath()}
  g.lineJoin="miter";g.setLineDash([]);
  Q.forEach(function(q){path(q.P);g.strokeStyle="#0b1a2e";g.lineWidth=UI.thin?1:2.6;g.stroke()});
- Q.forEach(function(q){path(q.P);var on=sel.indexOf(q.s.id)>=0;g.fillStyle=on?"#f08c4a":(UI.tool==="wall"?thCol(wallIn(q.s)):"#5d6c80");g.fill()});
+ Q.forEach(function(q){path(q.P);var on=!q.patch&&sel.indexOf(q.s.id)>=0;g.fillStyle=on?"#f08c4a":(UI.tool==="wall"?thCol(wallIn(q.s)):"#5d6c80");g.fill()});
  // very thin on screen (zoomed out): keep a visible centre line
  if(V.s*S.meta.tin/12<3)Q.forEach(function(q){var a=w2s(pt(q.s.a).x,pt(q.s.a).y),b=w2s(pt(q.s.b).x,pt(q.s.b).y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#0b1a2e";g.lineWidth=2;g.stroke()})}
 /* one door / window / ventilator in architectural plan style */
@@ -556,11 +573,12 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  '<button class="bb ok" id="mFSave">Save File<small>.jksp file · Ctrl+S</small></button><button class="bb pri" id="mFOpen">Open File<small>.jksp · recent files</small></button>'+
  '<button class="bb pri" id="mFiles">My drawings<small>சேமித்த வரைபடங்கள்</small></button><button class="bb" id="mNew">New drawing<small>புதிய தாள்</small></button>'+
  '<button class="bb" id="mDet">Details<small>Owner, site, walls</small></button><button class="bb" id="mLv">Levels<small>floors</small></button><button class="bb" id="mVG">Visibility<small>show / hide</small></button><button class="bb" id="mGrid">Grid: '+["Off","Faint","On"][UI.grid]+'<small>கட்டம்</small></button>'+
+ '<button class="bb'+(S.meta.fillc?' on':'')+'" id="mFill">Corners: '+(S.meta.fillc?'Filled':'Plain')+'<small>wall joins</small></button>'+
  '<button class="bb pri" id="mImp">Import IFC / DXF<small>from Revit</small></button><button class="bb ok" id="mPdf">Export PDF</button><button class="bb ok" id="mDxf">Export DXF<small>AutoCAD</small></button><button class="bb ok" id="mPng">Export PNG<small>image</small></button><button class="bb del" id="mClr">Clear sheet<small>அழி</small></button>'+
  '</div><div class="row"><button class="bb" id="mHelp">Help / உதவி</button><button class="bb" id="mX">Close</button></div>',function(){
  $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();newDrawing();toast("New blank sheet")};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
  $("mGrid").onclick=function(){UI.grid=(UI.grid+1)%3;LS.set("jksp_grid",UI.grid);$("mGrid").innerHTML="Grid: "+["Off","Faint","On"][UI.grid]+"<small>கட்டம்</small>";render();updCtx()};
- $("mImp").onclick=importPopup;$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
+ $("mImp").onclick=importPopup;$("mFill").onclick=function(){fillToggle();this.classList.toggle("on",!!S.meta.fillc);this.innerHTML="Corners: "+(S.meta.fillc?"Filled":"Plain")+"<small>wall joins</small>"};$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
  $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
  $("mHelp").onclick=helpPopup;$("mX").onclick=closeModal})}
 /* Stage: My drawings - open / rename / delete drawings saved in this browser */

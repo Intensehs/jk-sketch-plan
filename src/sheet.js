@@ -81,7 +81,8 @@ function buildSheet(O){O=O||{};
  var G=S.ops.map(function(o){var q=opWorld(o);if(q){q.o=o;q.T=dbl?wallT(q.s):0.5}return q}).filter(Boolean);
  // ---- walls: union of thick wall rectangles minus openings -> clean double lines + solid fill ----
  if(dbl){var rects=[],holes=[],oblique=[];
-  S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),t=wallT(s)/2,e0=nodeExt(s,s.a),e1=nodeExt(s,s.b);
+  var FCo=(typeof fillOn==="function"&&fillOn())?function(q){var A=pt(q.a),B=pt(q.b);return Math.abs(A.x-B.x)<1e-6||Math.abs(A.y-B.y)<1e-6}:null;
+  S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),t=wallT(s)/2,e0=nodeExt(s,s.a,FCo),e1=nodeExt(s,s.b,FCo);
    if(Math.abs(a.y-b.y)<1e-6){var lo=a.x<b.x?[a.x-e0,b.x+e1]:[b.x-e1,a.x+e0];rects.push([lo[0],a.y-t,lo[1],a.y+t])}
    else if(Math.abs(a.x-b.x)<1e-6){var lo2=a.y<b.y?[a.y-e0,b.y+e1]:[b.y-e1,a.y+e0];rects.push([a.x-t,lo2[0],a.x+t,lo2[1]])}
    else oblique.push(s)});
@@ -89,7 +90,13 @@ function buildSheet(O){O=O||{};
   var U=rectUnion(rects,holes);
   U.fills.forEach(function(f){var a=R(f[0],f[1]),b=R(f[2],f[3]);d.poly([a,[b[0],a[1]],b,[a[0],b[1]]],{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true})});
   U.segs.forEach(function(sg){var a=R(sg[0],sg[1]),b=R(sg[2],sg[3]);d.line(a[0],a[1],b[0],b[1],{w:0.45,c:DK,L:"WALLS"})});
-  oblique.forEach(function(s){var P=wallPoly(s).map(RP);d.poly(P,{w:0.45,c:DK,fill:"#3a3a3a",L:"WALLS"})})}
+  /* Stage: Filled corners - sheets (PDF / PNG / DXF): straight walls already merge; sloped joins get filled patches */
+  if(typeof fillOn==="function"&&fillOn()&&oblique.length){var isOb=function(q){return oblique.indexOf(q)>=0},CP=cornerPatches(isOb).filter(function(c){return isOb(c.a)||isOb(c.b)}),PP=CP.map(function(c){var P=c.P.map(RP);if(P.length===3)P.push(P[2]);return P}),OP=oblique.map(function(s){return wallPolyF(s).map(RP)}),SP=[];
+   CP.forEach(function(c){[c.a,c.b].forEach(function(q){if(isOb(q))return;var A=pt(q.a),B=pt(q.b),fromA=Math.hypot(A.x-c.N.x,A.y-c.N.y)<0.02,o=fromA?B:A,L=Math.hypot(o.x-c.N.x,o.y-c.N.y),h=wallT(q)/2,k=Math.min(L,4*h)/L,u={x:(o.x-c.N.x)*k,y:(o.y-c.N.y)*k},n={x:-(o.y-c.N.y)/L*h,y:(o.x-c.N.x)/L*h};
+    SP.push([RP({x:c.N.x+n.x,y:c.N.y+n.y}),RP({x:c.N.x+u.x+n.x,y:c.N.y+u.y+n.y}),RP({x:c.N.x+u.x-n.x,y:c.N.y+u.y-n.y}),RP({x:c.N.x-n.x,y:c.N.y-n.y})])})});
+   OP.forEach(function(P){d.poly(P,{w:0.45,c:DK,L:"WALLS"})});PP.forEach(function(P){d.poly(P,{w:0.45,c:DK,L:"WALLS",nodxf:true})});
+   OP.concat(PP).forEach(function(P){d.poly(P,{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true})});SP.forEach(function(P){d.poly(P,{w:0,fill:"#3a3a3a",L:"WALLFILL",solid:true,nodxf:true})})}
+  else oblique.forEach(function(s){var P=wallPoly(s).map(RP);d.poly(P,{w:0.45,c:DK,fill:"#3a3a3a",L:"WALLS"})})}
  else S.segs.forEach(function(s){var a=RP(pt(s.a)),b=RP(pt(s.b));d.line(a[0],a[1],b[0],b[1],{w:0.7,c:DK,L:"WALLS"})});
  // ---- furniture, staircase ----
  if(visOn("furn"))(S.furn||[]).forEach(function(f){drawFurnSheet(d,R,f)});
