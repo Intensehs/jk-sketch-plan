@@ -30,6 +30,8 @@ ICONS={
 "focus":'<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
 "unfocus":'<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>',
 "import":'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
+"fsave":'<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h8V3"/><rect x="8" y="13" width="8" height="6" rx="1"/>',
+"fopen":'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z"/><path d="M3 10h18l-2 9H5z"/>',
 "sliders":'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4"/>',
 }
 def svg(n): return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">'+ICONS[n]+'</svg>'
@@ -39,7 +41,7 @@ V=R/"vendor"
 h=h.replace("/*__THREE__*/","/* three.js r128 (MIT) - inlined for offline use */\n"+(V/"three.min.js").read_text(encoding="utf-8")).replace("/*__ORBIT__*/","/* three.js r128 OrbitControls (MIT) */\n"+(V/"OrbitControls.js").read_text(encoding="utf-8"))
 import json
 V13="\n".join((S/f).read_text(encoding="utf-8") for f in ["levels.js","struct.js","modify.js","annot.js","views.js","props.js","types.js","ui14.js","tdim.js"]).replace("__ICONS_JSON__",json.dumps(ICONS))
-h=h.replace("/*__V13__*/",V13).replace("/*__IMP__*/",(S/"imp_parse.js").read_text(encoding="utf-8")+"\n"+(S/"imp_ui.js").read_text(encoding="utf-8")).replace("/*__THEME__*/",(S/"theme.js").read_text(encoding="utf-8")).replace("/*__CXM__*/",(S/"ctxmenu.js").read_text(encoding="utf-8")).replace("/*__DXFP__*/","/* dxf-parser 1.1.2 (MIT) */\n"+(V/"dxf-parser.min.js").read_text(encoding="utf-8"))
+h=h.replace("/*__V13__*/",V13).replace("/*__IMP__*/",(S/"imp_parse.js").read_text(encoding="utf-8")+"\n"+(S/"imp_ui.js").read_text(encoding="utf-8")).replace("/*__THEME__*/",(S/"theme.js").read_text(encoding="utf-8")).replace("/*__CXM__*/",(S/"ctxmenu.js").read_text(encoding="utf-8")).replace("/*__FIO__*/",(S/"fileio.js").read_text(encoding="utf-8")).replace("/*__DXFP__*/","/* dxf-parser 1.1.2 (MIT) */\n"+(V/"dxf-parser.min.js").read_text(encoding="utf-8"))
 h=h.replace("/*__FURN__*/",(S/"furn.js").read_text(encoding="utf-8"))
 h=h.replace("/*__V3D__*/",(S/"v3d.js").read_text(encoding="utf-8")+"\n"+(S/"f3d.js").read_text(encoding="utf-8"))
 h=h.replace("/*__LIB__*/",(S/"lib.js").read_text(encoding="utf-8")).replace("/*__APP__*/",(S/"app.js").read_text(encoding="utf-8")+"\n"+(S/"sheet.js").read_text(encoding="utf-8"))
