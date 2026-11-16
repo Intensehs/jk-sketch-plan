@@ -8,7 +8,10 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  add("rotate","rotate","Rotate",function(){ctxAction("xrot")});add("mirror","mirror","Mirror",function(){ctxAction("xmir")});
  if(k==="seg"&&e&&typeof sizePopup==="function")add("len","size","Length",function(){sizePopup(e)});
  if(k==="op"&&e&&e.type==="D")add("flip","mirror","Flip",function(){snapshot();e.flip=!e.flip;changed();updProps();toast("Door swing flipped")});
- if(k==="op"&&e&&e.type==="D"&&e.dk!=="OP"&&typeof dsToggle==="function"){add("hinge","mirror",(e.hinge?"Right":"Left")+" ⇆",function(){dsToggle(e,"hinge")});add("swing","mirror",(typeof dsSwing==="function"?dsSwing(e).txt:"In/Out")+" ⇅",function(){dsToggle(e,"swing")})}
+ /* Stage: Door quick edit - Left/Right, In/Out and Line live in this one panel (row "door"), nothing drawn over it */
+ if(k==="op"&&e&&e.type==="D"&&e.dk!=="OP"&&typeof dsToggle==="function"){add("hinge","","\u21c6 "+(e.hinge?"Right":"Left"),function(){dsToggle(e,"hinge")});A[A.length-1].row="door";A[A.length-1].keep=1;
+  add("swing","",(typeof dsSwing==="function"?"\u21c5 "+dsSwing(e).txt:"In/Out"),function(){dsToggle(e,"swing")});A[A.length-1].row="door";A[A.length-1].keep=1;
+  add("dline","dline","Line",function(){dsLineTool()});A[A.length-1].row="door"}
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
@@ -23,10 +26,11 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  return A}
 function cxmName(r){var e=elGet(r);if(r.k==="op"&&e)return e.type==="W"?"Window":e.type==="V"?"Ventilator":(e.dk==="OP"?"Opening":"Door");if(r.k==="lab"&&e)return (isStair(e.name)?"Stair":"Room")+" · "+e.name;return (typeof EKN!=="undefined"&&EKN[r.k])||r.k}
 function cxmOpen(cx,cy){cxmClose();var L=selEls();if(!L.length)return;var items=cxmItems(L);var d=document.createElement("div");d.id="cxm";d.setAttribute("role","menu");
- var one=L.length===1?L[0]:null;d.innerHTML='<div class="cxh">'+esc(one?cxmName(one):(L.length+" selected"))+'</div><div class="cxb">'+items.map(function(it){return '<button class="cxi'+(it.id==="delete"?" del":"")+'" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+svgI(it.icon)+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>';
+ var one=L.length===1?L[0]:null;var DR=items.filter(function(it){return it.row==="door"});
+ d.innerHTML='<div class="cxh">'+esc(one?cxmName(one):(L.length+" selected"))+'</div>'+(DR.length?'<div class="cxd">'+DR.map(function(it){return '<button class="cxdi" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+(it.icon?svgI(it.icon):"")+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>':'')+'<div class="cxb">'+items.filter(function(it){return it.row!=="door"}).map(function(it){return '<button class="cxi'+(it.id==="delete"?" del":"")+'" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+svgI(it.icon)+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>';
  document.body.appendChild(d);CXM.el=d;
  d.addEventListener("pointerdown",function(e){e.stopPropagation()});
- items.forEach(function(it){d.querySelector('[data-cx="'+it.id+'"]').onclick=function(e){e.stopPropagation();cxmClose();it.fn()}});
+ items.forEach(function(it){d.querySelector('[data-cx="'+it.id+'"]').onclick=function(e){e.stopPropagation();if(it.keep){var p=CXM.pos;it.fn();if(p)cxmOpen(p.tapX,p.tapY)}else{cxmClose();it.fn()}}});
  /* anchor the top-left corner at the tap point; shift only as much as needed to stay on screen */
  var w=d.offsetWidth,h=d.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,m=4,x=cx,y=cy;
  /* one menu corner always sits on the tap point; pick the first corner whose menu does not cover a value label (inner length / clear distance) */

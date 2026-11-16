@@ -326,6 +326,12 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 #cxm .cxi span{font-size:9.5px;font-weight:550;line-height:1.05;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #cxm .cxi:hover{background:var(--accs);color:var(--acc)}
 #cxm .cxi.del{color:var(--bad)}
+#cxm .cxd{display:flex;gap:4px;padding:2px 2px 5px;margin-bottom:3px;border-bottom:1px solid var(--line)}
+#cxm .cxdi{flex:1 1 0;min-width:58px;height:40px;border:1.5px solid #e8590c;background:#fff7f0;color:#9a3b06;border-radius:9px;font:700 12.5px Roboto,Arial,sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:0 6px;white-space:nowrap}
+#cxm .cxdi svg{width:15px;height:15px}
+#cxm .cxdi:hover{background:#ffe8d6}
+[data-theme=dark] #cxm .cxdi{background:#3a2a1c;color:#f5c08a;border-color:#c2410c}
+@media (pointer:coarse){#cxm .cxdi{height:44px;font-size:13.5px}}
 [data-theme=dark] #cxm{background:#22201e;border-color:#4a433a;box-shadow:0 12px 30px rgba(0,0,0,.55)}
 [data-theme=dark] #cxm .cxi:hover{background:#3a3226;color:#e0bd72}
 </style></head><body>
@@ -4319,6 +4325,7 @@ var _kcUctx=updCtx;updCtx=function(){_kcUctx.apply(this,arguments);var c=$("ctx"
    Uses the door's existing fields only: o.hinge (false = Left, true = Right, same as Props) and o.flip (which side of the
    wall the leaf swings to). In/Out is worked out from the rooms: "In" = swings into a room, "Out" = swings outside the
    building; between two rooms the chip names the room it opens into. Placement, flip, 3D, PDF and DXF are unchanged. */
+function dsLineTool(){if(typeof cxmClose==="function")cxmClose();if(typeof setTool==="function")setTool("dline");else JKS.setTool("dline");UI.dlSt=UI.dlSt||"solid";if(typeof updCtx==="function")updCtx();toast("Line: drag (or tap 2 points) to draw a 2D line")}
 function dsDoor(){if(UI.clean||UI.pick)return null;if(UI.tool==="sel"){var L=selEls();if(L.length===1&&L[0].k==="op"){var o=elGet(L[0]);if(o&&o.type==="D"&&o.dk!=="OP")return o}return null}
  if(UI.tool==="open"&&UI.dsLast){var q=(S.ops||[]).find(function(x){return x.id===UI.dsLast});if(q&&q.type==="D"&&q.dk!=="OP")return q}return null}
 function dsHingeTxt(o){return o.hinge?"Right":"Left"}
@@ -4328,7 +4335,7 @@ function dsSwing(o){var G=opWorld(o);if(!G)return {txt:o.flip?"Side 2":"Side 1",
  var a=room(sd),b=room(-sd);if(a&&!b)return {txt:"In",kind:"in"};if(!a&&b)return {txt:"Out",kind:"out"};
  if(a&&b){var nm=a.labels&&a.labels[0]?a.labels[0].name:"";return {txt:nm?"Into "+nm:(o.flip?"Side 2":"Side 1"),kind:"room"}}return {txt:o.flip?"Side 2":"Side 1",kind:"side"}}
 function dsToggle(o,what){if(!o)return;snapshot();if(what==="hinge"){o.hinge=!o.hinge;changed();toast("Hinge: "+dsHingeTxt(o))}else{o.flip=!o.flip;changed();toast("Door opens: "+dsSwing(o).txt)}updProps();updCtx();render()}
-var _dsDsel=drawSelCanvas;drawSelCanvas=function(){var r=_dsDsel.apply(this,arguments);UI.dsHits=[];var o=dsDoor();if(!o)return r;var G=opWorld(o);if(!G)return r;
+var _dsDsel=drawSelCanvas;drawSelCanvas=function(){var r=_dsDsel.apply(this,arguments);UI.dsHits=[];if(UI.tool==="sel")return r;var o=dsDoor();if(!o)return r;var G=opWorld(o);if(!G)return r;
  var T=S.meta.dbl?wallT(G.s):0.3,sd=o.flip?-1:1,big=(window.matchMedia&&matchMedia("(pointer:coarse)").matches)||CW<700,H=big?36:30,fs=big?14:13,gap=8;
  /* place the chips on the side away from the swing (so they never cover the leaf), just past the wall face */
  var off=T/2*V.s+H/2+34,c=w2s(G.c.x,G.c.y),nx=-G.n.x*sd,ny=-G.n.y*sd,cx=c.x+nx*off,cy=c.y+ny*off;
@@ -4344,8 +4351,8 @@ var _dsUp=toolUp;toolUp=function(G,w){if(G.kind==="dside"){var o=(S.ops||[]).fin
 /* remember the door just placed / edited with the Door tool so its chips show there too */
 var _dsCh=changed;changed=function(){var r=_dsCh.apply(this,arguments);try{var n=(S.ops||[]).length;if(UI.tool==="open"){if(UI._dsN!=null&&n>UI._dsN){var l=S.ops[n-1];if(l&&l.type==="D")UI.dsLast=l.id}}UI._dsN=n}catch(e){}return r};
 /* option bar + context menu actions */
-var _dsCtx=ctxAction;ctxAction=function(k){if(k==="dhinge"||k==="dswing"){dsToggle(dsDoor()||(function(){var L=selEls();return L.length===1&&L[0].k==="op"?elGet(L[0]):null})(),k==="dhinge"?"hinge":"swing");return}return _dsCtx(k)};
-function dsCtxHTML(){var o=dsDoor();if(!o)return "";return CDV+'<span class="tlab">Door</span>'+cbI("dhinge","",'\u21c6 '+dsHingeTxt(o),"Hinge side - Left / Right (one tap)",false,"ok2")+cbI("dswing","",'\u21c5 '+dsSwing(o).txt,"Opens - In / Out (one tap)",false,"ok2")}
+var _dsCtx=ctxAction;ctxAction=function(k){if(k==="dline"){dsLineTool();return}if(k==="dhinge"||k==="dswing"){dsToggle(dsDoor()||(function(){var L=selEls();return L.length===1&&L[0].k==="op"?elGet(L[0]):null})(),k==="dhinge"?"hinge":"swing");return}return _dsCtx(k)};
+function dsCtxHTML(){var o=dsDoor();if(!o)return "";return CDV+'<span class="tlab">Door</span>'+cbI("dhinge","",'\u21c6 '+dsHingeTxt(o),"Hinge side - Left / Right (one tap)",false,"ok2")+cbI("dswing","",'\u21c5 '+dsSwing(o).txt,"Opens - In / Out (one tap)",false,"ok2")+cbI("dline","dline","Line","Draw a 2D line (drag or tap 2 points)")}
 
 /* ================= JK Sketch Plan Web - IFC / DXF import (parsers -> neutral model in feet) =================
    Model: {src, units, levels:[{name,elev,h,walls:[{a:{x,y},b:{x,y},th,h,name}],ops:[{x,y,w,h,sill,type,dk,name,host}]}], skipped:{reason:count}, notes:[]}
@@ -4677,7 +4684,10 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  add("rotate","rotate","Rotate",function(){ctxAction("xrot")});add("mirror","mirror","Mirror",function(){ctxAction("xmir")});
  if(k==="seg"&&e&&typeof sizePopup==="function")add("len","size","Length",function(){sizePopup(e)});
  if(k==="op"&&e&&e.type==="D")add("flip","mirror","Flip",function(){snapshot();e.flip=!e.flip;changed();updProps();toast("Door swing flipped")});
- if(k==="op"&&e&&e.type==="D"&&e.dk!=="OP"&&typeof dsToggle==="function"){add("hinge","mirror",(e.hinge?"Right":"Left")+" ⇆",function(){dsToggle(e,"hinge")});add("swing","mirror",(typeof dsSwing==="function"?dsSwing(e).txt:"In/Out")+" ⇅",function(){dsToggle(e,"swing")})}
+ /* Stage: Door quick edit - Left/Right, In/Out and Line live in this one panel (row "door"), nothing drawn over it */
+ if(k==="op"&&e&&e.type==="D"&&e.dk!=="OP"&&typeof dsToggle==="function"){add("hinge","","\u21c6 "+(e.hinge?"Right":"Left"),function(){dsToggle(e,"hinge")});A[A.length-1].row="door";A[A.length-1].keep=1;
+  add("swing","",(typeof dsSwing==="function"?"\u21c5 "+dsSwing(e).txt:"In/Out"),function(){dsToggle(e,"swing")});A[A.length-1].row="door";A[A.length-1].keep=1;
+  add("dline","dline","Line",function(){dsLineTool()});A[A.length-1].row="door"}
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
@@ -4692,10 +4702,11 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
  return A}
 function cxmName(r){var e=elGet(r);if(r.k==="op"&&e)return e.type==="W"?"Window":e.type==="V"?"Ventilator":(e.dk==="OP"?"Opening":"Door");if(r.k==="lab"&&e)return (isStair(e.name)?"Stair":"Room")+" · "+e.name;return (typeof EKN!=="undefined"&&EKN[r.k])||r.k}
 function cxmOpen(cx,cy){cxmClose();var L=selEls();if(!L.length)return;var items=cxmItems(L);var d=document.createElement("div");d.id="cxm";d.setAttribute("role","menu");
- var one=L.length===1?L[0]:null;d.innerHTML='<div class="cxh">'+esc(one?cxmName(one):(L.length+" selected"))+'</div><div class="cxb">'+items.map(function(it){return '<button class="cxi'+(it.id==="delete"?" del":"")+'" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+svgI(it.icon)+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>';
+ var one=L.length===1?L[0]:null;var DR=items.filter(function(it){return it.row==="door"});
+ d.innerHTML='<div class="cxh">'+esc(one?cxmName(one):(L.length+" selected"))+'</div>'+(DR.length?'<div class="cxd">'+DR.map(function(it){return '<button class="cxdi" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+(it.icon?svgI(it.icon):"")+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>':'')+'<div class="cxb">'+items.filter(function(it){return it.row!=="door"}).map(function(it){return '<button class="cxi'+(it.id==="delete"?" del":"")+'" data-cx="'+it.id+'" title="'+escH(it.label)+'">'+svgI(it.icon)+'<span>'+esc(it.label)+'</span></button>'}).join("")+'</div>';
  document.body.appendChild(d);CXM.el=d;
  d.addEventListener("pointerdown",function(e){e.stopPropagation()});
- items.forEach(function(it){d.querySelector('[data-cx="'+it.id+'"]').onclick=function(e){e.stopPropagation();cxmClose();it.fn()}});
+ items.forEach(function(it){d.querySelector('[data-cx="'+it.id+'"]').onclick=function(e){e.stopPropagation();if(it.keep){var p=CXM.pos;it.fn();if(p)cxmOpen(p.tapX,p.tapY)}else{cxmClose();it.fn()}}});
  /* anchor the top-left corner at the tap point; shift only as much as needed to stay on screen */
  var w=d.offsetWidth,h=d.offsetHeight,vw=window.innerWidth,vh=window.innerHeight,m=4,x=cx,y=cy;
  /* one menu corner always sits on the tap point; pick the first corner whose menu does not cover a value label (inner length / clear distance) */
