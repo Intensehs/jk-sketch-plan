@@ -70,12 +70,13 @@ function buildSheet(O){O=O||{};
  var TT=planTitle(O),DN=O.dno||m.dno||"A101",SH=O.sheet||"1 / 2";
  if(!S.pts.length){d.text(170,150,"(empty drawing)",6,{a:"middle",c:"#888888"});tblock(d,{title:TT,dno:DN,sheet:SH,scale:"-",RI:RI});tblock(d2,{title:"Door & Window Details",dno:nextDno(m.dno),sheet:"2 / 2",scale:"As shown",RI:RI});return {d:d,d2:d2,RI:RI,N:0}}
  // extents to the outer faces of the walls
- var wx0=Infinity,wy0=Infinity,wx1=-Infinity,wy1=-Infinity;function ext(p){wx0=Math.min(wx0,p.x);wy0=Math.min(wy0,p.y);wx1=Math.max(wx1,p.x);wy1=Math.max(wy1,p.y)}
- S.pts.forEach(ext);planExt(ext);if(dbl)S.segs.forEach(function(s){var P=wallPoly(s);if(P)P.forEach(ext)});
- var Wf=Math.max(wx1-wx0,1),Hf=Math.max(wy1-wy0,1);
- /* room for overall + chain dimensions on top / left, chain only on bottom / right */
- var ax0=16+25,ax1=TBX-4-13,ay0=16+24,ay1=264-13,N=chooseScale(Wf,Hf,ax1-ax0,ay1-ay0),k=304.8/N;
- d.k=k;d.minX=wx0;d.minY=-wy1;d.ox=(ax0+ax1)/2-Wf*k/2;d.oy=(ay0+ay1)/2+Hf*k/2;
+ /* Stage: Sheet scale - extents, auto (Fit) scale and the saved viewport (scale + position) of this plan sheet */
+ var EX=sheetExt(),wx0=EX.wx0,wy0=EX.wy0,wx1=EX.wx1,wy1=EX.wy1,Wf=EX.Wf,Hf=EX.Hf;
+ var ax0=EX.ax0,ax1=EX.ax1,ay0=EX.ay0,ay1=EX.ay1,VP=vpGet(),N=VP&&VP.N>0?vpInt(VP.N):EX.Nauto,k=304.8/N,TFk=txtF();
+ var vcx=VP&&VP.cx!=null?VP.cx:(ax0+ax1)/2,vcy=VP&&VP.cy!=null?VP.cy:(ay0+ay1)/2;
+ d.k=k;d.minX=wx0;d.minY=-wy1;d.ox=vcx-Wf*k/2;d.oy=vcy+Hf*k/2;
+ d.vp={key:vpKey(),N:N,Nauto:EX.Nauto,fit:!(VP&&VP.N>0),cx:vcx,cy:vcy,Wp:Wf*k,Hp:Hf*k,x0:vcx-Wf*k/2-VPAD.l,y0:vcy-Hf*k/2-VPAD.t,x1:vcx+Wf*k/2+VPAD.r,y1:vcy+Hf*k/2+VPAD.b};
+ var _shn0=_SHN;_SHN=N;try{
  function R(x,y){return d.W2P(x,-y)}
  function RP(p){return R(p.x,p.y)}
  var G=S.ops.map(function(o){var q=opWorld(o);if(q){q.o=o;q.T=dbl?wallT(q.s):0.5}return q}).filter(Boolean);
@@ -115,8 +116,8 @@ function buildSheet(O){O=O||{};
   else{var sd=o.flip?-1:1,h=o.hinge?w/2:-w/2,e=-h,v0=sd*T/2,dir=e>h?1:-1,lt=Math.min(1.5/12,w*0.06);
    d.poly([P(h,v0),P(h,v0+sd*w),P(h+dir*lt,v0+sd*w),P(h+dir*lt,v0)],{w:o.dk==="MD"?0.35:0.28,c:DK,fill:"#ffffff",L:LY});
    var arc=[];for(var i=0;i<=24;i++){var th=i/24*Math.PI/2;arc.push(P(h+(e-h)*Math.cos(th),v0+sd*w*Math.sin(th)))}d.poly(arc,{w:0.16,c:DK,closed:false,L:LY})}
-  var sd2=o.type==="D"?-(o.flip?-1:1):1,lp=P(0,sd2*(T/2+2.6/k));d.text(lp[0],lp[1],o._mark,2.3,{a:"middle",v:"mid",bold:true,c:col,L:LY,rot:ang2page(u.x,u.y)});
-  var lp2=P(0,sd2*(T/2+5.2/k));d.text(lp2[0],lp2[1],o.type==="D"?fi(o.w)+" x "+fi(opH(o)):"SILL "+lvl(opSill(o)),1.6,{a:"middle",v:"mid",c:"#555555",L:LY,rot:ang2page(u.x,u.y)})});
+  var sd2=o.type==="D"?-(o.flip?-1:1):1,lp=P(0,sd2*(T/2+2.6/k));d.text(lp[0],lp[1],o._mark,2.3*TFk,{a:"middle",v:"mid",bold:true,c:col,L:LY,rot:ang2page(u.x,u.y)});
+  var lp2=P(0,sd2*(T/2+(2.6+2.6*TFk)/k));d.text(lp2[0],lp2[1],o.type==="D"?fi(o.w)+" x "+fi(opH(o)):"SILL "+lvl(opSill(o)),1.6*TFk,{a:"middle",v:"mid",c:"#555555",L:LY,rot:ang2page(u.x,u.y)})});
  planExtras(d,R,k);
  // ---- dimensions: wall-wise (centre-line) chain outside + overall to outer faces ----
  var dc="#1a1a1a";
@@ -128,21 +129,21 @@ function buildSheet(O){O=O||{};
   d.line(A[0],A[1],B[0],B[1],{w:0.18,c:dc,L:"DIMS"});
   [a,b].forEach(function(p){var e0=R(p.x+n.x*sg*(t+1.2/k),p.y+n.y*sg*(t+1.2/k)),e1=R(p.x+n.x*sg*(off+1.5/k),p.y+n.y*sg*(off+1.5/k));d.line(e0[0],e0[1],e1[0],e1[1],{w:0.13,c:dc,L:"DIMS"})});
   var pu=[B[0]-A[0],B[1]-A[1]],pl=Math.hypot(pu[0],pu[1]);tick(A[0],A[1],pu[0]/pl,pu[1]/pl,0.9);tick(B[0],B[1],pu[0]/pl,pu[1]/pl,0.9);
-  var tp=R(mm.x+n.x*sg*(off+1.3/k),mm.y+n.y*sg*(off+1.3/k));d.text(tp[0],tp[1],fi(L),2.3,{a:"middle",v:"mid",c:dc,L:"DIMS",rot:rot})});
+  var tp=R(mm.x+n.x*sg*(off+1.3/k),mm.y+n.y*sg*(off+1.3/k));d.text(tp[0],tp[1],fi(L),2.3*TFk,{a:"middle",v:"mid",c:dc,L:"DIMS",rot:rot})});
  var o0=R(wx0,wy0),o1=R(wx1,wy1),yy=o0[1]-17,xx=o0[0]-17;
  d.line(o0[0],yy,o1[0],yy,{w:0.22,c:dc,L:"DIMS"});tick(o0[0],yy,1,0,1.1);tick(o1[0],yy,1,0,1.1);d.line(o0[0],yy-1.5,o0[0],o0[1]-1.2,{w:0.12,c:dc,L:"DIMS"});d.line(o1[0],yy-1.5,o1[0],o0[1]-1.2,{w:0.12,c:dc,L:"DIMS"});
- d.text((o0[0]+o1[0])/2,yy-1.4,fi(Wf).replace("'-","' - "),2.8,{a:"middle",bold:true,c:dc,L:"DIMS"});
+ d.text((o0[0]+o1[0])/2,yy-1.4,fi(Wf).replace("'-","' - "),2.8*TFk,{a:"middle",bold:true,c:dc,L:"DIMS"});
  d.line(xx,o0[1],xx,o1[1],{w:0.22,c:dc,L:"DIMS"});tick(xx,o0[1],0,1,1.1);tick(xx,o1[1],0,1,1.1);d.line(xx-1.5,o0[1],o0[0]-1.2,o0[1],{w:0.12,c:dc,L:"DIMS"});d.line(xx-1.5,o1[1],o0[0]-1.2,o1[1],{w:0.12,c:dc,L:"DIMS"});
- d.text(xx-1.4,(o0[1]+o1[1])/2,fi(Hf).replace("'-","' - "),2.8,{a:"middle",bold:true,c:dc,L:"DIMS",rot:90});
+ d.text(xx-1.4,(o0[1]+o1[1])/2,fi(Hf).replace("'-","' - "),2.8*TFk,{a:"middle",bold:true,c:dc,L:"DIMS",rot:90});
  // ---- room names + clear sizes ----
  var un=0,sched=[];
  if(visOn("rooms"))RI.faces.forEach(function(f){var lab=f.labels[0],name=lab?lab.name:"Room "+(++un),at=lab?R(lab.x,lab.y):R(f.cx,f.cy);
   var l1=ascii(name).toUpperCase(),l2=(f.rect?"":"~")+fsz(f.cw)+" X "+fsz(f.ch),l3=sq(f.carpet)+" sq.ft";
-  var s=Math.min(3.2,0.85*f.cw*k/Math.max(tw(l1,1,true),tw(l2,1)),f.ch*k/5.2);s=Math.max(s,1.3);
+  var s=Math.min(3.2*TFk,0.85*f.cw*k/Math.max(tw(l1,1,true),tw(l2,1)),f.ch*k/5.2);s=Math.max(s,1.3);
   d.text(at[0],at[1]-s*0.75,l1,s,{a:"middle",v:"mid",bold:true,L:"TEXT"});d.text(at[0],at[1]+s*0.6,l2,s*0.88,{a:"middle",v:"mid",L:"TEXT"});d.text(at[0],at[1]+s*1.75,l3,s*0.68,{a:"middle",v:"mid",c:"#555555",L:"TEXT"});
   sched.push({name:name,f:f});
-  f.labels.slice(1).forEach(function(l2b){var q=R(l2b.x,l2b.y);d.text(q[0],q[1],ascii(l2b.name).toUpperCase(),2.4,{a:"middle",v:"mid",bold:true})})});
- S.labels.filter(function(l){return !LABF[l.id]}).forEach(function(l){var q=R(l.x,l.y);d.text(q[0],q[1],ascii(l.name).toUpperCase(),2.6,{a:"middle",v:"mid",bold:true,c:"#555555"})});
+  f.labels.slice(1).forEach(function(l2b){var q=R(l2b.x,l2b.y);d.text(q[0],q[1],ascii(l2b.name).toUpperCase(),2.4*TFk,{a:"middle",v:"mid",bold:true})})});
+ S.labels.filter(function(l){return !LABF[l.id]}).forEach(function(l){var q=R(l.x,l.y);d.text(q[0],q[1],ascii(l.name).toUpperCase(),2.6*TFk,{a:"middle",v:"mid",bold:true,c:"#555555"})});
  // ---- view title + graphic scale ----
  var vt=ascii(TT).toUpperCase(),vc=[22,273];var cc=[];for(var i2=0;i2<=36;i2++){var a2=i2/36*Math.PI*2;cc.push([vc[0]+4.2*Math.cos(a2),vc[1]+4.2*Math.sin(a2)])}
  d.poly(cc,{w:0.35,closed:false,nodxf:true});d.text(vc[0],vc[1]+1.3,"1",3.6,{a:"middle",bold:true,nodxf:true});var vw=Math.max(tw(vt,4.2,true),60);d.line(vc[0]+4.2,vc[1],vc[0]+8+vw,vc[1],{w:0.5,nodxf:true});
@@ -150,6 +151,7 @@ function buildSheet(O){O=O||{};
  var gst=[1,2,5,10,20,25,50,100,200,500,1000].find(function(v){return v*k>=12})||1;gscale(d,TBX-12-4*gst*k-8,266,k,N);
  tblock(d,{title:TT,dno:DN,sheet:SH,scale:scaleTxt(N),RI:RI});
  if(!O.noD2)sheet2(d2,G,RI,sched);
+ }finally{_SHN=_shn0}
  return {d:d,d2:d2,RI:RI,N:N}}
 
 /* ================= sheet 2: door & window 2D details ================= */

@@ -94,7 +94,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
   else if(r.k==="col")h+=pf("Width (inch)","col.w",e.w,{num:1})+pf("Depth (inch)","col.d",e.d,{num:1})+pf("Rotation (°)","col.rot",e.rot||0,{num:1})+pf("Material","",e.w>=9?"RCC M20":"RCC",{ro:1})+pf("Height","",fi(lv.h)+" (level)",{ro:1});
   else if(r.k==="beam")h+=pf("Width (inch)","beam.w",e.w,{num:1})+pf("Depth (inch)","beam.d",e.d,{num:1})+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1})+pf("Top","",lvl(lvElev(S.cur)+lv.h-lv.slab/12)+" (slab soffit)",{ro:1});
   else if(r.k==="dim")h+=pf("Value","dim.val",fi(dimGeom(e).L))+pf("Offset","dim.off",fi(e.off||0))+pf("Lock","dim.lock",e.lock?"1":"0",{opts:[["0","Unlocked"],["1","Locked"]]})+'<div class="pn">Edit Value to move the attached wall (second end moves).</div>';
-  else if(r.k==="note")h+=pf("Text","note.t",e.t)+pf("Size","note.h",noteH(e),{opts:[[0.45,"Small"],[0.6,"Medium"],[0.9,"Large"]]});
+  else if(r.k==="note")h+=pf("Text","note.t",e.t)+pf("Size (on paper)","note.pm",e.pmm>0?e.pmm:"",{opts:(e.pmm>0?[]:[["","Old size (fixed)"]]).concat(TXTPRE.map(function(z){return [z,z+" mm"]}))});
   else if(r.k==="spot")h+=pf("Label","spot.lab",e.lab||"FFL",{opts:["FFL","TOS","SILL","LINTEL","GL","RL"].map(function(x){return [x,x]})})+pf("Level","spot.z",(spotZ(e)<0?"-":"")+fi(spotZ(e)));
   else if(r.k==="dline")h+=pf("Style","dline.st",e.st||"solid",{opts:[["solid","Solid"],["dash","Dashed"]]})+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1});
   else if(r.k==="rail")h+=pf("Height","rail.h",fi(e.h||3))+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1});
@@ -116,7 +116,7 @@ function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=par
   case "lab.name":e.name=v.trim()||e.name;break;case "lab.st":e.st=e.st||{};e.st.type=v;break;
   case "col.w":if(num>=6&&num<=48)e.w=num;else ok=false;break;case "col.d":if(num>=6&&num<=48)e.d=num;else ok=false;break;case "col.rot":e.rot=((num||0)%360+360)%360;break;
   case "beam.w":if(num>=4&&num<=36)e.w=num;else ok=false;break;case "beam.d":if(num>=6&&num<=48)e.d=num;else ok=false;break;
-  case "dim.val":UNDO.pop();editDimValue(e,ft);updProps();return;case "dim.lock":e.lock=v==="1";break;case "dim.off":if(isFinite(ft))e.off=(e.off<0?-1:1)*Math.abs(ft);break;case "note.t":e.t=v;break;case "note.h":e.h=+v;break;case "spot.lab":e.lab=v;break;case "spot.z":if(isFinite(ft))e.z=ft;else ok=false;break;
+  case "dim.val":UNDO.pop();editDimValue(e,ft);updProps();return;case "dim.lock":e.lock=v==="1";break;case "dim.off":if(isFinite(ft))e.off=(e.off<0?-1:1)*Math.abs(ft);break;case "note.t":e.t=v;break;case "note.h":e.h=+v;break;case "note.pm":if(+v>0){e.pmm=+v;delete e.h}break;case "spot.lab":e.lab=v;break;case "spot.z":if(isFinite(ft))e.z=ft;else ok=false;break;
   case "dline.st":e.st=v;break;case "rail.h":if(ft>1&&ft<8)e.h=ft;else ok=false;break;case "grid.name":e.name=v.trim().toUpperCase()||e.name;break;case "sec.name":e.name=v.trim()||e.name;break;case "sec.flip":e.flip=v==="1";break;default:ok=false}
  if(!ok){UNDO.pop();toast("Value not valid");updProps();return}changed();updProps();updLevelBadge()}
 /* ---------- Visibility / Graphics ---------- */
