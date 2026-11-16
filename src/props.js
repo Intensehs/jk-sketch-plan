@@ -96,6 +96,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
   else if(r.k==="dim")h+=pf("Value","dim.val",fi(dimGeom(e).L))+pf("Offset","dim.off",fi(e.off||0))+pf("Lock","dim.lock",e.lock?"1":"0",{opts:[["0","Unlocked"],["1","Locked"]]})+'<div class="pn">Edit Value to move the attached wall (second end moves).</div>';
   else if(r.k==="note")h+=pf("Text","note.t",e.t)+pf("Size (on paper)","note.pm",e.pmm>0?e.pmm:"",{opts:(e.pmm>0?[]:[["","Old size (fixed)"]]).concat(TXTPRE.map(function(z){return [z,z+" mm"]}))});
   else if(r.k==="spot")h+=pf("Label","spot.lab",e.lab||"FFL",{opts:["FFL","TOS","SILL","LINTEL","GL","RL"].map(function(x){return [x,x]})})+pf("Level","spot.z",(spotZ(e)<0?"-":"")+fi(spotZ(e)));
+  else if(r.k==="dcirc")h+=pf("Radius","dcirc.r",fi(e.r))+pf("Style","dcirc.st",e.st||"solid",{opts:[["solid","Solid"],["dash","Dashed"]]})+pf("Shape","",e.a0==null?"Circle":"Arc "+Math.round(dcSpan(e))+"°",{ro:1});
   else if(r.k==="dline")h+=pf("Style","dline.st",e.st||"solid",{opts:[["solid","Solid"],["dash","Dashed"]]})+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1});
   else if(r.k==="rail")h+=pf("Height","rail.h",fi(e.h||3))+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1});
   else if(r.k==="grid")h+=pf("Name","grid.name",e.name)+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1});
@@ -117,7 +118,7 @@ function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=par
   case "col.w":if(num>=6&&num<=48)e.w=num;else ok=false;break;case "col.d":if(num>=6&&num<=48)e.d=num;else ok=false;break;case "col.rot":e.rot=((num||0)%360+360)%360;break;
   case "beam.w":if(num>=4&&num<=36)e.w=num;else ok=false;break;case "beam.d":if(num>=6&&num<=48)e.d=num;else ok=false;break;
   case "dim.val":UNDO.pop();editDimValue(e,ft);updProps();return;case "dim.lock":e.lock=v==="1";break;case "dim.off":if(isFinite(ft))e.off=(e.off<0?-1:1)*Math.abs(ft);break;case "note.t":e.t=v;break;case "note.h":e.h=+v;break;case "note.pm":if(+v>0){e.pmm=+v;delete e.h}break;case "spot.lab":e.lab=v;break;case "spot.z":if(isFinite(ft))e.z=ft;else ok=false;break;
-  case "dline.st":e.st=v;break;case "rail.h":if(ft>1&&ft<8)e.h=ft;else ok=false;break;case "grid.name":e.name=v.trim().toUpperCase()||e.name;break;case "sec.name":e.name=v.trim()||e.name;break;case "sec.flip":e.flip=v==="1";break;default:ok=false}
+  case "dline.st":e.st=v;break;case "dcirc.st":e.st=v;break;case "dcirc.r":if(ft>0.02&&ft<1000)e.r=ft;else ok=false;break;case "rail.h":if(ft>1&&ft<8)e.h=ft;else ok=false;break;case "grid.name":e.name=v.trim().toUpperCase()||e.name;break;case "sec.name":e.name=v.trim()||e.name;break;case "sec.flip":e.flip=v==="1";break;default:ok=false}
  if(!ok){UNDO.pop();toast("Value not valid");updProps();return}changed();updProps();updLevelBadge()}
 /* ---------- Visibility / Graphics ---------- */
 var VGC=[["walls","Walls"],["doors","Doors / Windows"],["furn","Furniture"],["rooms","Rooms / tags"],["stairs","Stairs"],["cols","Columns"],["beams","Beams"],["rails","Railings"],["dims","Dimensions"],["grids","Grids"],["text","Text / spot levels"],["dlines","Detail lines"],["secs","Section marks"],["underlay","Underlay (floor below)"]];

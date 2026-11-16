@@ -14,6 +14,7 @@ function cxmItems(L){var A=[],one=L.length===1?L[0]:null,e=one?elGet(one):null,k
   add("dline","dline","Line",function(){dsLineTool()});A[A.length-1].row="door"}
  if(k==="lab"&&e)add("rename","text","Rename",function(){roomPopup(e.x,e.y,e)});
  if(k==="dim"&&e&&typeof dimValuePopup==="function")add("dimval","dim","Value",function(){dimValuePopup(e)});
+ if(k==="dcirc"&&e&&typeof dcRadiusPopup==="function")add("edit","edit","Radius",function(){dcRadiusPopup(e)});
  if(k==="note"&&e&&typeof notePopup==="function")add("edit","edit","Edit",function(){notePopup(e)});
  if(k==="furn"&&e&&typeof furnSizePopup==="function")add("size","fsize","Edit size",function(){furnSizePopup(e)});
  if(k==="furn"&&e)add("flip","mirror","Flip",function(){doMirror({x:e.x,y:e.y},(e.rot||0)+90,false)});

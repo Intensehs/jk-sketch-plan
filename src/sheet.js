@@ -123,7 +123,7 @@ function buildSheet(O){O=O||{};
  var dc="#1a1a1a";
  function insideAny(x,y){return RI.faces.some(function(f){return inPoly(x,y,f.pts)})}
  function tick(x,y,ux,uy,s){var nx=-uy,ny=ux;d.line(x-(ux+nx)*s,y-(uy+ny)*s,x+(ux+nx)*s,y+(uy+ny)*s,{w:0.3,c:dc,L:"DIMS"})}
- if(visOn("dims"))S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<0.3)return;var u={x:(b.x-a.x)/L,y:(b.y-a.y)/L},n={x:-u.y,y:u.x},mm={x:(a.x+b.x)/2,y:(a.y+b.y)/2},e=0.35;
+ if(visOn("dims"))S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),L=segLen(s);if(L<0.3||s.arc)return;var u={x:(b.x-a.x)/L,y:(b.y-a.y)/L},n={x:-u.y,y:u.x},mm={x:(a.x+b.x)/2,y:(a.y+b.y)/2},e=0.35;
   var i1=insideAny(mm.x+n.x*e,mm.y+n.y*e),i2=insideAny(mm.x-n.x*e,mm.y-n.y*e);if(i1&&i2)return;if(!i1&&!i2&&RI.faces.length)return;
   var t=dbl?wallT(s)/2:0,rot=ang2page(u.x,u.y),sg=i1?-1:1,off=t+7/k,A=R(a.x+n.x*sg*off,a.y+n.y*sg*off),B=R(b.x+n.x*sg*off,b.y+n.y*sg*off);
   d.line(A[0],A[1],B[0],B[1],{w:0.18,c:dc,L:"DIMS"});
