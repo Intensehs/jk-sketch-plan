@@ -106,7 +106,8 @@ function joinWallEnds(W){W.forEach(function(w){["a","b"].forEach(function(e){var
   var t=((o.a.x-p.x)*vy-(o.a.y-p.y)*vx)/den,s=((o.a.x-p.x)*uy-(o.a.y-p.y)*ux)/den;if(Math.abs(t)>Math.max(w.t,o.t)/12+0.15)return;if(s<-0.08||s>1.08)return;if(Math.abs(t)<bd){bd=Math.abs(t);best={x:p.x+ux*t,y:p.y+uy*t}}});if(best){p.x=best.x;p.y=best.y}})});return W}
 /* ---------- share (WhatsApp etc.) ---------- */
 async function shareBlob(blob,name,text){var f=null;try{f=new File([blob],name,{type:blob.type})}catch(e){}
- if(window.Android&&typeof window.Android.shareFile==="function"){var r=new FileReader();r.onload=function(){window.Android.shareFile(name,String(r.result),blob.type,text||"")};r.readAsDataURL(blob);return}
+ if(window.Android&&(typeof window.Android.endShare==="function"||typeof window.Android.shareFile==="function")){var r=new FileReader();r.onload=function(){var u=String(r.result),b64=u.slice(u.indexOf(",")+1),A=window.Android,CH=196608;
+   if(typeof A.endShare==="function"){var id="sh_"+Date.now()+"_"+Math.random().toString(36).slice(2);A.beginSave(id,name,blob.type,b64.length);for(var i=0;i<b64.length;i+=CH)A.appendSave(id,b64.slice(i,i+CH));A.endShare(id,text||"")}else A.shareFile(name,b64,blob.type,text||"")};r.readAsDataURL(blob);return}
  if(f&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:name,text:text||""});return}catch(e){if(e&&e.name==="AbortError")return}}
  saveFile(name,blob,blob.type);setTimeout(function(){window.open("https://wa.me/?text="+encodeURIComponent((text||"Drawing")+" - PDF saved on this device as "+name+", attach it in WhatsApp."),"_blank")},600);toast("PDF downloaded - attach it in WhatsApp")}
 function sheetPDFBlob(list){var f=+S.meta.lw||1;return new Blob([bin(toPDF(list.map(function(s){return lwScaled(s.d,f)}),S.meta.paper||"A3"))],{type:"application/pdf"})}
@@ -122,4 +123,7 @@ function pickFile(accept,capture,cb){var inp=document.createElement("input");inp
 function importPDFAction(){pickFile("application/pdf,.pdf",null,pdfPopup)}
 function cameraAction(){pickFile("image/*","environment",function(f){photoPopup(f,"camera")})}
 /* PWA share target / launch queue: open shared PDF */
-if(window.launchQueue&&window.launchQueue.setConsumer)window.launchQueue.setConsumer(async function(p){if(p.files&&p.files.length){var f=await p.files[0].getFile();if(/pdf$/i.test(f.name))setTimeout(function(){pdfPopup(f)},800)}});
+if(window.launchQueue&&window.launchQueue.setConsumer)window.launchQueue.setConsumer(async function(p){if(p.files&&p.files.length){var f=await p.files[0].getFile();setTimeout(function(){impRead(f)},800)}});
+/* Android: a PDF / photo / backup shared or opened from WhatsApp, Files etc. arrives in chunks from the app wrapper */
+var JKIN={};window.jkInBegin=function(id){JKIN[id]=[]};window.jkInPart=function(id,s){(JKIN[id]=JKIN[id]||[]).push(s)};
+window.jkInEnd=function(id,name,mime){var b64=(JKIN[id]||[]).join("");delete JKIN[id];try{var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);var f=new File([u],name||"shared.pdf",{type:mime||""});setTimeout(function(){impRead(f)},300);return "1"}catch(e){toast("Could not open the shared file");return "0"}};
