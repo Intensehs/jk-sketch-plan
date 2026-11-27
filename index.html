@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>JK Sketch Plan</title>
+<title>CTAK BIM Module</title>
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="application-name" content="CTAK BIM Module">
+<meta name="apple-mobile-web-app-title" content="CTAK BIM">
 <meta name="theme-color" content="#16365c">
 <script>/* Theme: apply the saved theme before first paint (no flash) */try{if(JSON.parse(localStorage.getItem("jksp_theme")||"null")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link rel="icon" href="icons/icon-192.png">
@@ -148,7 +150,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #app{grid-template-columns:var(--rail) minmax(0,1fr);grid-template-rows:var(--top) minmax(0,1fr);grid-template-areas:"top top" "tools stage"}
 #top{grid-area:top;min-height:0;height:var(--top);padding:0 6px 0 0;gap:0;background:#fff;color:var(--ink);border-bottom:1px solid var(--line);align-items:stretch}
 #brand{flex:0 1 auto;display:flex;align-items:center;gap:8px;min-width:0;max-width:300px;padding-left:7px;overflow:hidden}
-#bmark{flex:0 0 auto;width:30px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:11.5px;letter-spacing:.5px;display:flex;align-items:center;justify-content:center}
+#bmark{flex:0 0 auto;width:42px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:9.5px;letter-spacing:.2px;display:flex;align-items:center;justify-content:center}
 #btxt{min-width:0;line-height:1.1;display:flex;flex-direction:column}
 #brand b{font-size:12.5px;font-weight:650;display:block;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #brand small{display:none}
@@ -337,7 +339,7 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 </style></head><body>
 <div id="app">
  <div id="top">
-  <div id="brand"><span id="bmark">JK</span><span id="btxt"><b>JK Sketch Plan</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
+  <div id="brand"><span id="bmark">CTAK</span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
   <div id="tabs"></div>
   <div id="tbar">
   <button class="tb" id="bSave" title="Save File · Ctrl+S" data-tip="Save File"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h8V3"/><rect x="8" y="13" width="8" height="6" rx="1"/></svg><span>Save</span></button>
@@ -1560,7 +1562,7 @@ function dataURLtoBlob(u){var i=u.indexOf(","),head=u.slice(5,i),b64=/;base64/.t
 function bin(s){var u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;return u}
 
 /* ================= JK Sketch Plan - hand drawing house plan ================= */
-var APP="JK Sketch Plan",SUBT="JK Construction - Hand Drawing House Plan",VERSION="1.4";
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="1.4";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -2191,7 +2193,7 @@ function detailsPopup(){var m=S.meta;
   $("dDbl").onclick=function(){dbl=true;$("dDbl").classList.add("on");$("dSgl").classList.remove("on")};$("dSgl").onclick=function(){dbl=false;$("dSgl").classList.add("on");$("dDbl").classList.remove("on")};
   $("dX").onclick=closeModal;$("dOk").onclick=function(){snapshot();m.name=$("dN").value.trim()||defaultName();m.owner=$("dO").value.trim();m.site=$("dS").value.trim();m.date=$("dD").value||today();m.dbl=dbl;m.proj=$("dPr").value.trim();m.ttl=$("dTt").value.trim()||"Ground Floor Plan";m.dno=$("dNo").value.trim()||"A101";m.drawn=$("dBy").value.trim();m.chk=$("dCk").value.trim();m.revs=$("dRv").value;
    var to=parseFloat($("dTo").value),ti=parseFloat($("dTi").value);if(to>0&&to<36)m.tout=to;if(ti>0&&ti<36)m.tin=ti;m.paper=$("dP").value;var wh=parseFloat($("dWh").value);if(wh>=7&&wh<=30){m.wh=wh;curLv().h=wh}closeModal();changed();updTitle()}})}
-function helpPopup(){modal('<div class="mt">How to use</div><div class="ms" style="font-size:15px;line-height:1.5">'+
+function helpPopup(){modal('<div class="mt">'+esc(APP)+'</div><div class="ms">How to use</div><div class="ms" style="font-size:15px;line-height:1.5">'+
  '<b>Draw</b>: drag the pen / finger along a wall. The length in feet shows on the line while you draw (1 grid = 1 ft). Lines snap straight (90°). Lift and drag again from the end to continue. A rough hand stroke with corners becomes straight walls.<br>'+
  '<b>Tap-tap</b>: in Draw, tap a point then tap the next corner.<br><b>Close</b> joins the last point to the first. <b>New line</b> starts a separate wall (inside walls).<br>'+
  '<b>Size</b>: tap a wall and type the real feet / inches. Connected walls move with it.<br><b>Room</b>: tap inside a closed room and pick the name - area and size are shown.<br>'+
@@ -5770,9 +5772,9 @@ var FIO={handle:null,hname:"",sig:null,MAXR:6};
 function fioSig(){try{return JSON.stringify(S)}catch(e){return ""}}
 function fioEmpty(){return !S.L.some(function(L){return LVK.some(function(k){return L[k]&&L[k].length})})}
 function fioDate(){var d=new Date();return String(d.getDate()).padStart(2,"0")+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+d.getFullYear()}
-function fioName(){var n=(S.meta.proj||S.meta.name||"JK Sketch Plan").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,60)||"JK Sketch Plan";
- n=n.replace(/\s*\d{1,2}-\d{1,2}-\d{4}(\s+\d{1,2}:\d{2})?$/,"").trim()||"JK Sketch Plan";return n+" "+fioDate()+".jksp"}
-function fioPack(){return {format:"jksp",app:"JK Sketch Plan",version:1,saved:new Date().toISOString(),id:CURID||null,doc:JSON.parse(JSON.stringify(S))}}
+function fioName(){var n=(S.meta.proj||S.meta.name||APP).replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,60)||APP;
+ n=n.replace(/\s*\d{1,2}-\d{1,2}-\d{4}(\s+\d{1,2}:\d{2})?$/,"").trim()||APP;return n+" "+fioDate()+".jksp"}
+function fioPack(){return {format:"jksp",app:APP,version:1,saved:new Date().toISOString(),id:CURID||null,doc:JSON.parse(JSON.stringify(S))}}
 function fioText(){return JSON.stringify(fioPack())}
 /* recent files: index jksp_recent [{k,name,t}] + data jksp_rf_<k> */
 function fioRecent(){return LS.get("jksp_recent",[])}
@@ -5781,16 +5783,16 @@ function fioRemember(name,text){try{var L=fioRecent().filter(function(e){return 
   L.slice(FIO.MAXR).forEach(function(e){try{localStorage.removeItem("jksp_rf_"+e.k)}catch(x){}});localStorage.setItem("jksp_recent",JSON.stringify(L.slice(0,FIO.MAXR)))}catch(e){}}
 function fioDone(name,how){FIO.sig=fioSig();FIO.hname=name;toast(how+" "+name)}
 async function fileSave(asNew){autosave();var text=fioText(),blob=new Blob([text],{type:"application/json"});
- if(window.showSaveFilePicker&&!window.Android){try{var h=(!asNew&&FIO.handle)?FIO.handle:await window.showSaveFilePicker({suggestedName:fioName(),types:[{description:"JK Sketch Plan file",accept:{"application/json":[".jksp"]}}]});
+ if(window.showSaveFilePicker&&!window.Android){try{var h=(!asNew&&FIO.handle)?FIO.handle:await window.showSaveFilePicker({suggestedName:fioName(),types:[{description:APP+" file",accept:{"application/json":[".jksp"]}}]});
    if(h.requestPermission){var p=await h.requestPermission({mode:"readwrite"});if(p!=="granted")throw new Error("permission")}
    var w=await h.createWritable();await w.write(blob);await w.close();FIO.handle=h;fioRemember(h.name,text);fioDone(h.name,"Saved");updFileBadge();return h.name}
   catch(e){if(e&&e.name==="AbortError")return null;/* fall back to a download */}}
  var name=fioName();saveFile(name,blob,"application/json");fioRemember(name,text);FIO.sig=fioSig();FIO.hname=name;updFileBadge();return name}
 /* parse + validate a project file; throws a friendly Error, never touches the current drawing */
-function fioParse(text){var o;try{o=JSON.parse(text)}catch(e){throw new Error("This file is not a JK Sketch Plan file (it could not be read).")}
+function fioParse(text){var o;try{o=JSON.parse(text)}catch(e){throw new Error("This file is not a "+APP+" file (it could not be read).")}
  var d=o&&o.format==="jksp"?o.doc:o;if(!d||typeof d!=="object"||Array.isArray(d))throw new Error("This file does not contain a drawing.");
  var ok=Array.isArray(d.L)?d.L.every(function(L){return L&&Array.isArray(L.pts)&&Array.isArray(L.segs)}):(Array.isArray(d.pts)&&Array.isArray(d.segs));
- if(!ok)throw new Error("This file does not contain a JK Sketch Plan drawing.");
+ if(!ok)throw new Error("This file does not contain a "+APP+" drawing.");
  var D=JSON.parse(JSON.stringify(d));D.meta=Object.assign(blank().meta,D.meta||{});D=docify(D);if(!(D.nid>0))D.nid=1;
  var mx=0;D.L.forEach(function(L){LVK.forEach(function(k){(L[k]||[]).forEach(function(x){if(x&&x.id>mx)mx=x.id})})});if(D.nid<=mx)D.nid=mx+1;
  return D}
@@ -5800,7 +5802,7 @@ function fioLoad(text,name,handle){var D;try{D=fioParse(text)}catch(e){fioError(
  if(!fioConfirm())return false;autosave();S=D;S.furn=S.furn||[];CURID="d"+Date.now().toString(36);UNDO=[];REDO=[];UI.chain=null;UI.chainFree=null;UI.sel=[];
  if(typeof setClean==="function")setClean(false);fitAll();changed();DIRTY=true;autosave();updTitle();FIO.handle=handle||null;fioRemember(name,text);fioDone(name,"Opened");updFileBadge();return true}
 function fioError(msg,name){modal('<div class="mt">Could not open file</div><div class="ms">'+esc(name||"")+'</div><p style="font-size:15px;line-height:1.45">'+esc(msg)+'<br>Your current drawing was not changed.</p><div class="row"><button class="bb ok" id="feOk">OK</button></div>',function(){$("feOk").onclick=closeModal})}
-async function fileOpen(){if(window.showOpenFilePicker&&!window.Android){try{var hs=await window.showOpenFilePicker({multiple:false,types:[{description:"JK Sketch Plan file",accept:{"application/json":[".jksp",".json"]}}]});
+async function fileOpen(){if(window.showOpenFilePicker&&!window.Android){try{var hs=await window.showOpenFilePicker({multiple:false,types:[{description:APP+" file",accept:{"application/json":[".jksp",".json"]}}]});
    var h=hs[0],f=await h.getFile();closeModal();fioLoad(await f.text(),f.name,h);return}catch(e){if(e&&e.name==="AbortError")return}}
  var inp=document.createElement("input");inp.type="file";inp.accept=".jksp,.json,application/json";inp.style.display="none";document.body.appendChild(inp);
  inp.onchange=function(){var f=inp.files&&inp.files[0];inp.remove();if(!f)return;var r=new FileReader();r.onload=function(){closeModal();fioLoad(String(r.result),f.name,null)};r.onerror=function(){fioError("The file could not be read.",f.name)};r.readAsText(f)};inp.click()}
