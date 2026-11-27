@@ -69,6 +69,7 @@ function ctxAction(k){if(/^f(add|rot|dup|del|done)$/.test(k)){furnAction(k);retu
  else if(k==="xrot"){if(!selEls().length){toast("Select something first");return}rotatePopup();return}else if(k==="xmir"){mirrorPopup();return}else if(k==="xarr"){arrayPopup();return}
  else if(k==="xpin")doPin();else if(k==="xdel")doDelete();else if(k==="xfil"){filterPopup();return}else if(k==="xall"){setSel(allRefs());toast(UI.sel.length+" selected")}else if(k==="xadd")UI.addSel=!UI.addSel;else if(k==="xclr")clearSel();
  else if(k.indexOf("cs:")===0){UI.colSz=k.slice(3).split("x").map(Number)}else if(k==="crot"){UI.colRot=((UI.colRot||0)+90)%180}else if(k==="cauto")autoCols();else if(k==="cgrid")gridCols();
+ else if(k==="cbelow"){if(S.cur>0){snapshot();colSetShowBelow(S.cur,!colShowBelow(S.cur));changed();toast(colShowBelow(S.cur)?"Columns from the floor below: shown (dashed)":"Columns from the floor below: hidden")}}
  else if(k.indexOf("bs:")===0){UI.beamSz=k.slice(3).split("x").map(Number)}else if(k==="bauto")autoBeams();else if(k==="gauto")autoGrids();
  else if(k==="dls")UI.dlSt="solid";else if(k==="dld")UI.dlSt="dash";else if(k==="tmc"){UI.trimMode="corner";UI.pick=null}else if(k==="tmo"){UI.trimMode="one";UI.pick=null}
  else if(k==="ofd"){offsetDistPopup();return}else if(k==="ofr")UI.offRun=!UI.offRun;else if(k==="secv"){if(!S.secs.length){toast("Draw a section line first");return}openSheetBy("sec",0);return}
@@ -82,6 +83,7 @@ function pf(lab,key,val,o){o=o||{};if(o.ro)return '<div class="pf"><label>'+lab+
 /* Stage: Properties panel - shows the selected element / active tool settings */
 function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<div class="ph"><b>Properties</b><button class="cb" id="prX">×</button></div>',lv=curLv();
  if(!L.length){h+='<div class="pt">Floor Plan: '+esc(lv.name)+'</div>'+pf("Level name","lv.name",lv.name)+pf("Elevation","",lvl(lvElev(S.cur)),{ro:1})+pf("Floor to floor","lv.h",fi(lv.h))+pf("Slab (inch)","lv.slab",lv.slab,{num:1})+pf("Ceiling height","lv.ceil",fi(lv.ceil))+
+   (S.cur>0?pf("Show columns from floor below","lv.colBelow",lv.colBelow!==false?"1":"0",{opts:[["1","ON (dashed projection)"],["0","OFF"]]}):"")+
    pf("Walls / openings","",lv.segs.length+" / "+lv.ops.length,{ro:1})+pf("Default outer wall","m.tout",S.meta.tout,{num:1})+pf("Default inner wall","m.tin",S.meta.tin,{num:1})+pf("Roof","",roofCfg().type,{ro:1})+'<div class="pn">Tap an element (Modify → Select) to edit its type, size, level and offset.</div>'}
  else if(L.length>1){var cnt={};L.forEach(function(r){cnt[r.k]=(cnt[r.k]||0)+1});h+='<div class="pt">'+L.length+' elements</div>'+Object.keys(cnt).map(function(k){return pf(EKN[k],"",cnt[k],{ro:1})}).join("")+(cnt.seg===L.length?pf("Thickness (inch) - all","mseg.th",""):"")+'<div class="pn">Use Move / Copy / Rotate / Mirror / Array in the bar above.</div>'}
  else{var r=L[0],e=elGet(r);h+='<div class="pt">'+EKN[r.k]+(e.pin?" · pinned":"")+'</div>';
@@ -91,7 +93,8 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
   else if(r.k==="kc")h+=kcProps(e);
   else if(r.k==="lab"){var f=LABF[e.id];h+=pf("Name","lab.name",e.name)+(f?pf("Clear size","",sizeText(f),{ro:1})+pf("Carpet area","",sq(f.carpet)+" sq.ft",{ro:1}):"")+(isStair(e.name)?pf("Stair type","lab.st",(e.st&&e.st.type)||"straight",{opts:[["straight","Straight"],["L","L-shape"],["U","U / dog-legged"]]}):"")}
   else if(r.k==="stair")h+=stairProps(e);
-  else if(r.k==="col")h+=pf("Width (inch)","col.w",e.w,{num:1})+pf("Depth (inch)","col.d",e.d,{num:1})+pf("Rotation (°)","col.rot",e.rot||0,{num:1})+pf("Material","",e.w>=9?"RCC M20":"RCC",{ro:1})+pf("Height","",fi(lv.h)+" (level)",{ro:1});
+  else if(r.k==="col"){var upOpts=[["all","All floors above"]];for(var ui=S.cur;ui<S.L.length;ui++)upOpts.push([String(ui),ui===S.cur?"This floor only":"Up through "+S.L[ui].name]);
+  h+=pf("Width (inch)","col.w",e.w,{num:1})+pf("Depth (inch)","col.d",e.d,{num:1})+pf("Rotation (°)","col.rot",e.rot||0,{num:1})+pf("Material","",e.w>=9?"RCC M20":"RCC",{ro:1})+pf("Height","",fi(lv.h)+" (this floor)",{ro:1})+pf("Continues up","col.upto",e.upto==null?"all":String(e.upto),{opts:upOpts})+'<div class="pn">Columns continue straight up at the same X/Y. Upper floors show a dashed projection unless you stop the column here.</div>'}
   else if(r.k==="beam")h+=pf("Width (inch)","beam.w",e.w,{num:1})+pf("Depth (inch)","beam.d",e.d,{num:1})+pf("Length","",fi(Math.hypot(e.b.x-e.a.x,e.b.y-e.a.y)),{ro:1})+pf("Top","",lvl(lvElev(S.cur)+lv.h-lv.slab/12)+" (slab soffit)",{ro:1});
   else if(r.k==="dim")h+=pf("Value","dim.val",fi(dimGeom(e).L))+pf("Offset","dim.off",fi(e.off||0))+pf("Lock","dim.lock",e.lock?"1":"0",{opts:[["0","Unlocked"],["1","Locked"]]})+'<div class="pn">Edit Value to move the attached wall (second end moves).</div>';
   else if(r.k==="note")h+=pf("Text","note.t",e.t)+pf("Size (on paper)","note.pm",e.pmm>0?e.pmm:"",{opts:(e.pmm>0?[]:[["","Old size (fixed)"]]).concat(TXTPRE.map(function(z){return [z,z+" mm"]}))});
@@ -107,6 +110,7 @@ function updProps(){var P=$("props");if(!P||!UI.props)return;var L=selEls(),h='<
  P.querySelectorAll("[data-p]").forEach(function(inp){inp.onchange=function(){propSet(inp.dataset.p,inp.value,L)}})}
 function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=parseFloat(v),ft=parseFI(v);if(key.indexOf("stair.")===0){stairPropSet(key,v,e);return}if(key.indexOf("fz.")===0){furnPropSet(key,v,e);return}if(key.indexOf("kc.")===0){kcPropSet(key,v,e);return}snapshot();var ok=true;
  switch(key){case "lv.name":lv.name=v.trim()||lv.name;break;case "lv.h":if(ft>=7&&ft<=30)lv.h=ft;else ok=false;break;case "lv.slab":if(num>=3&&num<=12)lv.slab=num;else ok=false;break;case "lv.ceil":if(ft>=6&&ft<=lv.h)lv.ceil=ft;else ok=false;break;
+  case "lv.colBelow":if(v==="0")lv.colBelow=false;else delete lv.colBelow;break;
   case "m.tout":if(num>=2&&num<=36)S.meta.tout=num;else ok=false;break;case "m.tin":if(num>=2&&num<=36)S.meta.tin=num;else ok=false;break;
   case "mseg.th":if(num>=2&&num<=36)L.forEach(function(r){setWallTh(elGet(r),num)});else ok=false;break;
   case "seg.len":if(ft>0.1){UNDO.pop();var a=pt(e.a),b=pt(e.b);setLength(a,b,ft);updProps();return}ok=false;break;
@@ -116,6 +120,7 @@ function propSet(key,v,L){var e=L.length===1?elGet(L[0]):null,lv=curLv(),num=par
   case "f.w":if(ft>0.3)e.w=ft;else ok=false;break;case "f.d":if(ft>0.3)e.d=ft;else ok=false;break;case "f.rot":e.rot=((num||0)%360+360)%360;break;
   case "lab.name":e.name=v.trim()||e.name;break;case "lab.st":e.st=e.st||{};e.st.type=v;break;
   case "col.w":if(num>=6&&num<=48)e.w=num;else ok=false;break;case "col.d":if(num>=6&&num<=48)e.d=num;else ok=false;break;case "col.rot":e.rot=((num||0)%360+360)%360;break;
+  case "col.upto":if(v==="all"||v==="")delete e.upto;else{var un=+v;if(un>=0&&un<S.L.length)e.upto=un;else ok=false}break;
   case "beam.w":if(num>=4&&num<=36)e.w=num;else ok=false;break;case "beam.d":if(num>=6&&num<=48)e.d=num;else ok=false;break;
   case "dim.val":UNDO.pop();editDimValue(e,ft);updProps();return;case "dim.lock":e.lock=v==="1";break;case "dim.off":if(isFinite(ft))e.off=(e.off<0?-1:1)*Math.abs(ft);break;case "note.t":e.t=v;break;case "note.h":e.h=+v;break;case "note.pm":if(+v>0){e.pmm=+v;delete e.h}break;case "spot.lab":e.lab=v;break;case "spot.z":if(isFinite(ft))e.z=ft;else ok=false;break;
   case "dline.st":e.st=v;break;case "dcirc.st":e.st=v;break;case "dcirc.r":if(ft>0.02&&ft<1000)e.r=ft;else ok=false;break;case "rail.h":if(ft>1&&ft<8)e.h=ft;else ok=false;break;case "grid.name":e.name=v.trim().toUpperCase()||e.name;break;case "sec.name":e.name=v.trim()||e.name;break;case "sec.flip":e.flip=v==="1";break;default:ok=false}

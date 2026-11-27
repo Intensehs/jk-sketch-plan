@@ -1,5 +1,5 @@
 /* ================= CTAK BIM Module - hand drawing house plan ================= */
-var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.4";
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.5";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -632,7 +632,7 @@ function helpPopup(){modal('<div class="mt">'+esc(APP)+'</div><div class="ms">'+
  '<b>Tap-tap</b>: in Draw, tap a point then tap the next corner.<br><b>Close</b> joins the last point to the first. <b>New line</b> starts a separate wall (inside walls).<br>'+
  '<b>Size</b>: tap a wall and type the real feet / inches. Connected walls move with it.<br><b>Room</b>: tap inside a closed room and pick the name - area and size are shown.<br>'+
  '<b>Door/Win</b>: tap a wall, choose door / window / ventilator and width.<br><b>Move</b>: drag corner points or room names; tap a wall for outer / inner type.<br><b>Wall</b>: tap a wall to set its thickness - 4½" half brick, 6" / 8" block, 9" full brick or any custom inches; apply to one wall, the full straight wall, or all walls. <b>Defaults</b> sets outer / inner thickness for the whole drawing. In Draw, the <b>Wall 9"</b> button sets the thickness of the next walls.<br>'+
- '<b>Pen only</b>: with a stylus, fingers only move / zoom (palm will not draw).<br><b>Clean</b>: Sheet 1 = plan with thick walls, door swings, windows, title block; Sheet 2 = door &amp; window 2D details + schedules. Export PDF (2 pages) / DXF / PNG.<br>Room sizes shown are clear inside sizes (wall face to wall face); built-up area is to the outer face of walls.<br>'+
+ '<b>Pen only</b>: with a stylus, fingers only move / zoom (palm will not draw).<br><b>Columns</b>: a column placed on a lower floor continues straight up. Upper floors show it as a dashed projection (From below ON) so you can align walls. Qty takeoff counts the column once per floor it stands on, not as extra ghosts.<br><b>Clean</b>: Sheet 1 = plan with thick walls, door swings, windows, title block; Sheet 2 = door &amp; window 2D details + schedules. Export PDF (2 pages) / DXF / PNG.<br>Room sizes shown are clear inside sizes (wall face to wall face); built-up area is to the outer face of walls.<br>'+
  'Two fingers: pan and pinch zoom. Everything saves automatically.</div><div class="row"><button class="bb" id="hX">Close</button></div>',function(){$("hX").onclick=closeModal})}
 
 /* ================= toolbar ================= */

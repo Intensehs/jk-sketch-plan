@@ -188,7 +188,7 @@ function sqFt(v){return Math.round(v*10)/10}
 function kgR(v){return Math.round(v*10)/10}
 function qtySteel(){var kg=0,note=[];
  S.L.forEach(function(Lv,i){withLevel(i,function(){
-  (S.cols||[]).forEach(function(c){var r=colRB(c),H=Lv.h+(i===0?(ftgOf(c).dep||5):0),lenM=H*0.3048,main=r.n*lenM*kgm(r.dia),peri=2*(c.w+c.d)/39.37,ties=Math.max(1,Math.ceil(H*304.8/r.sp))*(peri+0.05)*kgm(r.tie);kg+=main+ties});
+  (typeof colsOnFloor==="function"?colsOnFloor(i,{all:true}):(S.cols||[])).forEach(function(c){var r=colRB(c),H=Lv.h+(i===0?(ftgOf(c).dep||5):0),lenM=H*0.3048,main=r.n*lenM*kgm(r.dia),peri=2*(c.w+c.d)/39.37,ties=Math.max(1,Math.ceil(H*304.8/r.sp))*(peri+0.05)*kgm(r.tie);kg+=main+ties});
   (S.beams||[]).forEach(function(m){var r=beamRB(m),L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),Lm=L*0.3048,main=(r.top*kgm(r.td)+r.bot*kgm(r.bd))*Lm,stirr=Math.max(1,Math.ceil(L*304.8/r.sp))*(2*(m.w+m.d)/39.37+0.05)*kgm(r.st);kg+=main+stirr});
   if(i===0)(S.cols||[]).forEach(function(c){var f=ftgOf(c),nx=Math.max(2,Math.ceil(f.l*304.8/f.sp)+1),ny=Math.max(2,Math.ceil(f.w*304.8/f.sp)+1);kg+=nx*(f.w*0.3048)*kgm(f.dia)+ny*(f.l*0.3048)*kgm(f.dia)});
   var RI=roomsInfo(),sr=slabRB();RI.faces.forEach(function(f){var a=f.carpet!=null?f.carpet:f.area,md=sr.md,ms=sr.ms/1000,dd=sr.dd,ds=sr.ds/1000;kg+=(a*0.092903)*(kgm(md)/ms+kgm(dd)/ds)})})});
@@ -200,7 +200,8 @@ function qtyBuild(){var wallL=0,wallA=0,wallV=0,brick=0,opA=0,doors=0,wins=0,rai
   (S.rails||[]).forEach(function(m){rails+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
   RI.faces.forEach(function(f){var a=f.carpet!=null?f.carpet:f.area,per=0;for(var k=0;k<f.pts.length;k++){var p=f.pts[k],q=f.pts[(k+1)%f.pts.length];per+=Math.hypot(q.x-p.x,q.y-p.y)}floorA+=a;paintC+=a;paintW+=per*(H-sl);wallTile+=per*4;slabA+=a;slabV+=a*sl;cent+=a+per*(H*0.15);
    rooms.push({name:(S.L.length>1?Lv.name+": ":"")+(f.labels[0]?f.labels[0].name:"Room"),area:sqFt(a),level:Lv.name})});
-  (S.cols||[]).forEach(function(c){var w=c.w/12,d=c.d/12;colV+=w*d*H;cent+=2*(w+d)*H;if(i===0){var f=ftgOf(c),fw=f.w,fl=f.l,ft=f.t,dep=f.dep;ftgN++;ftgExc+=fw*fl*dep;ftgConc+=fw*fl*ft;cent+=2*(fw+fl)*ft}});
+  (typeof colsOnFloor==="function"?colsOnFloor(i,{all:true}):(S.cols||[])).forEach(function(c){var w=c.w/12,d=c.d/12;colV+=w*d*H;cent+=2*(w+d)*H});
+  if(i===0)(S.cols||[]).forEach(function(c){var f=ftgOf(c),fw=f.w,fl=f.l,ft=f.t,dep=f.dep;ftgN++;ftgExc+=fw*fl*dep;ftgConc+=fw*fl*ft;cent+=2*(fw+fl)*ft});
   (S.beams||[]).forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),w=m.w/12,d=m.d/12;beamV+=L*w*d;cent+=L*(w+2*d)});
   (S.ewires||[]).forEach(function(m){wireL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
   (S.ducts||[]).forEach(function(m){ductL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
@@ -211,7 +212,7 @@ function qtyBuild(){var wallL=0,wallA=0,wallV=0,brick=0,opA=0,doors=0,wins=0,rai
  function row(id,name,unit,qty,note){return {id:id,name:name,unit:unit,qty:+(+qty).toFixed(2),note:note||""}}
  return {rooms:rooms,sections:[
   {id:"ftg",name:"Footing",rows:[row("ftg_n","Footings (nos)","nos",ftgN),row("ftg_exc","Excavation","cu.ft",ftgExc,"size × depth"),row("ftg_pcc","PCC bed (assumed 3\")","cu.ft",ftgN?ftgExc*0.05:0),row("ftg_rcc","RCC footing concrete","cu.ft",ftgConc)]},
-  {id:"conc",name:"Concrete (RCC)",rows:[row("c_ftg","Footing","cu.ft",ftgConc),row("c_col","Column","cu.ft",colV),row("c_beam","Beam","cu.ft",beamV),row("c_slab","Slab / roof (incl. overhang)","cu.ft",slabV),row("c_tot","Total RCC","cu.ft",ftgConc+colV+beamV+slabV)]},
+  {id:"conc",name:"Concrete (RCC)",rows:[row("c_ftg","Footing","cu.ft",ftgConc),row("c_col","Column","cu.ft",colV,"volume on each floor a column stands on; dashed projections are not extra columns"),row("c_beam","Beam","cu.ft",beamV),row("c_slab","Slab / roof (incl. overhang)","cu.ft",slabV),row("c_tot","Total RCC","cu.ft",ftgConc+colV+beamV+slabV)]},
   {id:"cent",name:"Centering / shuttering",rows:[row("cent","Shuttering area","sq.ft",cent,"footing + column + beam + slab") ]},
   {id:"stl",name:"Steel / reinforcement",rows:[row("stl","Rebar (from Kambi data)","kg",steel,"columns, beams, footing mesh, slab")]},
   {id:"wall",name:"Walls / brickwork",rows:[row("w_len","Wall length","ft",wallL),row("w_area","Wall area (gross)","sq.ft",wallA),row("w_vol","Brickwork volume","cu.ft",brick)]},
@@ -239,7 +240,7 @@ function qtyPDF(title,head,rows){var d=new Dwg();frame(d,title,(S.meta.name||"Dr
  while(i<rows.length){var part=rows.slice(i,i+chunk).map(function(r){return r.slice()});y=table(d,20,y,cols,part,{rh:5.2});i+=chunk;if(i<rows.length){y+=8;if(y>250){d.text(20,y,"(continued in CSV / Excel export for the full list)",2.4,{c:"#555"});break}}}
  saveFile(fname("pdf").replace(/\.pdf$/,"_"+(title.replace(/\s+/g,"_"))+".pdf"),new Blob([bin(toPDF(d,S.meta.paper||"A3"))],{type:"application/pdf"}),"application/pdf")}
 function qtyPopup(){var Q=qtyBuild();
- modal('<div class="mt">Quantity takeoff</div><div class="ms">Lengths, areas and volumes from the drawing (ft-in / cu.ft). Roof overhang and MEP runs are included.</div><div class="qwrap">'+qtyTableHTML(Q)+'</div>'+
+ modal('<div class="mt">Quantity takeoff</div><div class="ms">Lengths, areas and volumes from the drawing (ft-in / cu.ft). Roof overhang and MEP runs are included. Columns that continue up are counted on each floor they stand on; dashed projections are not extra columns.</div><div class="qwrap">'+qtyTableHTML(Q)+'</div>'+
   '<div class="row"><button class="bb" id="qCsv">CSV</button><button class="bb" id="qXls">Excel</button><button class="bb" id="qPdf">PDF</button><button class="bb ok" id="qEst">Estimate</button><button class="bb" id="qX">Close</button></div>',function(){
   $("qX").onclick=closeModal;$("qEst").onclick=function(){closeModal();estPopup()};
   $("qCsv").onclick=function(){saveFile(fname("csv").replace(/\.csv$/,"_qty.csv"),new Blob([qtyCSV(Q)],{type:"text/csv"}),"text/csv")};

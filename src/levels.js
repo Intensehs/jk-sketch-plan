@@ -30,8 +30,8 @@ function copyLevel(i,j,opts){var A=S.L[i],B=S.L[j],pm={},sm={};
  withLevel(j,function(){planarize()})}
 /* Stage: Levels - Level tool popup (add, copy, open, height, rename) */
 function levelsPopup(){var rows=S.L.map(function(L,i){return i}).reverse().map(function(i){var L=S.L[i];
-  return '<div class="file"><div><b>'+esc(L.name)+(i===S.cur?' (open)':'')+'</b><small>Elevation '+lvl(lvElev(i))+' · floor to floor '+fi(L.h)+' · '+L.segs.length+' walls</small></div>'+
-   '<button class="bb pri" data-lo="'+i+'">Open</button><button class="bb" data-lh="'+i+'">Height</button><button class="bb" data-lr="'+i+'">Rename</button>'+(S.L.length>1?'<button class="bb del" data-ld="'+i+'">×</button>':'')+'</div>'}).join("");
+  return '<div class="file"><div><b>'+esc(L.name)+(i===S.cur?' (open)':'')+'</b><small>Elevation '+lvl(lvElev(i))+' · floor to floor '+fi(L.h)+' · '+L.segs.length+' walls'+(i>0?' · cols from below '+(colShowBelow(i)?'ON':'OFF'):'')+'</small></div>'+
+   '<button class="bb pri" data-lo="'+i+'">Open</button><button class="bb" data-lh="'+i+'">Height</button><button class="bb" data-lr="'+i+'">Rename</button>'+(i>0?'<button class="bb'+(colShowBelow(i)?' on':'')+'" data-cb="'+i+'">Cols below</button>':'')+(S.L.length>1?'<button class="bb del" data-ld="'+i+'">×</button>':'')+'</div>'}).join("");
  modal('<div class="mt">Levels / தளங்கள்</div><div class="ms">Like Revit levels: each floor has its own plan. 3D and elevations show all floors stacked.</div>'+rows+
   '<div class="row"><button class="bb ok" id="lvAdd">+ Add level above<small>'+(LVNAMES[S.L.length]||"Level "+S.L.length)+'</small></button><button class="bb ok" id="lvTer">+ Terrace<small>stair cabin / parapet</small></button></div>'+
   '<div class="row"><button class="bb pri" id="lvCopy">Copy this floor UP<small>walls, doors, windows, rooms, columns → '+esc(S.L[S.cur+1]?S.L[S.cur+1].name:"new level")+'</small></button><button class="bb" id="lvCopyW">Copy walls only UP</button></div>'+
@@ -40,6 +40,7 @@ function levelsPopup(){var rows=S.L.map(function(L,i){return i}).reverse().map(f
   box.querySelectorAll("[data-lh]").forEach(function(b){b.onclick=function(){var i=+b.dataset.lh,v=parseFI(prompt("Floor-to-floor height of "+S.L[i].name+" (e.g. 10'0\")",fi(S.L[i].h)));if(v>=7&&v<=30){snapshot();S.L[i].h=v;changed();levelsPopup()}}});
   box.querySelectorAll("[data-lr]").forEach(function(b){b.onclick=function(){var i=+b.dataset.lr,n=prompt("Level name",S.L[i].name);if(n){snapshot();S.L[i].name=n.trim();changed();levelsPopup();updLevelBadge()}}});
   box.querySelectorAll("[data-ld]").forEach(function(b){b.onclick=function(){var i=+b.dataset.ld;if(!confirm("Delete level "+S.L[i].name+" and everything on it? (Undo can bring it back)"))return;snapshot();S.L.splice(i,1);if(S.cur>=S.L.length)S.cur=S.L.length-1;changed();levelsPopup();updLevelBadge()}});
+  box.querySelectorAll("[data-cb]").forEach(function(b){b.onclick=function(){var i=+b.dataset.cb;snapshot();colSetShowBelow(i,!colShowBelow(i));changed();levelsPopup();toast(S.L[i].name+": columns from below "+(colShowBelow(i)?"ON":"OFF"))}});
   $("lvAdd").onclick=function(){snapshot();var L=newLevel(LVNAMES[S.L.length]||"Level "+S.L.length,curLv().h);L.id=nid();S.L.push(L);changed();closeModal();setLevel(S.L.length-1)};
   $("lvTer").onclick=function(){snapshot();var L=newLevel("Terrace",8);L.id=nid();S.L.push(L);changed();closeModal();setLevel(S.L.length-1);toast("Terrace: draw the stair cabin; open roof parts get parapet in 3D")};
   function cp(full){var i=S.cur;if(!curLv().segs.length){toast("This level is empty");return}snapshot();if(i+1>=S.L.length){var L=newLevel(LVNAMES[i+1]||"Level "+(i+1),curLv().h);L.id=nid();S.L.push(L)}
