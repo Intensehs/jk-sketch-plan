@@ -64,21 +64,17 @@ function segDir(s,from){var a=pt(from),o=pt(s.a===from?s.b:s.a),L=Math.hypot(o.x
 function gridCols(){var X=gridXs();if(!X.length){toast("No grid intersections - add grids first (Annotate → Grid)");return}snapshot();var n=0;X.forEach(function(p){if(addCol(p.x,p.y))n++});changed();toast(n+" columns at grid intersections")}
 /* ---------- beams ---------- */
 /* Stage: Structure - Beam tool */
-function wallThAlong(a,b){if(!a||!b||!S.segs||!S.segs.length)return 0;var best=0,bd=0.55;S.segs.forEach(function(s){var A=pt(s.a),B=pt(s.b);if(!A||!B)return;var d=(d2seg(a,A,B)+d2seg(b,A,B))/2;if(d<bd){bd=d;best=wallIn(s)}});return best}
-function addBeam(a,b){var z=UI.beamSz||[9,18],wt=wallThAlong(a,b),man=!!UI.beamMan,w=man?z[0]:(wt||z[0]),bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:w,d:z[1]};if(man)bm.wov=1;S.beams.push(bm);return bm}
+function addBeam(a,b){var z=UI.beamSz||[9,18];var bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:z[0],d:z[1]};S.beams.push(bm);return bm}
 function autoBeams(){snapshot();var n=0,done={};S.segs.forEach(function(s){var r=wallRun(s),k=r.ids.slice().sort().join(",");if(done[k])return;done[k]=1;var a=pt(r.a),b=pt(r.b);
-  if(S.beams.some(function(m){return (Math.hypot(m.a.x-a.x,m.a.y-a.y)<0.1&&Math.hypot(m.b.x-b.x,m.b.y-b.y)<0.1)||(Math.hypot(m.a.x-b.x,m.a.y-b.y)<0.1&&Math.hypot(m.b.x-a.x,m.b.y-a.y)<0.1)}))return;var bm=addBeam(a,b);if(!bm.wov)bm.w=wallIn(s);n++});
- changed();toast(n+" beams placed over the walls (width matches wall)")}
-function syncBeamsOnWall(s){if(!s||!S.beams)return;var a=pt(s.a),b=pt(s.b),th=wallIn(s);S.beams.forEach(function(m){if(m.wov)return;if(d2seg(m.a,a,b)<0.45&&d2seg(m.b,a,b)<0.45)m.w=th})}
+  if(S.beams.some(function(m){return (Math.hypot(m.a.x-a.x,m.a.y-a.y)<0.1&&Math.hypot(m.b.x-b.x,m.b.y-b.y)<0.1)||(Math.hypot(m.a.x-b.x,m.a.y-b.y)<0.1&&Math.hypot(m.b.x-a.x,m.b.y-a.y)<0.1)}))return;var bm=addBeam(a,b);bm.w=Math.max(bm.w,wallIn(s));n++});
+ changed();toast(n+" beams placed over the walls (lintel/roof beams)")}
 function beamPoly(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)||1,nx=-(m.b.y-m.a.y)/L*m.w/24,ny=(m.b.x-m.a.x)/L*m.w/24;return [{x:m.a.x+nx,y:m.a.y+ny},{x:m.b.x+nx,y:m.b.y+ny},{x:m.b.x-nx,y:m.b.y-ny},{x:m.a.x-nx,y:m.a.y-ny}]}
 /* ---------- roof (top level): flat slab + parapet, gable, hip ---------- */
-function roofCfg(){var r=S.meta.roof||{};return {type:r.type||"flat",par:r.par!=null?+r.par:3,pitch:r.pitch!=null?+r.pitch:25,ov:r.ov!=null?+r.ov:1.5,ridge:r.ridge||"auto",ovN:r.ovN,ovS:r.ovS,ovE:r.ovE,ovW:r.ovW}}
-function roofOvs(){var rc=roofCfg(),o=+rc.ov||0;return {n:rc.ovN!=null&&rc.ovN!==""?+rc.ovN:o,s:rc.ovS!=null&&rc.ovS!==""?+rc.ovS:o,e:rc.ovE!=null&&rc.ovE!==""?+rc.ovE:o,w:rc.ovW!=null&&rc.ovW!==""?+rc.ovW:o}}
-function roofHasOv(){var o=roofOvs();return o.n>0.01||o.s>0.01||o.e>0.01||o.w>0.01}
+function roofCfg(){return S.meta.roof||{type:"flat",par:3,pitch:25,ov:1.5,ridge:"auto"}}
 /* triangles in world feet (x, y plan, z up) for gable / hip roofs over the top level; null for flat */
 function roofGeom(){var rc=roofCfg();if(rc.type==="flat")return null;var ti=topLevel(),z0=lvElev(ti)+S.L[ti].h;
  var bx=withLevel(ti,function(){var x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;S.segs.forEach(function(s){var P=S.meta.dbl?wallPoly(s):[pt(s.a),pt(s.b)];(P||[]).forEach(function(p){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)})});return [x0,y0,x1,y1]});
- if(!isFinite(bx[0]))return null;var o=roofOvs(),ov=(o.n+o.s+o.e+o.w)/4,tn=Math.tan((+rc.pitch||25)*Math.PI/180),X0=bx[0]-o.w,Y0=bx[1]-o.n,X1=bx[2]+o.e,Y1=bx[3]+o.s;
+ if(!isFinite(bx[0]))return null;var ov=+rc.ov||0,tn=Math.tan((+rc.pitch||25)*Math.PI/180),X0=bx[0]-ov,Y0=bx[1]-ov,X1=bx[2]+ov,Y1=bx[3]+ov;
  var alongX=rc.ridge==="x"?true:rc.ridge==="y"?false:(X1-X0)>=(Y1-Y0);
  function V(a,b,z){return alongX?{x:a,y:b,z:z}:{x:b,y:a,z:z}}
  var A0=alongX?X0:Y0,A1=alongX?X1:Y1,B0=alongX?Y0:X0,B1=alongX?Y1:X1,hb=(B1-B0)/2,ze=z0-ov*tn,zr=ze+hb*tn,bm=(B0+B1)/2,T=[];
@@ -91,24 +87,15 @@ function roofGeom(){var rc=roofCfg();if(rc.type==="flat")return null;var ti=topL
  return {tris:T,ze:ze,zr:zr,z0:z0,box:[X0,Y0,X1,Y1]}}
 function roofZ(x,y){var G=roofGeom();if(!G)return null;var best=null;G.tris.forEach(function(t){if(t.k!=="roof")return;var p=t.p,P2=p.map(function(q){return {x:q.x,y:q.y}});if(!inPoly(x,y,P2))return;
   var a=p[0],b=p[1],c=p[2],ux=b.x-a.x,uy=b.y-a.y,uz=b.z-a.z,vx=c.x-a.x,vy=c.y-a.y,vz=c.z-a.z,nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;if(Math.abs(nz)<1e-9)return;var z=a.z-(nx*(x-a.x)+ny*(y-a.y))/nz;if(best==null||z>best)best=z});return best}
-function fiOv(v){return fi(v==null?roofCfg().ov:v)}
 /* Stage: Build - Roof tool */
-function roofPopup(){var rc=JSON.parse(JSON.stringify(roofCfg())),o0=roofOvs();
- if(rc.ovN==null)rc.ovN=o0.n;if(rc.ovS==null)rc.ovS=o0.s;if(rc.ovE==null)rc.ovE=o0.e;if(rc.ovW==null)rc.ovW=o0.w;
- function ovFields(){return '<div class="ms" style="margin-top:8px"><b>Roof overhang / projection</b> beyond the walls (shown on plan, 3D and sheets).</div>'+
-  '<label class="fld">Same overhang all sides<input id="rfO" value="'+fi(rc.ov)+'" placeholder="e.g. 1\'6\""></label>'+
-  '<div class="grid2"><label class="fld">North (top)<input id="rfN" value="'+fi(rc.ovN)+'"></label><label class="fld">South (bottom)<input id="rfS" value="'+fi(rc.ovS)+'"></label>'+
-  '<label class="fld">East (right)<input id="rfE" value="'+fi(rc.ovE)+'"></label><label class="fld">West (left)<input id="rfW" value="'+fi(rc.ovW)+'"></label></div>'}
- function body(){return '<div class="mt">Roof / கூரை</div><div class="ms">Roof over the top level ('+esc(S.L[topLevel()].name)+'). Overhang extends past the walls. 3D, elevations, sections and plan show it.</div><div class="grid2">'+
+function roofPopup(){var rc=JSON.parse(JSON.stringify(roofCfg()));
+ function body(){return '<div class="mt">Roof / கூரை</div><div class="ms">Roof over the top level ('+esc(S.L[topLevel()].name)+'). 3D, elevations and sections use it.</div><div class="grid2">'+
   [["flat","Flat RCC slab","parapet wall"],["gable","Gable","2 slopes"],["hip","Hip","4 slopes"]].map(function(t){return '<button class="bb'+(rc.type===t[0]?' on':'')+'" data-rf="'+t[0]+'">'+t[1]+'<small>'+t[2]+'</small></button>'}).join("")+'</div>'+
-  (rc.type==="flat"?'<label class="fld">Parapet height (ft-in)<input id="rfP" value="'+fi(rc.par)+'"></label>':'<div class="row"><label class="fld">Pitch (degrees)<input id="rfA" type="number" value="'+rc.pitch+'"></label></div><div class="grid2">'+[["auto","Ridge: auto"],["x","Ridge E-W"],["y","Ridge N-S"]].map(function(t){return '<button class="bb'+(rc.ridge===t[0]?' on':'')+'" data-rr="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>')+
-  ovFields()+'<div class="row"><button class="bb" id="rfX">Cancel</button><button class="bb ok" id="rfOk">Save</button></div>'}
- function rd(){if($("rfP")){var p=parseFI($("rfP").value);if(p>=0&&p<=8)rc.par=p}if($("rfA")){var a=+$("rfA").value;if(a>=5&&a<=60)rc.pitch=a}
-  function one(id,key){if(!$(id))return;var v=parseFI($(id).value);if(v>=0&&v<=8)rc[key]=v}
-  one("rfO","ov");one("rfN","ovN");one("rfS","ovS");one("rfE","ovE");one("rfW","ovW");
-  if($("rfO")&&document.activeElement===$("rfO")){rc.ovN=rc.ovS=rc.ovE=rc.ovW=rc.ov}}
+  (rc.type==="flat"?'<label class="fld">Parapet height (ft-in)<input id="rfP" value="'+fi(rc.par)+'"></label>':'<div class="row"><label class="fld">Pitch (degrees)<input id="rfA" type="number" value="'+rc.pitch+'"></label><label class="fld">Overhang (ft-in)<input id="rfO" value="'+fi(rc.ov)+'"></label></div><div class="grid2">'+[["auto","Ridge: auto"],["x","Ridge E-W"],["y","Ridge N-S"]].map(function(t){return '<button class="bb'+(rc.ridge===t[0]?' on':'')+'" data-rr="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>')+
+  '<div class="row"><button class="bb" id="rfX">Cancel</button><button class="bb ok" id="rfOk">Save</button></div>'}
+ function rd(){if($("rfP")){var p=parseFI($("rfP").value);if(p>=0&&p<=8)rc.par=p}if($("rfA")){var a=+$("rfA").value;if(a>=5&&a<=60)rc.pitch=a}if($("rfO")){var o=parseFI($("rfO").value);if(o>=0&&o<=5)rc.ov=o}}
  function bind(box){box.querySelectorAll("[data-rf]").forEach(function(b){b.onclick=function(){rd();rc.type=b.dataset.rf;re()}});box.querySelectorAll("[data-rr]").forEach(function(b){b.onclick=function(){rd();rc.ridge=b.dataset.rr;re()}});
-  $("rfX").onclick=closeModal;$("rfOk").onclick=function(){rd();snapshot();S.meta.roof=rc;closeModal();changed();toast("Roof: "+rc.type+(roofHasOv()?" · overhang "+fi(roofOvs().n):""))}}
+  $("rfX").onclick=closeModal;$("rfOk").onclick=function(){rd();snapshot();S.meta.roof=rc;closeModal();changed();toast("Roof: "+rc.type)}}
  function re(){$("mbox").innerHTML=body();bind($("mbox"))}modal(body(),bind)}
 /* Stage: Build - Floor / Ceiling tool */
 function floorPopup(){var L=curLv();modal('<div class="mt">Floor / slab - '+esc(L.name)+'</div><div class="ms">Floor slab is made from the closed rooms automatically (like Revit "Floor by walls").</div>'+

@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>CTAK BIM Module</title>
+<title>JK Sketch Plan</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="application-name" content="CTAK BIM Module">
-<meta name="apple-mobile-web-app-title" content="CTAK BIM">
 <meta name="theme-color" content="#16365c">
 <script>/* Theme: apply the saved theme before first paint (no flash) */try{if(JSON.parse(localStorage.getItem("jksp_theme")||"null")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link rel="icon" href="icons/icon-192.png">
@@ -150,7 +148,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #app{grid-template-columns:var(--rail) minmax(0,1fr);grid-template-rows:var(--top) minmax(0,1fr);grid-template-areas:"top top" "tools stage"}
 #top{grid-area:top;min-height:0;height:var(--top);padding:0 6px 0 0;gap:0;background:#fff;color:var(--ink);border-bottom:1px solid var(--line);align-items:stretch}
 #brand{flex:0 1 auto;display:flex;align-items:center;gap:8px;min-width:0;max-width:300px;padding-left:7px;overflow:hidden}
-#bmark{flex:0 0 auto;width:42px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:9.5px;letter-spacing:.2px;display:flex;align-items:center;justify-content:center}
+#bmark{flex:0 0 auto;width:30px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:11.5px;letter-spacing:.5px;display:flex;align-items:center;justify-content:center}
 #btxt{min-width:0;line-height:1.1;display:flex;flex-direction:column}
 #brand b{font-size:12.5px;font-weight:650;display:block;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #brand small{display:none}
@@ -239,22 +237,6 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #app.focus #fxBar{display:flex}
 /* modals refined */
 .mbox{border-radius:14px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 24px 48px rgba(15,23,42,.22);max-width:520px}
-.mbox.wide{max-width:min(920px,96vw)}
-.asind{flex:0 0 auto;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:#1c7c43;color:#fff;cursor:pointer;white-space:nowrap;align-self:center}
-.asind.saving{background:#b45309}
-.asind.unsaved{background:#c2410c}
-.asind.off{background:#64748b}
-.qwrap{max-height:55vh;overflow:auto;margin:8px 0;border:1px solid var(--line,#d5deea);border-radius:10px}
-.qtbl{width:100%;border-collapse:collapse;font-size:13px}
-.qtbl th,.qtbl td{border-bottom:1px solid var(--line,#e2e8f0);padding:5px 8px;text-align:left}
-.qtbl th{background:#16365c;color:#fff;position:sticky;top:0}
-.qtbl .qh td{background:#e8edf3;font-weight:700}
-.qtbl .qn{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.qtbl input{width:100%;font-size:13px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px}
-.qtbl .qdel{min-height:32px;padding:0 8px;font-size:14px}
-[data-theme=dark] .qtbl th{background:#3a3226}
-[data-theme=dark] .qtbl .qh td{background:#2a2622}
-[data-theme=dark] .asind{color:#fff}
 .mt{font-size:16px;font-weight:700}
 .ms{font-size:12.5px;color:var(--ink2)}
 .bb{border-radius:9px;min-height:46px;font-size:14.5px;font-weight:600;background:#f1f5f9;color:var(--ink)}
@@ -355,13 +337,11 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 </style></head><body>
 <div id="app">
  <div id="top">
-  <div id="brand"><span id="bmark">CTAK</span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
+  <div id="brand"><span id="bmark">JK</span><span id="btxt"><b>JK Sketch Plan</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
   <div id="tabs"></div>
   <div id="tbar">
-  <button class="tb" id="bNew" title="New drawing · Ctrl+N" data-tip="New">__newfile__<span>New</span></button>
   <button class="tb" id="bSave" title="Save File · Ctrl+S" data-tip="Save File">__fsave__<span>Save</span></button>
   <button class="tb" id="bOpen" title="Open File / Recent files · Ctrl+O" data-tip="Open File">__fopen__<span>Open</span></button>
-  <span id="asInd" class="asind" title="Autosave — tap to turn on/off">Saved</span>
   <span class="tsep"></span>
   <button class="tb" id="bLv" title="Levels" data-tip="Levels">__levels__<span>Levels</span></button>
   <span class="tsep"></span>

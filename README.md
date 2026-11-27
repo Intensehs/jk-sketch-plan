@@ -1,6 +1,6 @@
-# CTAK BIM Module (web)
+# JK Sketch Plan (web)
 
-Static, offline-capable web version of CTAK BIM Module (formerly JK Sketch Plan; CTAK Construction).
+Static, offline-capable web version of JK Sketch Plan v1.4 (JK Construction / CTAK Construction).
 Open `index.html` from any static host. Everything is in one file (three.js, dxf-parser inlined); no backend, no WebAssembly.
 
 - Drawing tools of v1.4 (walls, doors, windows, levels, structure, annotate, modify), 3D view (all levels stacked, elevations, sections, mouse / one-finger orbit)

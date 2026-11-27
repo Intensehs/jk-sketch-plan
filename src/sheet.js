@@ -53,7 +53,7 @@ function tblock(d,o){var x=TBX,X2=408,w=X2-x,m=S.meta,RI=o.RI;
  var wn=w-17;lab(x,y,"DRAWING NUMBER");lab(x+wn,y,"SHEET");vl(x+wn,y,y+18);val(x,y+13.5,wn,o.dno,7,true);val(x+wn,y+12.5,17,o.sheet,3,true);y+=18;hl(y);
  // notes
  ["All dimensions in feet and inches.","Room sizes are clear inside sizes.","Do not scale - verify all sizes at site."].forEach(function(t,i){d.text(x+1.5,y+4+i*3.2,t,1.85,{c:"#333333",L:"TITLE"})});
- d.text(x+1.5,283,APP+" v"+VERSION+" - "+(m.drawn||"CTAK Construction"),1.6,{c:"#777777",L:"TITLE"})}
+ d.text(x+1.5,283,APP+" v"+VERSION+" - "+(m.drawn||"JK Construction"),1.6,{c:"#777777",L:"TITLE"})}
 /* simple table; cols=[[title,width,align]], rows=[[...]] ; returns bottom y */
 function table(d,x,y,cols,rows,o){o=o||{};var rh=o.rh||4.8,W=cols.reduce(function(a,c){return a+c[1]},0),hh=6;
  d.rect(x,y,W,hh,{w:0.3,fill:"#16365c",c:"#16365c",nodxf:true});var cx=x;cols.forEach(function(c){fitT(d,cx+c[1]/2,y+4.2,c[0],2.15,c[1]-1.5,{a:"middle",bold:true,c:"#ffffff",nodxf:true});cx+=c[1]});

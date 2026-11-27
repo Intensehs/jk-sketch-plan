@@ -5,9 +5,9 @@ var FIO={handle:null,hname:"",sig:null,MAXR:6};
 function fioSig(){try{return JSON.stringify(S)}catch(e){return ""}}
 function fioEmpty(){return !S.L.some(function(L){return LVK.some(function(k){return L[k]&&L[k].length})})}
 function fioDate(){var d=new Date();return String(d.getDate()).padStart(2,"0")+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+d.getFullYear()}
-function fioName(){var n=(S.meta.proj||S.meta.name||APP).replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,60)||APP;
- n=n.replace(/\s*\d{1,2}-\d{1,2}-\d{4}(\s+\d{1,2}:\d{2})?$/,"").trim()||APP;return n+" "+fioDate()+".jksp"}
-function fioPack(){return {format:"jksp",app:APP,version:1,saved:new Date().toISOString(),id:CURID||null,doc:JSON.parse(JSON.stringify(S))}}
+function fioName(){var n=(S.meta.proj||S.meta.name||"JK Sketch Plan").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,60)||"JK Sketch Plan";
+ n=n.replace(/\s*\d{1,2}-\d{1,2}-\d{4}(\s+\d{1,2}:\d{2})?$/,"").trim()||"JK Sketch Plan";return n+" "+fioDate()+".jksp"}
+function fioPack(){return {format:"jksp",app:"JK Sketch Plan",version:1,saved:new Date().toISOString(),id:CURID||null,doc:JSON.parse(JSON.stringify(S))}}
 function fioText(){return JSON.stringify(fioPack())}
 /* recent files: index jksp_recent [{k,name,t}] + data jksp_rf_<k> */
 function fioRecent(){return LS.get("jksp_recent",[])}
@@ -16,16 +16,16 @@ function fioRemember(name,text){try{var L=fioRecent().filter(function(e){return 
   L.slice(FIO.MAXR).forEach(function(e){try{localStorage.removeItem("jksp_rf_"+e.k)}catch(x){}});localStorage.setItem("jksp_recent",JSON.stringify(L.slice(0,FIO.MAXR)))}catch(e){}}
 function fioDone(name,how){FIO.sig=fioSig();FIO.hname=name;toast(how+" "+name)}
 async function fileSave(asNew){autosave();var text=fioText(),blob=new Blob([text],{type:"application/json"});
- if(window.showSaveFilePicker&&!window.Android){try{var h=(!asNew&&FIO.handle)?FIO.handle:await window.showSaveFilePicker({suggestedName:fioName(),types:[{description:APP+" file",accept:{"application/json":[".jksp"]}}]});
+ if(window.showSaveFilePicker&&!window.Android){try{var h=(!asNew&&FIO.handle)?FIO.handle:await window.showSaveFilePicker({suggestedName:fioName(),types:[{description:"JK Sketch Plan file",accept:{"application/json":[".jksp"]}}]});
    if(h.requestPermission){var p=await h.requestPermission({mode:"readwrite"});if(p!=="granted")throw new Error("permission")}
    var w=await h.createWritable();await w.write(blob);await w.close();FIO.handle=h;fioRemember(h.name,text);fioDone(h.name,"Saved");updFileBadge();return h.name}
   catch(e){if(e&&e.name==="AbortError")return null;/* fall back to a download */}}
  var name=fioName();saveFile(name,blob,"application/json");fioRemember(name,text);FIO.sig=fioSig();FIO.hname=name;updFileBadge();return name}
 /* parse + validate a project file; throws a friendly Error, never touches the current drawing */
-function fioParse(text){var o;try{o=JSON.parse(text)}catch(e){throw new Error("This file is not a "+APP+" file (it could not be read).")}
+function fioParse(text){var o;try{o=JSON.parse(text)}catch(e){throw new Error("This file is not a JK Sketch Plan file (it could not be read).")}
  var d=o&&o.format==="jksp"?o.doc:o;if(!d||typeof d!=="object"||Array.isArray(d))throw new Error("This file does not contain a drawing.");
  var ok=Array.isArray(d.L)?d.L.every(function(L){return L&&Array.isArray(L.pts)&&Array.isArray(L.segs)}):(Array.isArray(d.pts)&&Array.isArray(d.segs));
- if(!ok)throw new Error("This file does not contain a "+APP+" drawing.");
+ if(!ok)throw new Error("This file does not contain a JK Sketch Plan drawing.");
  var D=JSON.parse(JSON.stringify(d));D.meta=Object.assign(blank().meta,D.meta||{});D=docify(D);if(!(D.nid>0))D.nid=1;
  var mx=0;D.L.forEach(function(L){LVK.forEach(function(k){(L[k]||[]).forEach(function(x){if(x&&x.id>mx)mx=x.id})})});if(D.nid<=mx)D.nid=mx+1;
  return D}
@@ -35,7 +35,7 @@ function fioLoad(text,name,handle){var D;try{D=fioParse(text)}catch(e){fioError(
  if(!fioConfirm())return false;autosave();S=D;S.furn=S.furn||[];CURID="d"+Date.now().toString(36);UNDO=[];REDO=[];UI.chain=null;UI.chainFree=null;UI.sel=[];
  if(typeof setClean==="function")setClean(false);fitAll();changed();DIRTY=true;autosave();updTitle();FIO.handle=handle||null;fioRemember(name,text);fioDone(name,"Opened");updFileBadge();return true}
 function fioError(msg,name){modal('<div class="mt">Could not open file</div><div class="ms">'+esc(name||"")+'</div><p style="font-size:15px;line-height:1.45">'+esc(msg)+'<br>Your current drawing was not changed.</p><div class="row"><button class="bb ok" id="feOk">OK</button></div>',function(){$("feOk").onclick=closeModal})}
-async function fileOpen(){if(window.showOpenFilePicker&&!window.Android){try{var hs=await window.showOpenFilePicker({multiple:false,types:[{description:APP+" file",accept:{"application/json":[".jksp",".json"]}}]});
+async function fileOpen(){if(window.showOpenFilePicker&&!window.Android){try{var hs=await window.showOpenFilePicker({multiple:false,types:[{description:"JK Sketch Plan file",accept:{"application/json":[".jksp",".json"]}}]});
    var h=hs[0],f=await h.getFile();closeModal();fioLoad(await f.text(),f.name,h);return}catch(e){if(e&&e.name==="AbortError")return}}
  var inp=document.createElement("input");inp.type="file";inp.accept=".jksp,.json,application/json";inp.style.display="none";document.body.appendChild(inp);
  inp.onchange=function(){var f=inp.files&&inp.files[0];inp.remove();if(!f)return;var r=new FileReader();r.onload=function(){closeModal();fioLoad(String(r.result),f.name,null)};r.onerror=function(){fioError("The file could not be read.",f.name)};r.readAsText(f)};inp.click()}
