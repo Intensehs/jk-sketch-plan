@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>JK Sketch Plan</title>
+<title>CTAK BIM Module</title>
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="application-name" content="CTAK BIM Module">
+<meta name="apple-mobile-web-app-title" content="CTAK BIM">
 <meta name="theme-color" content="#16365c">
 <script>/* Theme: apply the saved theme before first paint (no flash) */try{if(JSON.parse(localStorage.getItem("jksp_theme")||"null")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
 <link rel="icon" href="icons/icon-192.png">
@@ -148,7 +150,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #app{grid-template-columns:var(--rail) minmax(0,1fr);grid-template-rows:var(--top) minmax(0,1fr);grid-template-areas:"top top" "tools stage"}
 #top{grid-area:top;min-height:0;height:var(--top);padding:0 6px 0 0;gap:0;background:#fff;color:var(--ink);border-bottom:1px solid var(--line);align-items:stretch}
 #brand{flex:0 1 auto;display:flex;align-items:center;gap:8px;min-width:0;max-width:300px;padding-left:7px;overflow:hidden}
-#bmark{flex:0 0 auto;width:30px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:11.5px;letter-spacing:.5px;display:flex;align-items:center;justify-content:center}
+#bmark{flex:0 0 auto;width:42px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:9.5px;letter-spacing:.2px;display:flex;align-items:center;justify-content:center}
 #btxt{min-width:0;line-height:1.1;display:flex;flex-direction:column}
 #brand b{font-size:12.5px;font-weight:650;display:block;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #brand small{display:none}
@@ -337,7 +339,7 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 </style></head><body>
 <div id="app">
  <div id="top">
-  <div id="brand"><span id="bmark">JK</span><span id="btxt"><b>JK Sketch Plan</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
+  <div id="brand"><span id="bmark">CTAK</span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
   <div id="tabs"></div>
   <div id="tbar">
   <button class="tb" id="bSave" title="Save File · Ctrl+S" data-tip="Save File">__fsave__<span>Save</span></button>
