@@ -1,5 +1,5 @@
 /* ================= JK Sketch Plan - hand drawing house plan ================= */
-var APP="JK Sketch Plan",SUBT="JK Construction - Hand Drawing House Plan",VERSION="1.4";
+var APP="JK Sketch Plan",SUBT="JK Construction - Hand Drawing House Plan",VERSION="2.1";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -603,7 +603,7 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  '<button class="bb'+(S.meta.fillc?' on':'')+'" id="mFill">Corners: '+(S.meta.fillc?'Filled':'Plain')+'<small>wall joins</small></button>'+
  '<button class="bb pri" id="mImp">Import IFC / DXF<small>from Revit</small></button><button class="bb ok" id="mPdf">Export PDF</button><button class="bb ok" id="mDxf">Export DXF<small>AutoCAD</small></button><button class="bb ok" id="mPng">Export PNG<small>image</small></button><button class="bb del" id="mClr">Clear sheet<small>அழி</small></button>'+
  '</div><div class="row"><button class="bb" id="mHelp">Help / உதவி</button><button class="bb" id="mX">Close</button></div>',function(){
- $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();newDrawing();toast("New blank sheet")};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
+ $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();(typeof newDrawingAsk==="function"?newDrawingAsk:newDrawing)()};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
  $("mGrid").onclick=function(){UI.grid=(UI.grid+1)%3;LS.set("jksp_grid",UI.grid);$("mGrid").innerHTML="Grid: "+["Off","Faint","On"][UI.grid]+"<small>கட்டம்</small>";render();updCtx()};
  $("mImp").onclick=importPopup;$("mFill").onclick=function(){fillToggle();this.classList.toggle("on",!!S.meta.fillc);this.innerHTML="Corners: "+(S.meta.fillc?"Filled":"Plain")+"<small>wall joins</small>"};$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
  $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];S.kcs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
@@ -613,8 +613,8 @@ function filesPopup(){autosave();var L=idxList();
  modal('<div class="mt">My drawings</div><div class="ms">Saved automatically on this phone / tablet</div><div class="row"><button class="bb pri" id="fNew">+ New drawing</button></div>'+
   (L.length?L.map(function(e){return '<div class="file"><div><b>'+esc(e.name)+(e.id===CURID?" (open)":"")+'</b><small>'+(e.owner?esc(e.owner)+" · ":"")+sq(e.area||0)+' sq.ft · '+new Date(e.updated).toLocaleString()+'</small></div><button class="bb pri" data-open="'+e.id+'">Open</button><button class="bb" data-ren="'+e.id+'">Rename</button><button class="bb del" data-del="'+e.id+'">×</button></div>'}).join(""):'<p class="ms">No saved drawings yet.</p>')+
   '<div class="row"><button class="bb" id="fX">Close</button></div>',function(box){
-  $("fNew").onclick=function(){closeModal();newDrawing()};$("fX").onclick=closeModal;
-  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){closeModal();openDrawing(b.dataset.open)}});
+  $("fNew").onclick=function(){closeModal();(typeof newDrawingAsk==="function"?newDrawingAsk:newDrawing)()};$("fX").onclick=closeModal;
+  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){var id=b.dataset.open;closeModal();if(typeof unsavedAsk==="function")unsavedAsk(function(){openDrawing(id)});else openDrawing(id)}});
   box.querySelectorAll("[data-ren]").forEach(function(b){b.onclick=function(){var id=b.dataset.ren,L2=idxList(),e=L2.find(function(x){return x.id===id});var n=prompt("Drawing name",e.name);if(!n)return;e.name=n;LS.set("jksp_index",L2);var d=LS.get("jksp_d_"+id,null);if(d){d.meta.name=n;LS.set("jksp_d_"+id,d)}if(id===CURID){S.meta.name=n;updTitle()}filesPopup()}});
   box.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var id=b.dataset.del;if(!confirm("Delete this drawing?"))return;LS.set("jksp_index",idxList().filter(function(x){return x.id!==id}));try{localStorage.removeItem("jksp_d_"+id)}catch(e){}if(id===CURID){CURID=null;DIRTY=true}filesPopup()}})})}
 function detailsPopup(){var m=S.meta;
@@ -693,7 +693,10 @@ function init(){cv=$("cv");g=cv.getContext("2d");S=blank();
  window.addEventListener("resize",resize);if(window.ResizeObserver)new ResizeObserver(resize).observe($("stage"));
  document.addEventListener("visibilitychange",function(){if(document.hidden)autosave()});window.addEventListener("pagehide",autosave);
  resize();homeView();
- var last=LS.get("jksp_last",null);if(last&&last.id&&Date.now()-last.t<30*60*1000&&LS.get("jksp_d_"+last.id,null)){openDrawing(last.id);toast("Continuing: "+S.meta.name)}
+ var last=LS.get("jksp_last",null),crash=(typeof crashGet==="function")?crashGet():null;
+ if(typeof needsRecover==="function"&&needsRecover(crash)){/* feat21 shows Recover unsaved drawing */}
+ else if(last&&last.id&&LS.get("jksp_d_"+last.id,null)){openDrawing(last.id);toast("Continuing: "+S.meta.name)}
+ else if(typeof startDialog==="function")setTimeout(startDialog,80);
  setTool("draw");updButtons();updTitle();render()}
 window.JKS={get S(){return S},set S(v){S=docify(v);changed()},V:V,UI:UI,roomsInfo:roomsInfo,faces:faces,buildSheet:buildSheet,toPDF:toPDF,toDXF:toDXF,setLength:setLength,fi:fi,w2s:w2s,s2w:s2w,onBack:onBack,fitAll:fitAll,newDrawing:newDrawing,openDrawing:openDrawing,autosave:autosave,idxList:idxList,setTool:setTool,importModel:function(m,t,f){IMP={file:f||"test"};return impApply(m,t||"new")},setClean:setClean,stairsAll:stairsAll,addFurn:function(t,x,y){addFurn(t,x,y)},FURN:FURN,open3D:function(m){open3D(m)},close3D:function(){close3D()}};
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});else init();

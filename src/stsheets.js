@@ -11,7 +11,7 @@ function markOf(types,it){for(var i=0;i<types.length;i++)if(types[i].items.index
 /* plan setup on paper: fit level content into box [x,y,w,h]; margin for grid chains */
 function stSetup(d,lv,box,o){o=o||{};var X=[],Y=[];function e(p){X.push(p.x);Y.push(p.y)}
  withLevel(lv,function(){S.pts.forEach(e);S.cols.forEach(function(c){e(c);if(o.ftg){var f=ftgOf(c);e({x:c.x-f.w/2-1,y:c.y-f.l/2-1});e({x:c.x+f.w/2+1,y:c.y+f.l/2+1})}});
-  if(o.beams)S.beams.forEach(function(m){e(m.a);e(m.b)});if(o.elec)(S.elec||[]).forEach(e);if(o.site)(S.cwalls||[]).forEach(function(w){w.pts.forEach(e)})});
+  if(o.beams)S.beams.forEach(function(m){e(m.a);e(m.b)});if(o.elec){(S.elec||[]).concat(S.mech||[],S.plumb||[]).forEach(e);(S.ewires||[]).concat(S.ducts||[],S.plines||[]).forEach(function(m){e(m.a);e(m.b)})}if(o.site)(S.cwalls||[]).forEach(function(w){w.pts.forEach(e)})});
  if(!X.length){X=[0,20];Y=[0,20]}var x0=Math.min.apply(null,X),x1=Math.max.apply(null,X),y0=Math.min.apply(null,Y),y1=Math.max.apply(null,Y),pad=o.pad==null?2:o.pad;x0-=pad;y0-=pad;x1+=pad;y1+=pad;
  var mg=o.mg==null?24:o.mg,aw=box[2]-mg-6,ah=box[3]-mg-6,Wf=x1-x0,Hf=y1-y0,N=chooseScale(Wf,Hf,aw,ah),k=304.8/N;
  d.k=k;d.minX=x0;d.minY=-y1;var cx=box[0]+mg+aw/2,cy=box[1]+mg+ah/2;d.ox=cx-Wf*k/2;d.oy=cy+Hf*k/2;
