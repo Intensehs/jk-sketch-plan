@@ -7,8 +7,11 @@
 <meta name="apple-mobile-web-app-title" content="CTAK BIM">
 <meta name="theme-color" content="#16365c">
 <script>/* Theme: apply the saved theme before first paint (no flash) */try{if(JSON.parse(localStorage.getItem("jksp_theme")||"null")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/icon-48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -150,7 +153,8 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #app{grid-template-columns:var(--rail) minmax(0,1fr);grid-template-rows:var(--top) minmax(0,1fr);grid-template-areas:"top top" "tools stage"}
 #top{grid-area:top;min-height:0;height:var(--top);padding:0 6px 0 0;gap:0;background:#fff;color:var(--ink);border-bottom:1px solid var(--line);align-items:stretch}
 #brand{flex:0 1 auto;display:flex;align-items:center;gap:8px;min-width:0;max-width:300px;padding-left:7px;overflow:hidden}
-#bmark{flex:0 0 auto;width:42px;height:24px;border-radius:6px;background:var(--brand);color:#fff;font-weight:800;font-size:9.5px;letter-spacing:.2px;display:flex;align-items:center;justify-content:center}
+#bmark{flex:0 0 auto;width:28px;height:28px;border-radius:6px;background:#e4e4e4;padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#bmark img{width:100%;height:100%;object-fit:cover;display:block}
 #btxt{min-width:0;line-height:1.1;display:flex;flex-direction:column}
 #brand b{font-size:12.5px;font-weight:650;display:block;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #brand small{display:none}
@@ -295,7 +299,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 [data-theme=dark]{--ink:#e8e2d6;--ink2:#bdb3a2;--ink3:#8c8273;--line:#3a352f;--bg:#1d1b19;--acc:#c9a45c;--accs:#3a3226;--brand:#7a4e2d;--ok:#7fa36a;--bad:#d0705a;color-scheme:dark}
 html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)}
 [data-theme=dark] #top,[data-theme=dark] #v3top{background:#22201e;color:var(--ink);border-bottom-color:#3a352f;box-shadow:inset 0 -1px 0 rgba(201,164,92,.18)}
-[data-theme=dark] #bmark{background:#7a4e2d;color:#f3e6c8;box-shadow:inset 0 0 0 1px #c9a45c}
+[data-theme=dark] #bmark{background:#e4e4e4;box-shadow:none}
 [data-theme=dark] #brand b{color:#efe7d6;font-family:Georgia,"Times New Roman",serif;letter-spacing:.3px}
 [data-theme=dark] .tab{color:var(--ink2)}[data-theme=dark] .tab:hover{color:var(--ink)}[data-theme=dark] .tab.on{color:#d9b46a;border-bottom-color:#c9a45c}
 [data-theme=dark] .tb,[data-theme=dark] #top .tb,[data-theme=dark] #fxBar .tb{color:var(--ink2)}
@@ -355,7 +359,7 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 </style></head><body>
 <div id="app">
  <div id="top">
-  <div id="brand"><span id="bmark">CTAK</span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
+  <div id="brand"><span id="bmark"><img src="icons/header-logo.png" alt=""></span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
   <div id="tabs"></div>
   <div id="tbar">
   <button class="tb" id="bNew" title="New drawing · Ctrl+N" data-tip="New"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg><span>New</span></button>
@@ -1580,7 +1584,7 @@ function dataURLtoBlob(u){var i=u.indexOf(","),head=u.slice(5,i),b64=/;base64/.t
 function bin(s){var u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;return u}
 
 /* ================= CTAK BIM Module - hand drawing house plan ================= */
-var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.1";
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.2";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
