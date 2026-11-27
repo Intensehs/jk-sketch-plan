@@ -33,7 +33,7 @@ function frame(d,title,subtitle){
  d.rect(6,6,408,285,{w:0.6});d.rect(10,10,400,277,{w:0.35});
  d.rect(10,10,400,9,{w:0.25,fill:"#16365c",c:"#16365c"});
  d.text(14,16.3,APP.toUpperCase(),4,{bold:true,c:"#ffffff"});
- d.text(406,16.3,"CTAK / JK Construction",3,{a:"end",c:"#ffffff"});
+ d.text(406,16.3,"CTAK Construction",3,{a:"end",c:"#ffffff"});
  d.text(150,28,title,6.5,{a:"middle",bold:true});
  if(subtitle)d.text(150,34.5,subtitle,3,{a:"middle",c:"#333333"});
  d.line(10,281,410,281,{w:0.25});
