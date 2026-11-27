@@ -11,6 +11,7 @@ function markOf(types,it){for(var i=0;i<types.length;i++)if(types[i].items.index
 /* plan setup on paper: fit level content into box [x,y,w,h]; margin for grid chains */
 function stSetup(d,lv,box,o){o=o||{};var X=[],Y=[];function e(p){X.push(p.x);Y.push(p.y)}
  withLevel(lv,function(){S.pts.forEach(e);S.cols.forEach(function(c){e(c);if(o.ftg){var f=ftgOf(c);e({x:c.x-f.w/2-1,y:c.y-f.l/2-1});e({x:c.x+f.w/2+1,y:c.y+f.l/2+1})}});
+  if(typeof colsFromBelow==="function")colsFromBelow(lv,{all:true}).forEach(function(gh){e(gh.c)});
   if(o.beams)S.beams.forEach(function(m){e(m.a);e(m.b)});if(o.elec){(S.elec||[]).concat(S.mech||[],S.plumb||[]).forEach(e);(S.ewires||[]).concat(S.ducts||[],S.plines||[]).forEach(function(m){e(m.a);e(m.b)})}if(o.site)(S.cwalls||[]).forEach(function(w){w.pts.forEach(e)})});
  if(!X.length){X=[0,20];Y=[0,20]}var x0=Math.min.apply(null,X),x1=Math.max.apply(null,X),y0=Math.min.apply(null,Y),y1=Math.max.apply(null,Y),pad=o.pad==null?2:o.pad;x0-=pad;y0-=pad;x1+=pad;y1+=pad;
  var mg=o.mg==null?24:o.mg,aw=box[2]-mg-6,ah=box[3]-mg-6,Wf=x1-x0,Hf=y1-y0,N=chooseScale(Wf,Hf,aw,ah),k=304.8/N;
@@ -23,6 +24,8 @@ function stFrame(title){var d=new Dwg();frameA(d);return d}
 function stDone(d,sh,lab,RI,N,title){tblock(d,{title:title||sh.title,dno:sh.no,sheet:lab,scale:N?scaleTxt(N):"As shown",RI:RI});sh.d=d;sh.N=N}
 function stNote(d,x,y,w,head,lines){return noteBox(d,x,y,w,head,lines,1.9)}
 function colShape(d,R,c,o){o=o||{};var P=colPoly(c).map(function(p){return R(p.x,p.y)});d.poly(P,{w:0.3,c:"#000000",fill:o.fill||"#1f2937",L:"COLUMNS"})}
+function colShapeGhost(d,R,c){d.poly(colPoly(c).map(function(p){return R(p.x,p.y)}),{w:0.22,c:"#1d4ed8",dash:[1.2,0.8],L:"COLUMNS"})}
+function stGhostCols(d,R,lv){if(typeof colsFromBelow!=="function")return;colsFromBelow(lv,{all:true}).forEach(function(gh){colShapeGhost(d,R,gh.c)})}
 var PX=16,PY=16,PW=234,PH=265,TX=254,TW=78;/* plan box and table strip */
 /* ---------- 1. Column & grid layout ---------- */
 function shColGrid(sh,lab,RI){var d=stFrame(),cols=stCols(),G=autoGrid(),T=colTypes(cols),U=stSetup(d,0,[PX,PY,PW,PH]),R=U.R;stWalls(d,R,0);sheetGrid(d,R,G,{both:true});
@@ -98,7 +101,7 @@ function shPlinth(sh,lab,RI){var d=stFrame(),pb=pbCfg(),G=autoGrid(),U=stSetup(d
 function shSlabBeam(sh,lab,RI){var lv=sh.slv,d=stFrame(),bm=S.L[lv].beams,BT=beamTypes(bm),G=withLevel(lv,function(){return autoGrid()}),U=stSetup(d,lv,[PX,PY,PW,180],{beams:true,mg:22}),R=U.R;stWalls(d,R,lv,{fill:"#f6f7f9",ops:false});sheetGrid(d,R,G);
  bm.forEach(function(m){var P=beamPoly(m).map(function(p){return R(p.x,p.y)});d.poly(P,{w:0.25,c:m.cb?"#7c3aed":"#9a3412",dash:m.cb?[0.8,0.6]:[1.6,0.8],L:"BEAMS"});var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),c=R((m.a.x+m.b.x)/2,(m.a.y+m.b.y)/2);
   d.text(c[0],c[1]-1.4,markOf(BT,m)+(m.cb?" (CB)":"")+" "+fi(L),1.7,{a:"middle",rot:ang2page(m.b.x-m.a.x,m.b.y-m.a.y),c:m.cb?"#7c3aed":"#9a3412",L:"BEAMS"});stLog(sh.key,"beam-len",L,fi(L))});
- withLevel(lv,function(){S.cols.forEach(function(c){colShape(d,R,c)})});
+ withLevel(lv,function(){stGhostCols(d,R,lv);S.cols.forEach(function(c){colShape(d,R,c)})});
  BT.slice(0,3).forEach(function(t,i){var m=t.items[0];beamSection(d,22+i*62,214,m.w,m.d,beamRB(m),Math.min(0.1,40/mmI(m.d)),t.mark+(m.cb?" CONCEALED ":" ")+m.w+'"x'+m.d+'"')});
  table(d,210,200,[["Mark",11],["Type",18],["Size (in)",15],["Top",16],["Bottom",16],["Stirrups",22],["Nos",8],["Length",18]],BT.map(function(t){var m=t.items[0],r=beamRB(m),L=t.items.reduce(function(a,b){return a+Math.hypot(b.b.x-b.a.x,b.b.y-b.a.y)},0);return [t.mark,m.cb?"Concealed":"Normal",m.w+" x "+m.d,r.top+"-"+r.td,r.bot+"-"+r.bd,r.st+" @ "+r.sp,t.items.length,fi(L)]}),{title:"BEAM SCHEDULE"});
  stNote(d,TX,PY+6,TW,"LEGEND",["Brown dashed: normal (drop) beam.","Purple dotted (CB): concealed beam within slab depth.","Sizes width x depth in inches; bars in mm.","Typical guidance - check with structural engineer."]);stDone(d,sh,lab,RI,U.N,S.L[lv].name+" Slab Beam Layout")}
@@ -120,7 +123,7 @@ function shSlabRB(sh,lab,RI){var lv=sh.slv,d=stFrame(),U=stSetup(d,lv,[PX,PY,PW,
 /* ---------- 9. Wall marking ---------- */
 function shWallMark(sh,lab,RI){var lv=sh.slv||0,d=stFrame(),U=stSetup(d,lv,[PX,PY,PW,PH]),R=U.R,G=autoGrid(),acc={};
  function sty(s){var t=wallIn(s);return t>=8.5?{fill:"#1f2937",c:"#000000",w:0.25}:t>=5.5?{fill:"#6b7280",c:"#000000",w:0.2}:{fill:"#ffffff",c:"#000000",w:0.25}}
- stWalls(d,R,lv,{style:sty});sheetGrid(d,R,G,{dims:false});S.L[lv].cols.forEach(function(c){colShape(d,R,c,{fill:"#dc2626"})});
+ stWalls(d,R,lv,{style:sty});sheetGrid(d,R,G,{dims:false});stGhostCols(d,R,lv);S.L[lv].cols.forEach(function(c){colShape(d,R,c,{fill:"#dc2626"})});
  S.L[lv].segs.forEach(function(s){withLevel(lv,function(){var a=pt(s.a),b=pt(s.b);if(!a||!b)return;var L=Math.hypot(b.x-a.x,b.y-a.y),t=wallIn(s),k=t>=8.5?"9":t>=5.5?"6":"4.5";acc[k]=(acc[k]||0)+L;
   if(L*U.k>14){var nx=-(b.y-a.y)/L,ny=(b.x-a.x)/L,o=wallT(s)/2+0.9,c=R((a.x+b.x)/2+nx*o,(a.y+b.y)/2+ny*o);d.text(c[0],c[1],fi(L),1.6,{a:"middle",v:"mid",rot:ang2page(b.x-a.x,b.y-a.y),L:"DIMS"});stLog(sh.key,"wall-len",L,fi(L))}})});
  withLevel(lv,function(){S.ops.forEach(function(o){var q=opWorld(o);if(!q)return;var c=R(q.c.x,q.c.y);d.text(c[0],c[1]-1.5,(o.mark||(opKind?opKind(o):"OP"))+" "+fi(o.w),1.5,{a:"middle",c:"#1d4ed8",L:"ANNO"})})});

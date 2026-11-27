@@ -1,6 +1,6 @@
 /* ================= v1.3 VIEWS: elevations N/S/E/W, sections, sheet set (PDF), multi-level 3D ================= */
 var PLH=1.5,MARKG=false;
-function levelPack(i){return withLevel(i,function(){var L=S.L[i],RI=roomsInfo(),dbl=S.meta.dbl,P={i:i,L:L,zb:lvElev(i),H:L.h,sl:(L.slab||5)/12,RI:RI,walls:[],stairs:stairsAll(RI),beams:S.beams.slice(),rails:S.rails.slice(),cols:S.cols.slice()};
+function levelPack(i){return withLevel(i,function(){var L=S.L[i],RI=roomsInfo(),dbl=S.meta.dbl,P={i:i,L:L,zb:lvElev(i),H:L.h,sl:(L.slab||5)/12,RI:RI,walls:[],stairs:stairsAll(RI),beams:S.beams.slice(),rails:S.rails.slice(),cols:(typeof colsOnFloor==="function"?colsOnFloor(i,{all:true}):S.cols.slice())};
  function ins(x,y){return RI.faces.some(function(f){return inPoly(x,y,f.pts)})}
  var opsBy={};S.ops.forEach(function(o){var G=opWorld(o);if(G)(opsBy[o.seg]=opsBy[o.seg]||[]).push({o:o,G:G})});
  S.segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),Ln=segLen(s);if(Ln<0.05)return;var u={x:(b.x-a.x)/Ln,y:(b.y-a.y)/Ln},n={x:-u.y,y:u.x},m={x:(a.x+b.x)/2,y:(a.y+b.y)/2},i1=ins(m.x+n.x*0.35,m.y+n.y*0.35),i2=ins(m.x-n.x*0.35,m.y-n.y*0.35);
@@ -158,13 +158,14 @@ function bbox3(){var mx=Infinity,mz=Infinity,Mx=-Infinity,Mz=-Infinity;S.L.forEa
  var ti=topLevel(),RG=V3.roof?roofGeom():null,H=lvElev(ti)+S.L[ti].h+(V3.roof?(RG?RG.zr-RG.z0:3.25):0);return {cx:(mx+Mx)/2,cz:(mz+Mz)/2,cy:(H-1.5)/2,sx:Mx-mx,sz:Mz-mz,sy:H+1.5,min:new THREE.Vector3(mx,-1.5,mz),max:new THREE.Vector3(Mx,H,Mz)}}
 /* ---------- plan sheet extras (columns, beams, grids, dims, notes, spots, detail lines, railings, section marks) ---------- */
 function planTitle(O){if(S.cur===0&&S.meta.ttl&&(S.L.length===1||S.meta.ttl!=="Ground Floor Plan"))return S.meta.ttl;return O.title||(curLv().name+" Plan")}
-function planExt(ext){S.cols.forEach(function(c){colPoly(c).forEach(ext)});S.beams.concat(S.rails,S.dlines,S.dims).forEach(function(m){ext(m.a);ext(m.b)});
+function planExt(ext){S.cols.forEach(function(c){colPoly(c).forEach(ext)});if(typeof colsFromBelow==="function")colsFromBelow(S.cur).forEach(function(gh){colPoly(gh.c).forEach(ext)});S.beams.concat(S.rails,S.dlines,S.dims).forEach(function(m){ext(m.a);ext(m.b)});
  if(visOn("grids"))S.grids.forEach(function(m){ext(m.a);ext(m.b)});S.notes.forEach(function(n){var b=noteBox(n);ext({x:b[0],y:b[1]});ext({x:b[2],y:b[3]})});S.spots.forEach(ext);S.secs.forEach(function(m){ext(m.a);ext(m.b)})}
 function planExtras(d,R,k){function P(p){return R(p.x,p.y)}function ln(a,b,o){var A=P(a),B=P(b);d.line(A[0],A[1],B[0],B[1],o)}
  function circ(c,r,o){var pts=[];for(var i=0;i<=32;i++){var a=i/32*Math.PI*2;pts.push([c[0]+r*Math.cos(a),c[1]+r*Math.sin(a)])}d.poly(pts,Object.assign({closed:false},o))}
  if(visOn("beams"))S.beams.forEach(function(m){d.poly(beamPoly(m).map(P),{w:0.18,c:"#5a3a1a",dash:[1.6,0.8],L:"BEAMS"});var c=P({x:(m.a.x+m.b.x)/2,y:(m.a.y+m.b.y)/2}),L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);if(L*k>18)d.text(c[0],c[1]-m.w/24*k-0.8,"B "+m.w+"x"+m.d,1.5,{a:"middle",c:"#5a3a1a",L:"BEAMS",rot:ang2page(m.b.x-m.a.x,m.b.y-m.a.y)})});
  if(visOn("rails"))S.rails.forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)||1,n={x:-(m.b.y-m.a.y)/L*0.12,y:(m.b.x-m.a.x)/L*0.12};ln({x:m.a.x+n.x,y:m.a.y+n.y},{x:m.b.x+n.x,y:m.b.y+n.y},{w:0.2,c:"#222222",L:"RAILINGS"});ln({x:m.a.x-n.x,y:m.a.y-n.y},{x:m.b.x-n.x,y:m.b.y-n.y},{w:0.2,c:"#222222",L:"RAILINGS"})});
- if(visOn("cols"))S.cols.forEach(function(c,i){d.poly(colPoly(c).map(P),{w:0.3,c:"#000000",fill:"#1a1a1a",solid:true,L:"COLUMNS"})});
+ if(visOn("cols")){if(typeof colsFromBelow==="function")colsFromBelow(S.cur).forEach(function(gh){d.poly(colPoly(gh.c).map(P),{w:0.22,c:"#1d4ed8",dash:[1.2,0.8],L:"COLUMNS"})});
+  S.cols.forEach(function(c,i){d.poly(colPoly(c).map(P),{w:0.3,c:"#000000",fill:"#1a1a1a",solid:true,L:"COLUMNS"})})}
  if(visOn("grids"))S.grids.forEach(function(m){var A=P(m.a),B=P(m.b),L=Math.hypot(B[0]-A[0],B[1]-A[1])||1,ux=(B[0]-A[0])/L,uy=(B[1]-A[1])/L,r=3.4;d.line(A[0],A[1],B[0],B[1],{w:0.18,c:"#555555",dash:[7,1.2,1.2,1.2],L:"GRIDS"});
   [[A[0]-ux*r,A[1]-uy*r],[B[0]+ux*r,B[1]+uy*r]].forEach(function(c){circ(c,r,{w:0.25,c:"#222222",L:"GRIDS"});d.text(c[0],c[1]+1.1,ascii(m.name),3.1,{a:"middle",bold:true,L:"GRIDS"})})});
  if(visOn("dims"))S.dims.forEach(function(m){var G=dimGeom(m),A=P(G.A),B=P(G.B),a=P(m.a),b=P(m.b),o={w:0.18,c:"#1a1a1a",L:"DIMS"};d.line(A[0],A[1],B[0],B[1],o);
