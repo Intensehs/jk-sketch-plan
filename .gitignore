@@ -1,0 +1,5 @@
+# Android signing material — never commit
+*.keystore
+*.jks
+*.pk8
+*.p12
