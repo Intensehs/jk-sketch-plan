@@ -59,7 +59,7 @@ function bindRecentRows(box){box.querySelectorAll("[data-rf]").forEach(function(
   if(!t){toast("That recovery copy is no longer stored");return}closeModal();if(typeof fioLoad==="function")fioLoad(t,"Recovered.jksp",null);else{try{var o=JSON.parse(t);loadRecovered({doc:o.doc||o,name:"Recovered",t:Date.now()})}catch(e){toast("Could not open")}}}})}
 
 function startDialog(){if(Date.now()-(startDialog._t||0)<400)return;startDialog._t=Date.now();var L=idxList(),crash=crashGet();
- modal('<div class="mt">JK Sketch Plan</div><div class="ms">Start a new drawing, open a saved project, or pick up a recent / recovered file.</div>'+
+ modal('<div class="mt">'+(typeof APP==="string"?esc(APP):"CTAK BIM Module")+'</div><div class="ms">Start a new drawing, open a saved project, or pick up a recent / recovered file.</div>'+
   '<div class="grid2"><button class="bb ok" id="stNew">New<small>blank drawing</small></button><button class="bb pri" id="stProj">Open project<small>saved in this browser</small></button>'+
   '<button class="bb" id="stFile">Open file<small>.jksp / .json</small></button>'+(crash&&crash.doc?'<button class="bb on" id="stRec">Recover unsaved<small>'+esc(fmtWhen(crash.t))+'</small></button>':'')+'</div>'+
   (L.length?'<div class="ms" style="margin-top:10px"><b>Saved projects</b></div>'+L.slice(0,8).map(function(e){return '<div class="file"><div><b>'+esc(e.name)+(e.id===CURID?" (open)":"")+'</b><small>'+sq(e.area||0)+' sq.ft · '+esc(fmtWhen(e.updated))+'</small></div><button class="bb pri" data-open="'+e.id+'">Open</button></div>'}).join(""):"")+
