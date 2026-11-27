@@ -239,6 +239,22 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #app.focus #fxBar{display:flex}
 /* modals refined */
 .mbox{border-radius:14px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 24px 48px rgba(15,23,42,.22);max-width:520px}
+.mbox.wide{max-width:min(920px,96vw)}
+.asind{flex:0 0 auto;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:#1c7c43;color:#fff;cursor:pointer;white-space:nowrap;align-self:center}
+.asind.saving{background:#b45309}
+.asind.unsaved{background:#c2410c}
+.asind.off{background:#64748b}
+.qwrap{max-height:55vh;overflow:auto;margin:8px 0;border:1px solid var(--line,#d5deea);border-radius:10px}
+.qtbl{width:100%;border-collapse:collapse;font-size:13px}
+.qtbl th,.qtbl td{border-bottom:1px solid var(--line,#e2e8f0);padding:5px 8px;text-align:left}
+.qtbl th{background:#16365c;color:#fff;position:sticky;top:0}
+.qtbl .qh td{background:#e8edf3;font-weight:700}
+.qtbl .qn{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.qtbl input{width:100%;font-size:13px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px}
+.qtbl .qdel{min-height:32px;padding:0 8px;font-size:14px}
+[data-theme=dark] .qtbl th{background:#3a3226}
+[data-theme=dark] .qtbl .qh td{background:#2a2622}
+[data-theme=dark] .asind{color:#fff}
 .mt{font-size:16px;font-weight:700}
 .ms{font-size:12.5px;color:var(--ink2)}
 .bb{border-radius:9px;min-height:46px;font-size:14.5px;font-weight:600;background:#f1f5f9;color:var(--ink)}
@@ -342,8 +358,10 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
   <div id="brand"><span id="bmark">CTAK</span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
   <div id="tabs"></div>
   <div id="tbar">
+  <button class="tb" id="bNew" title="New drawing · Ctrl+N" data-tip="New"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/></svg><span>New</span></button>
   <button class="tb" id="bSave" title="Save File · Ctrl+S" data-tip="Save File"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h8V3"/><rect x="8" y="13" width="8" height="6" rx="1"/></svg><span>Save</span></button>
   <button class="tb" id="bOpen" title="Open File / Recent files · Ctrl+O" data-tip="Open File"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z"/><path d="M3 10h18l-2 9H5z"/></svg><span>Open</span></button>
+  <span id="asInd" class="asind" title="Autosave — tap to turn on/off">Saved</span>
   <span class="tsep"></span>
   <button class="tb" id="bLv" title="Levels" data-tip="Levels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/></svg><span>Levels</span></button>
   <span class="tsep"></span>
@@ -1562,7 +1580,7 @@ function dataURLtoBlob(u){var i=u.indexOf(","),head=u.slice(5,i),b64=/;base64/.t
 function bin(s){var u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;return u}
 
 /* ================= JK Sketch Plan - hand drawing house plan ================= */
-var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="1.4";
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -2166,7 +2184,7 @@ function menuPopup(){modal('<div class="mt">Menu</div><div class="ms">'+esc(S.me
  '<button class="bb'+(S.meta.fillc?' on':'')+'" id="mFill">Corners: '+(S.meta.fillc?'Filled':'Plain')+'<small>wall joins</small></button>'+
  '<button class="bb pri" id="mImp">Import IFC / DXF<small>from Revit</small></button><button class="bb ok" id="mPdf">Export PDF</button><button class="bb ok" id="mDxf">Export DXF<small>AutoCAD</small></button><button class="bb ok" id="mPng">Export PNG<small>image</small></button><button class="bb del" id="mClr">Clear sheet<small>அழி</small></button>'+
  '</div><div class="row"><button class="bb" id="mHelp">Help / உதவி</button><button class="bb" id="mX">Close</button></div>',function(){
- $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();newDrawing();toast("New blank sheet")};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
+ $("mFiles").onclick=filesPopup;$("mFSave").onclick=function(){closeModal();fileSave(false)};$("mFOpen").onclick=filePopup;$("mNew").onclick=function(){closeModal();(typeof newDrawingAsk==="function"?newDrawingAsk:newDrawing)()};$("mDet").onclick=detailsPopup;$("mLv").onclick=levelsPopup;$("mVG").onclick=vgPopup;
  $("mGrid").onclick=function(){UI.grid=(UI.grid+1)%3;LS.set("jksp_grid",UI.grid);$("mGrid").innerHTML="Grid: "+["Off","Faint","On"][UI.grid]+"<small>கட்டம்</small>";render();updCtx()};
  $("mImp").onclick=importPopup;$("mFill").onclick=function(){fillToggle();this.classList.toggle("on",!!S.meta.fillc);this.innerHTML="Corners: "+(S.meta.fillc?"Filled":"Plain")+"<small>wall joins</small>"};$("mPdf").onclick=function(){closeModal();exportPDF()};$("mDxf").onclick=function(){closeModal();exportDXF()};$("mPng").onclick=function(){closeModal();exportPNG()};
  $("mClr").onclick=function(){if(!S.segs.length&&!S.labels.length){closeModal();return}if(confirm("Clear the whole sheet? (Undo can bring it back)")){snapshot();S.pts=[];S.segs=[];S.labels=[];S.ops=[];S.furn=[];S.cols=[];S.beams=[];S.dims=[];S.notes=[];S.spots=[];S.dlines=[];S.rails=[];S.stairs=[];S.kcs=[];UI.chain=null;UI.chainFree=null;closeModal();changed()}};
@@ -2176,8 +2194,8 @@ function filesPopup(){autosave();var L=idxList();
  modal('<div class="mt">My drawings</div><div class="ms">Saved automatically on this phone / tablet</div><div class="row"><button class="bb pri" id="fNew">+ New drawing</button></div>'+
   (L.length?L.map(function(e){return '<div class="file"><div><b>'+esc(e.name)+(e.id===CURID?" (open)":"")+'</b><small>'+(e.owner?esc(e.owner)+" · ":"")+sq(e.area||0)+' sq.ft · '+new Date(e.updated).toLocaleString()+'</small></div><button class="bb pri" data-open="'+e.id+'">Open</button><button class="bb" data-ren="'+e.id+'">Rename</button><button class="bb del" data-del="'+e.id+'">×</button></div>'}).join(""):'<p class="ms">No saved drawings yet.</p>')+
   '<div class="row"><button class="bb" id="fX">Close</button></div>',function(box){
-  $("fNew").onclick=function(){closeModal();newDrawing()};$("fX").onclick=closeModal;
-  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){closeModal();openDrawing(b.dataset.open)}});
+  $("fNew").onclick=function(){closeModal();(typeof newDrawingAsk==="function"?newDrawingAsk:newDrawing)()};$("fX").onclick=closeModal;
+  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){var id=b.dataset.open;closeModal();if(typeof unsavedAsk==="function")unsavedAsk(function(){openDrawing(id)});else openDrawing(id)}});
   box.querySelectorAll("[data-ren]").forEach(function(b){b.onclick=function(){var id=b.dataset.ren,L2=idxList(),e=L2.find(function(x){return x.id===id});var n=prompt("Drawing name",e.name);if(!n)return;e.name=n;LS.set("jksp_index",L2);var d=LS.get("jksp_d_"+id,null);if(d){d.meta.name=n;LS.set("jksp_d_"+id,d)}if(id===CURID){S.meta.name=n;updTitle()}filesPopup()}});
   box.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){var id=b.dataset.del;if(!confirm("Delete this drawing?"))return;LS.set("jksp_index",idxList().filter(function(x){return x.id!==id}));try{localStorage.removeItem("jksp_d_"+id)}catch(e){}if(id===CURID){CURID=null;DIRTY=true}filesPopup()}})})}
 function detailsPopup(){var m=S.meta;
@@ -2256,10 +2274,13 @@ function init(){cv=$("cv");g=cv.getContext("2d");S=blank();
  window.addEventListener("resize",resize);if(window.ResizeObserver)new ResizeObserver(resize).observe($("stage"));
  document.addEventListener("visibilitychange",function(){if(document.hidden)autosave()});window.addEventListener("pagehide",autosave);
  resize();homeView();
- var last=LS.get("jksp_last",null);if(last&&last.id&&Date.now()-last.t<30*60*1000&&LS.get("jksp_d_"+last.id,null)){openDrawing(last.id);toast("Continuing: "+S.meta.name)}
+ var last=LS.get("jksp_last",null),crash=(typeof crashGet==="function")?crashGet():null;
+ if(typeof needsRecover==="function"&&needsRecover(crash)){/* feat21 shows Recover unsaved drawing */}
+ else if(last&&last.id&&LS.get("jksp_d_"+last.id,null)){openDrawing(last.id);toast("Continuing: "+S.meta.name)}
+ else if(typeof startDialog==="function")setTimeout(startDialog,80);
  setTool("draw");updButtons();updTitle();render()}
 window.JKS={get S(){return S},set S(v){S=docify(v);changed()},V:V,UI:UI,roomsInfo:roomsInfo,faces:faces,buildSheet:buildSheet,toPDF:toPDF,toDXF:toDXF,setLength:setLength,fi:fi,w2s:w2s,s2w:s2w,onBack:onBack,fitAll:fitAll,newDrawing:newDrawing,openDrawing:openDrawing,autosave:autosave,idxList:idxList,setTool:setTool,importModel:function(m,t,f){IMP={file:f||"test"};return impApply(m,t||"new")},setClean:setClean,stairsAll:stairsAll,addFurn:function(t,x,y){addFurn(t,x,y)},FURN:FURN,open3D:function(m){open3D(m)},close3D:function(){close3D()}};
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){init()});else init();
 
 /* ================= v1.2 drawing sheets: A3 landscape, title block on the right (like a Revit / AutoCAD sheet) =================
    Sheet 1: Ground floor plan - thick walls, door swings, windows, rooms with clear sizes, furniture, stairs, dimensions.
@@ -3049,17 +3070,21 @@ function segDir(s,from){var a=pt(from),o=pt(s.a===from?s.b:s.a),L=Math.hypot(o.x
 function gridCols(){var X=gridXs();if(!X.length){toast("No grid intersections - add grids first (Annotate → Grid)");return}snapshot();var n=0;X.forEach(function(p){if(addCol(p.x,p.y))n++});changed();toast(n+" columns at grid intersections")}
 /* ---------- beams ---------- */
 /* Stage: Structure - Beam tool */
-function addBeam(a,b){var z=UI.beamSz||[9,18];var bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:z[0],d:z[1]};S.beams.push(bm);return bm}
+function wallThAlong(a,b){if(!a||!b||!S.segs||!S.segs.length)return 0;var best=0,bd=0.55;S.segs.forEach(function(s){var A=pt(s.a),B=pt(s.b);if(!A||!B)return;var d=(d2seg(a,A,B)+d2seg(b,A,B))/2;if(d<bd){bd=d;best=wallIn(s)}});return best}
+function addBeam(a,b){var z=UI.beamSz||[9,18],wt=wallThAlong(a,b),man=!!UI.beamMan,w=man?z[0]:(wt||z[0]),bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:w,d:z[1]};if(man)bm.wov=1;S.beams.push(bm);return bm}
 function autoBeams(){snapshot();var n=0,done={};S.segs.forEach(function(s){var r=wallRun(s),k=r.ids.slice().sort().join(",");if(done[k])return;done[k]=1;var a=pt(r.a),b=pt(r.b);
-  if(S.beams.some(function(m){return (Math.hypot(m.a.x-a.x,m.a.y-a.y)<0.1&&Math.hypot(m.b.x-b.x,m.b.y-b.y)<0.1)||(Math.hypot(m.a.x-b.x,m.a.y-b.y)<0.1&&Math.hypot(m.b.x-a.x,m.b.y-a.y)<0.1)}))return;var bm=addBeam(a,b);bm.w=Math.max(bm.w,wallIn(s));n++});
- changed();toast(n+" beams placed over the walls (lintel/roof beams)")}
+  if(S.beams.some(function(m){return (Math.hypot(m.a.x-a.x,m.a.y-a.y)<0.1&&Math.hypot(m.b.x-b.x,m.b.y-b.y)<0.1)||(Math.hypot(m.a.x-b.x,m.a.y-b.y)<0.1&&Math.hypot(m.b.x-a.x,m.b.y-a.y)<0.1)}))return;var bm=addBeam(a,b);if(!bm.wov)bm.w=wallIn(s);n++});
+ changed();toast(n+" beams placed over the walls (width matches wall)")}
+function syncBeamsOnWall(s){if(!s||!S.beams)return;var a=pt(s.a),b=pt(s.b),th=wallIn(s);S.beams.forEach(function(m){if(m.wov)return;if(d2seg(m.a,a,b)<0.45&&d2seg(m.b,a,b)<0.45)m.w=th})}
 function beamPoly(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)||1,nx=-(m.b.y-m.a.y)/L*m.w/24,ny=(m.b.x-m.a.x)/L*m.w/24;return [{x:m.a.x+nx,y:m.a.y+ny},{x:m.b.x+nx,y:m.b.y+ny},{x:m.b.x-nx,y:m.b.y-ny},{x:m.a.x-nx,y:m.a.y-ny}]}
 /* ---------- roof (top level): flat slab + parapet, gable, hip ---------- */
-function roofCfg(){return S.meta.roof||{type:"flat",par:3,pitch:25,ov:1.5,ridge:"auto"}}
+function roofCfg(){var r=S.meta.roof||{};return {type:r.type||"flat",par:r.par!=null?+r.par:3,pitch:r.pitch!=null?+r.pitch:25,ov:r.ov!=null?+r.ov:1.5,ridge:r.ridge||"auto",ovN:r.ovN,ovS:r.ovS,ovE:r.ovE,ovW:r.ovW}}
+function roofOvs(){var rc=roofCfg(),o=+rc.ov||0;return {n:rc.ovN!=null&&rc.ovN!==""?+rc.ovN:o,s:rc.ovS!=null&&rc.ovS!==""?+rc.ovS:o,e:rc.ovE!=null&&rc.ovE!==""?+rc.ovE:o,w:rc.ovW!=null&&rc.ovW!==""?+rc.ovW:o}}
+function roofHasOv(){var o=roofOvs();return o.n>0.01||o.s>0.01||o.e>0.01||o.w>0.01}
 /* triangles in world feet (x, y plan, z up) for gable / hip roofs over the top level; null for flat */
 function roofGeom(){var rc=roofCfg();if(rc.type==="flat")return null;var ti=topLevel(),z0=lvElev(ti)+S.L[ti].h;
  var bx=withLevel(ti,function(){var x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;S.segs.forEach(function(s){var P=S.meta.dbl?wallPoly(s):[pt(s.a),pt(s.b)];(P||[]).forEach(function(p){x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)})});return [x0,y0,x1,y1]});
- if(!isFinite(bx[0]))return null;var ov=+rc.ov||0,tn=Math.tan((+rc.pitch||25)*Math.PI/180),X0=bx[0]-ov,Y0=bx[1]-ov,X1=bx[2]+ov,Y1=bx[3]+ov;
+ if(!isFinite(bx[0]))return null;var o=roofOvs(),ov=(o.n+o.s+o.e+o.w)/4,tn=Math.tan((+rc.pitch||25)*Math.PI/180),X0=bx[0]-o.w,Y0=bx[1]-o.n,X1=bx[2]+o.e,Y1=bx[3]+o.s;
  var alongX=rc.ridge==="x"?true:rc.ridge==="y"?false:(X1-X0)>=(Y1-Y0);
  function V(a,b,z){return alongX?{x:a,y:b,z:z}:{x:b,y:a,z:z}}
  var A0=alongX?X0:Y0,A1=alongX?X1:Y1,B0=alongX?Y0:X0,B1=alongX?Y1:X1,hb=(B1-B0)/2,ze=z0-ov*tn,zr=ze+hb*tn,bm=(B0+B1)/2,T=[];
@@ -3072,15 +3097,24 @@ function roofGeom(){var rc=roofCfg();if(rc.type==="flat")return null;var ti=topL
  return {tris:T,ze:ze,zr:zr,z0:z0,box:[X0,Y0,X1,Y1]}}
 function roofZ(x,y){var G=roofGeom();if(!G)return null;var best=null;G.tris.forEach(function(t){if(t.k!=="roof")return;var p=t.p,P2=p.map(function(q){return {x:q.x,y:q.y}});if(!inPoly(x,y,P2))return;
   var a=p[0],b=p[1],c=p[2],ux=b.x-a.x,uy=b.y-a.y,uz=b.z-a.z,vx=c.x-a.x,vy=c.y-a.y,vz=c.z-a.z,nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;if(Math.abs(nz)<1e-9)return;var z=a.z-(nx*(x-a.x)+ny*(y-a.y))/nz;if(best==null||z>best)best=z});return best}
+function fiOv(v){return fi(v==null?roofCfg().ov:v)}
 /* Stage: Build - Roof tool */
-function roofPopup(){var rc=JSON.parse(JSON.stringify(roofCfg()));
- function body(){return '<div class="mt">Roof / கூரை</div><div class="ms">Roof over the top level ('+esc(S.L[topLevel()].name)+'). 3D, elevations and sections use it.</div><div class="grid2">'+
+function roofPopup(){var rc=JSON.parse(JSON.stringify(roofCfg())),o0=roofOvs();
+ if(rc.ovN==null)rc.ovN=o0.n;if(rc.ovS==null)rc.ovS=o0.s;if(rc.ovE==null)rc.ovE=o0.e;if(rc.ovW==null)rc.ovW=o0.w;
+ function ovFields(){return '<div class="ms" style="margin-top:8px"><b>Roof overhang / projection</b> beyond the walls (shown on plan, 3D and sheets).</div>'+
+  '<label class="fld">Same overhang all sides<input id="rfO" value="'+fi(rc.ov)+'" placeholder="e.g. 1\'6\""></label>'+
+  '<div class="grid2"><label class="fld">North (top)<input id="rfN" value="'+fi(rc.ovN)+'"></label><label class="fld">South (bottom)<input id="rfS" value="'+fi(rc.ovS)+'"></label>'+
+  '<label class="fld">East (right)<input id="rfE" value="'+fi(rc.ovE)+'"></label><label class="fld">West (left)<input id="rfW" value="'+fi(rc.ovW)+'"></label></div>'}
+ function body(){return '<div class="mt">Roof / கூரை</div><div class="ms">Roof over the top level ('+esc(S.L[topLevel()].name)+'). Overhang extends past the walls. 3D, elevations, sections and plan show it.</div><div class="grid2">'+
   [["flat","Flat RCC slab","parapet wall"],["gable","Gable","2 slopes"],["hip","Hip","4 slopes"]].map(function(t){return '<button class="bb'+(rc.type===t[0]?' on':'')+'" data-rf="'+t[0]+'">'+t[1]+'<small>'+t[2]+'</small></button>'}).join("")+'</div>'+
-  (rc.type==="flat"?'<label class="fld">Parapet height (ft-in)<input id="rfP" value="'+fi(rc.par)+'"></label>':'<div class="row"><label class="fld">Pitch (degrees)<input id="rfA" type="number" value="'+rc.pitch+'"></label><label class="fld">Overhang (ft-in)<input id="rfO" value="'+fi(rc.ov)+'"></label></div><div class="grid2">'+[["auto","Ridge: auto"],["x","Ridge E-W"],["y","Ridge N-S"]].map(function(t){return '<button class="bb'+(rc.ridge===t[0]?' on':'')+'" data-rr="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>')+
-  '<div class="row"><button class="bb" id="rfX">Cancel</button><button class="bb ok" id="rfOk">Save</button></div>'}
- function rd(){if($("rfP")){var p=parseFI($("rfP").value);if(p>=0&&p<=8)rc.par=p}if($("rfA")){var a=+$("rfA").value;if(a>=5&&a<=60)rc.pitch=a}if($("rfO")){var o=parseFI($("rfO").value);if(o>=0&&o<=5)rc.ov=o}}
+  (rc.type==="flat"?'<label class="fld">Parapet height (ft-in)<input id="rfP" value="'+fi(rc.par)+'"></label>':'<div class="row"><label class="fld">Pitch (degrees)<input id="rfA" type="number" value="'+rc.pitch+'"></label></div><div class="grid2">'+[["auto","Ridge: auto"],["x","Ridge E-W"],["y","Ridge N-S"]].map(function(t){return '<button class="bb'+(rc.ridge===t[0]?' on':'')+'" data-rr="'+t[0]+'">'+t[1]+'</button>'}).join("")+'</div>')+
+  ovFields()+'<div class="row"><button class="bb" id="rfX">Cancel</button><button class="bb ok" id="rfOk">Save</button></div>'}
+ function rd(){if($("rfP")){var p=parseFI($("rfP").value);if(p>=0&&p<=8)rc.par=p}if($("rfA")){var a=+$("rfA").value;if(a>=5&&a<=60)rc.pitch=a}
+  function one(id,key){if(!$(id))return;var v=parseFI($(id).value);if(v>=0&&v<=8)rc[key]=v}
+  one("rfO","ov");one("rfN","ovN");one("rfS","ovS");one("rfE","ovE");one("rfW","ovW");
+  if($("rfO")&&document.activeElement===$("rfO")){rc.ovN=rc.ovS=rc.ovE=rc.ovW=rc.ov}}
  function bind(box){box.querySelectorAll("[data-rf]").forEach(function(b){b.onclick=function(){rd();rc.type=b.dataset.rf;re()}});box.querySelectorAll("[data-rr]").forEach(function(b){b.onclick=function(){rd();rc.ridge=b.dataset.rr;re()}});
-  $("rfX").onclick=closeModal;$("rfOk").onclick=function(){rd();snapshot();S.meta.roof=rc;closeModal();changed();toast("Roof: "+rc.type)}}
+  $("rfX").onclick=closeModal;$("rfOk").onclick=function(){rd();snapshot();S.meta.roof=rc;closeModal();changed();toast("Roof: "+rc.type+(roofHasOv()?" · overhang "+fi(roofOvs().n):""))}}
  function re(){$("mbox").innerHTML=body();bind($("mbox"))}modal(body(),bind)}
 /* Stage: Build - Floor / Ceiling tool */
 function floorPopup(){var L=curLv();modal('<div class="mt">Floor / slab - '+esc(L.name)+'</div><div class="ms">Floor slab is made from the closed rooms automatically (like Revit "Floor by walls").</div>'+
@@ -3535,7 +3569,7 @@ function planExtras(d,R,k){function P(p){return R(p.x,p.y)}function ln(a,b,o){va
    circ(c,3.2,{w:0.3,c:"#111111",L:"SECTION"});d.text(c[0],c[1]+1.1,ascii(m.name),3,{a:"middle",bold:true,L:"SECTION"})})})}
 
 /* ================= v1.3 RIBBON (tabs) + PROPERTIES panel + Visibility/Graphics ================= */
-var ICO=Object.assign({"undo": "<path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/>", "redo": "<path d=\"m15 14 5-5-5-5\"/><path d=\"M20 9H9.5a5.5 5.5 0 0 0 0 11H13\"/>", "fit": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2\"/><rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\"/>", "clean": "<rect x=\"2.5\" y=\"4\" width=\"19\" height=\"16\" rx=\"2\"/><path d=\"M15.5 4v16M15.5 14.5h6\"/>", "menu": "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>", "levels": "<path d=\"m12 3 9 4.5-9 4.5-9-4.5z\"/><path d=\"m3 12 9 4.5 9-4.5\"/><path d=\"m3 16.5 9 4.5 9-4.5\"/>", "props": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M15 3v18\"/>", "close": "<path d=\"m15 18-6-6 6-6\"/>", "cad": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"m8 16 4-9 4 9M9.5 13h5\"/>", "spin": "<path d=\"M21 12a9 9 0 1 1-2.64-6.36L21 8\"/><path d=\"M21 3v5h-5\"/>", "roof": "<path d=\"M2.5 11 12 4l9.5 7\"/><path d=\"M5 9.2V20h14V9.2\"/>", "tag": "<path d=\"M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\"/>", "grid": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M3 15h18M9 3v18M15 3v18\"/>", "img": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21\"/>", "dxf": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/><path d=\"M14 2v5h5\"/><path d=\"m10 12.5-2 2.5 2 2.5M14 12.5l2 2.5-2 2.5\"/>", "cube": "<path d=\"M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z\"/><path d=\"M3.3 7 12 12l8.7-5M12 22V12\"/>", "sofa": "<path d=\"M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3\"/><path d=\"M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z\"/><path d=\"M4 18v2M20 18v2\"/>", "draw": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "wall": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "move": "<path d=\"M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20\"/>", "size": "<path d=\"M4 8v8M20 8v8M4 12h16\"/><path d=\"m7.5 9.5-2.5 2.5 2.5 2.5M16.5 9.5l2.5 2.5-2.5 2.5\"/>", "room": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"1.5\"/><path d=\"M3 12h8v9M11 3v4.5\"/>", "door": "<path d=\"M2 21h20\"/><path d=\"M13 4h3a2 2 0 0 1 2 2v15\"/><path d=\"M13 3.5v17.5l-6-1.8V5.2z\"/><path d=\"M10.2 12.2v.1\"/>", "del": "<path d=\"M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6\"/>", "focus": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3\"/>", "unfocus": "<path d=\"M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3\"/>", "import": "<path d=\"M12 3v12\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M5 21h14\"/>", "kcount": "<path d=\"M3 6h18v5H3zM3 11h5v8H3\"/><circle cx=\"15\" cy=\"8.5\" r=\"1.4\"/>", "kmod": "<rect x=\"3\" y=\"10\" width=\"8\" height=\"10\"/><rect x=\"13\" y=\"10\" width=\"8\" height=\"10\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"4\" stroke-dasharray=\"2 2\"/><path d=\"M9 15h0M15 15h0\"/>", "ksched": "<rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"1\"/><path d=\"M8 8h8M8 12h8M8 16h5\"/>", "fsize": "<path d=\"M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7\"/>", "fillc": "<path d=\"M4 4h16v6H10v10H4z\" fill=\"currentColor\" fill-opacity=\".35\"/><path d=\"M4 4h16v6H10v10H4z\"/>", "fsave": "<path d=\"M5 3h11l3 3v15H5z\"/><path d=\"M8 3v5h8V3\"/><rect x=\"8\" y=\"13\" width=\"8\" height=\"6\" rx=\"1\"/>", "fopen": "<path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z\"/><path d=\"M3 10h18l-2 9H5z\"/>", "sliders": "<path d=\"M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4\"/>"},{
+var ICO=Object.assign({"undo": "<path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/>", "redo": "<path d=\"m15 14 5-5-5-5\"/><path d=\"M20 9H9.5a5.5 5.5 0 0 0 0 11H13\"/>", "fit": "<path d=\"M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2\"/><rect x=\"8\" y=\"8\" width=\"8\" height=\"8\" rx=\"1\"/>", "clean": "<rect x=\"2.5\" y=\"4\" width=\"19\" height=\"16\" rx=\"2\"/><path d=\"M15.5 4v16M15.5 14.5h6\"/>", "menu": "<circle cx=\"12\" cy=\"5\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"19\" r=\"1\"/>", "levels": "<path d=\"m12 3 9 4.5-9 4.5-9-4.5z\"/><path d=\"m3 12 9 4.5 9-4.5\"/><path d=\"m3 16.5 9 4.5 9-4.5\"/>", "props": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M15 3v18\"/>", "close": "<path d=\"m15 18-6-6 6-6\"/>", "cad": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"m8 16 4-9 4 9M9.5 13h5\"/>", "spin": "<path d=\"M21 12a9 9 0 1 1-2.64-6.36L21 8\"/><path d=\"M21 3v5h-5\"/>", "roof": "<path d=\"M2.5 11 12 4l9.5 7\"/><path d=\"M5 9.2V20h14V9.2\"/>", "tag": "<path d=\"M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\"/>", "grid": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M3 15h18M9 3v18M15 3v18\"/>", "img": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21\"/>", "dxf": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/><path d=\"M14 2v5h5\"/><path d=\"m10 12.5-2 2.5 2 2.5M14 12.5l2 2.5-2 2.5\"/>", "cube": "<path d=\"M21 8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z\"/><path d=\"M3.3 7 12 12l8.7-5M12 22V12\"/>", "sofa": "<path d=\"M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3\"/><path d=\"M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z\"/><path d=\"M4 18v2M20 18v2\"/>", "draw": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "wall": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"1.5\"/><path d=\"M3 9.5h18M3 14.5h18M9 4v5.5M15 4v5.5M12 9.5v5M7 14.5V20M17 14.5V20\"/>", "move": "<path d=\"M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20\"/>", "size": "<path d=\"M4 8v8M20 8v8M4 12h16\"/><path d=\"m7.5 9.5-2.5 2.5 2.5 2.5M16.5 9.5l2.5 2.5-2.5 2.5\"/>", "room": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"1.5\"/><path d=\"M3 12h8v9M11 3v4.5\"/>", "door": "<path d=\"M2 21h20\"/><path d=\"M13 4h3a2 2 0 0 1 2 2v15\"/><path d=\"M13 3.5v17.5l-6-1.8V5.2z\"/><path d=\"M10.2 12.2v.1\"/>", "del": "<path d=\"M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6\"/>", "focus": "<path d=\"M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3\"/>", "unfocus": "<path d=\"M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3\"/>", "import": "<path d=\"M12 3v12\"/><path d=\"m7 10 5 5 5-5\"/><path d=\"M5 21h14\"/>", "newfile": "<path d=\"M5 3h9l5 5v13H5z\"/><path d=\"M14 3v5h5\"/><path d=\"M9 14h6M12 11v6\"/>", "kcount": "<path d=\"M3 6h18v5H3zM3 11h5v8H3\"/><circle cx=\"15\" cy=\"8.5\" r=\"1.4\"/>", "kmod": "<rect x=\"3\" y=\"10\" width=\"8\" height=\"10\"/><rect x=\"13\" y=\"10\" width=\"8\" height=\"10\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"4\" stroke-dasharray=\"2 2\"/><path d=\"M9 15h0M15 15h0\"/>", "ksched": "<rect x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"1\"/><path d=\"M8 8h8M8 12h8M8 16h5\"/>", "fsize": "<path d=\"M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7\"/>", "fillc": "<path d=\"M4 4h16v6H10v10H4z\" fill=\"currentColor\" fill-opacity=\".35\"/><path d=\"M4 4h16v6H10v10H4z\"/>", "fsave": "<path d=\"M5 3h11l3 3v15H5z\"/><path d=\"M8 3v5h8V3\"/><rect x=\"8\" y=\"13\" width=\"8\" height=\"6\" rx=\"1\"/>", "fopen": "<path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z\"/><path d=\"M3 10h18l-2 9H5z\"/>", "sliders": "<path d=\"M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M2 14h4M10 8h4M18 16h4\"/>"},{
  sel:'<path d="M5 3l13 7-6 1.6L9.5 18z"/><path d="M12.5 12l5 6"/>',col:'<rect x="8" y="3" width="8" height="18"/><path d="M8 3l8 18M16 3L8 21"/>',beam:'<path d="M2 9h20v6H2z" stroke-dasharray="3 2"/>',
  stair:'<path d="M3 21h4v-4h4v-4h4V9h4V5h2"/>',rail:'<path d="M3 8h18M5 8v12M10 8v12M14 8v12M19 8v12"/>',slab:'<path d="M2 14l10-5 10 5-10 5z"/><path d="M2 14v3l10 5 10-5v-3"/>',
  roof2:'<path d="M2 12L12 4l10 8"/><path d="M5 10v10h14V10"/>',grid2:'<circle cx="12" cy="4" r="2.6"/><path d="M12 6.6V22" stroke-dasharray="4 2 1 2"/><circle cx="4" cy="12" r="2.6"/><path d="M6.6 12H22" stroke-dasharray="4 2 1 2"/>',
@@ -4783,7 +4817,7 @@ function markOf(types,it){for(var i=0;i<types.length;i++)if(types[i].items.index
 /* plan setup on paper: fit level content into box [x,y,w,h]; margin for grid chains */
 function stSetup(d,lv,box,o){o=o||{};var X=[],Y=[];function e(p){X.push(p.x);Y.push(p.y)}
  withLevel(lv,function(){S.pts.forEach(e);S.cols.forEach(function(c){e(c);if(o.ftg){var f=ftgOf(c);e({x:c.x-f.w/2-1,y:c.y-f.l/2-1});e({x:c.x+f.w/2+1,y:c.y+f.l/2+1})}});
-  if(o.beams)S.beams.forEach(function(m){e(m.a);e(m.b)});if(o.elec)(S.elec||[]).forEach(e);if(o.site)(S.cwalls||[]).forEach(function(w){w.pts.forEach(e)})});
+  if(o.beams)S.beams.forEach(function(m){e(m.a);e(m.b)});if(o.elec){(S.elec||[]).concat(S.mech||[],S.plumb||[]).forEach(e);(S.ewires||[]).concat(S.ducts||[],S.plines||[]).forEach(function(m){e(m.a);e(m.b)})}if(o.site)(S.cwalls||[]).forEach(function(w){w.pts.forEach(e)})});
  if(!X.length){X=[0,20];Y=[0,20]}var x0=Math.min.apply(null,X),x1=Math.max.apply(null,X),y0=Math.min.apply(null,Y),y1=Math.max.apply(null,Y),pad=o.pad==null?2:o.pad;x0-=pad;y0-=pad;x1+=pad;y1+=pad;
  var mg=o.mg==null?24:o.mg,aw=box[2]-mg-6,ah=box[3]-mg-6,Wf=x1-x0,Hf=y1-y0,N=chooseScale(Wf,Hf,aw,ah),k=304.8/N;
  d.k=k;d.minX=x0;d.minY=-y1;var cx=box[0]+mg+aw/2,cy=box[1]+mg+ah/2;d.ox=cx-Wf*k/2;d.oy=cy+Hf*k/2;
@@ -5385,6 +5419,505 @@ function w3Extras(){var G=new THREE.Group();G.userData.env="w3";T3.env.add(G);va
   var pb=pbCfg(),pw=pb.w/12,pd=pb.d/12;S.L[0].segs.forEach(function(s){var a=pt(s.a),b=pt(s.b),L=Math.hypot(b.x-a.x,b.y-a.y);if(L<0.5)return;var m=w3Box(G,L,pd,pw,(a.x+b.x)/2,gl+pd/2-0.25,(a.y+b.y)/2,pbm);m.rotation.y=-Math.atan2(b.y-a.y,b.x-a.x)});
   T3.env.children.forEach(function(o){if(o.userData.env==="ground"){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=0.28;o.material.depthWrite=false}})}
  else{T3.model.visible=true;T3.edges.visible=true;if(WK.on)T3.labels.visible=false}}
+
+/* ===== v2.1 Site boundary (plot line) + footing snap inside the boundary ===== */
+Object.assign(ICO,{bound:'<rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="3 2"/><path d="M7 17V7h10"/>',undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'});
+Object.assign(TD14,{bound:["Boundary","Draw or fix the site boundary (plot line). Footings stay inside.","bound"]});
+Object.assign(HINTS,{bound:"Tap each plot corner · tap the first corner to close · footings snap to this line"});
+Object.assign(RLAB,{bound:"Bound"});
+if(typeof PANELS!=="undefined"){PANELS.arch[1].forEach(function(p){if(p[0]==="Site"&&p[2].indexOf("bound")<0)p[2].splice(1,0,"bound")});
+ if(typeof panelTools==="function"){TABS={};Object.keys(PANELS).forEach(function(k){TABS[k]=[PANELS[k][0],panelTools(k)]})}}
+
+function boundCfg(){S.meta.bound=S.meta.bound||{pts:[],on:true};if(!Array.isArray(S.meta.bound.pts))S.meta.bound.pts=[];return S.meta.bound}
+function boundPoly(){var b=boundCfg();if(b.on!==false&&b.pts&&b.pts.length>=3)return b.pts;
+ var w=(S.L[0]&&S.L[0].cwalls||[]).find(function(x){return x.closed&&x.pts&&x.pts.length>=3});return w?w.pts:null}
+function boundHas(){return !!(boundPoly()&&boundPoly().length>=3)}
+function rayHitPoly(o,ux,uy,P){var best=Infinity;for(var i=0;i<P.length;i++){var A=P[i],B=P[(i+1)%P.length],I=segIntersect(o,{x:ux,y:uy},A,B);
+ if(I&&I.t>=-1e-6&&I.t<=1+1e-6&&I.r>1e-4&&I.r<best)best=I.r}return isFinite(best)?best:null}
+function closestOnPoly(x,y,P){var best=null,bd=1e9;for(var i=0;i<P.length;i++){var q=projSeg(x,y,P[i],P[(i+1)%P.length]);if(q.d<bd){bd=q.d;best=q}}return best}
+
+/* Stage: Foundation - clip a column's footing so every edge stays on or inside the plot boundary */
+function clipFtgCol(c){if(!c)return;var P=boundPoly();if(!P){if(c.ftg){delete c.ftg.cw;delete c.ftg.cl;delete c.ftg.ox;delete c.ftg.oy}return}
+ var f=ftgOf(c),hw=f.w/2,hl=f.l/2,ang=(c.rot||0)*Math.PI/180,cs=Math.cos(ang),sn=Math.sin(ang);
+ function dist(ux,uy,maxd){var r=rayHitPoly(c,ux,uy,P);return r==null?maxd:Math.min(maxd,r)}
+ var inside=inPoly(c.x,c.y,P);
+ if(!inside){var q=closestOnPoly(c.x,c.y,P);if(!q)return;var nx=c.x-q.x,ny=c.y-q.y,L=Math.hypot(nx,ny)||1;nx/=L;ny/=L;
+  if(!inPoly(q.x+nx*0.05,q.y+ny*0.05,P)){nx=-nx;ny=-ny}
+  var need=Math.max(hw,hl);c.ftg=Object.assign(c.ftg||{},{ox:nx*need- (c.x-(q.x+nx*0.01)),oy:ny*need-(c.y-(q.y+ny*0.01)),cw:f.w,cl:f.l});
+  c.x=q.x+nx*0.02;c.y=q.y+ny*0.02;inside=inPoly(c.x,c.y,P)}
+ var dp=dist(cs,sn,hw),dm=dist(-cs,-sn,hw),lp=dist(-sn,cs,hl),lm=dist(sn,-cs,hl);
+ var ox=(dp-dm)/2,oy=(lp-lm)/2,cw=dp+dm,cl=lp+lm;
+ if(cw<0.5)cw=0.5;if(cl<0.5)cl=0.5;
+ c.ftg=Object.assign(c.ftg||{},{ox:ox*cs-oy*sn,oy:ox*sn+oy*cs,cw:cw,cl:cl})}
+function clipAllFtgs(){if(!S||!S.L||!S.L[0])return;(S.L[0].cols||[]).forEach(clipFtgCol)}
+function ftgPoly(c){var f=ftgOf(c),w=((c.ftg&&c.ftg.cw)>0?c.ftg.cw:f.w)/2,l=((c.ftg&&c.ftg.cl)>0?c.ftg.cl:f.l)/2;
+ var ox=(c.ftg&&c.ftg.ox)||0,oy=(c.ftg&&c.ftg.oy)||0,a=(c.rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a),cx=c.x+ox,cy=c.y+oy;
+ return [[-w,-l],[w,-l],[w,l],[-w,l]].map(function(p){return {x:cx+p[0]*cs-p[1]*sn,y:cy+p[0]*sn+p[1]*cs}})}
+
+var _ftgR0=ftgRects;ftgRects=function(){if(S.cur!==0)return [];if(!(ftgCfg().on||boundHas()))return [];return (S.cols||[]).map(ftgPoly)};
+var _addColB=addCol;addCol=function(x,y,quiet){var c=_addColB(x,y,quiet);if(c){if(boundHas()){S.meta.ftg=Object.assign(S.meta.ftg||{},{on:true});clipFtgCol(c)} }return c};
+var _setWallThB=typeof setWallTh==="function"?setWallTh:null;
+if(_setWallThB){setWallTh=function(s,v){_setWallThB(s,v);if(typeof syncBeamsOnWall==="function")syncBeamsOnWall(s)}}
+var _propSetB=propSet;propSet=function(key,v,L){var r=_propSetB.apply(this,arguments);if(key==="beam.w"&&L&&L[0]){var e=elGet(L[0]);if(e)e.wov=1}if(key==="col.w"||key==="col.d"||key==="col.rot")clipAllFtgs();return r};
+
+function drawBoundCanvas(){var P=boundCfg().pts,pd=UI.bdPend;if(UI.clean)return;
+ function stroke(pts,col,lw,dash,close){if(!pts||pts.length<2)return;g.save();g.strokeStyle=col;g.lineWidth=lw;g.setLineDash(dash||[]);g.beginPath();pts.forEach(function(p,i){var q=w2s(p.x,p.y);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});if(close)g.closePath();g.stroke();g.setLineDash([]);g.restore()}
+ if(P.length>=2&&boundCfg().on!==false){stroke(P,"#0f766e",2.2,[10,5],P.length>=3);
+  P.forEach(function(p,i){var q=w2s(p.x,p.y);g.fillStyle=i?"#0f766e":"#16a34a";g.beginPath();g.arc(q.x,q.y,4,0,7);g.fill();
+   if(P.length>=3){var n=P[(i+1)%P.length],m=w2s((p.x+n.x)/2,(p.y+n.y)/2);g.fillStyle="#0f766e";g.font="bold 11px Roboto,Arial";g.textAlign="center";g.fillText(fi(Math.hypot(n.x-p.x,n.y-p.y)),m.x,m.y-8)}})}
+ if(UI.tool==="bound"&&pd&&pd.length){stroke(pd,"#ea580c",2.4,null,false);pd.forEach(function(p,i){var q=w2s(p.x,p.y);g.fillStyle=i?"#ea580c":"#16a34a";g.beginPath();g.arc(q.x,q.y,i?4:7,0,7);g.fill()})}
+ /* roof outline */
+ try{if(typeof roofPlanPoly==="function"&&visOn("roof")!==false){var R=roofPlanPoly();if(R&&R.length>=3)stroke(R,"#b45309",1.6,[8,4],true)}}catch(e){}}
+var _duB=drawUnderlay;drawUnderlay=function(){_duB.apply(this,arguments);try{drawBoundCanvas()}catch(e){console.warn(e)}};
+
+function bdPick(w){var q=findPoint(w.x,w.y,snapR());if(q)return {x:q.x,y:q.y};return {x:gsnap(w.x),y:gsnap(w.y)}}
+function bdFinish(close){var P=UI.bdPend||[];if(P.length<3){toast("Tap at least 3 corners for a closed plot");return}
+ snapshot();S.meta.bound={pts:P.map(function(p){return {x:p.x,y:p.y}}),on:true};UI.bdPend=[];clipAllFtgs();changed();updCtx();toast("Site boundary set · footings stay inside")}
+function bdAt(w){var P=boundCfg().pts;if(!P||P.length<2)return null;var bd=snapR()*1.2;for(var i=0;i<P.length;i++){var d=d2seg(w,P[i],P[(i+1)%P.length]);if(d<bd)return true}return false}
+
+var _ttB=toolTap;toolTap=function(w){if(UI.tool==="bound"){var P=UI.bdPend=UI.bdPend||[];if(!P.length&&bdAt(w)&&boundCfg().pts.length){bdPopup();return true}
+  var p=bdPick(w);if(P.length>=3&&Math.hypot(p.x-P[0].x,p.y-P[0].y)<snapR()*1.2){bdFinish(true);return true}P.push(p);render();updCtx();return true}
+ return _ttB.apply(this,arguments)};
+
+function bdPopup(){var b=boundCfg(),P=b.pts||[];modal('<div class="mt">Site boundary</div><div class="ms">'+(P.length?P.length+" corners · plot line that footings cannot cross.":"No boundary yet.")+'</div>'+
+ '<label class="fld"><input type="checkbox" id="bdOn" '+(b.on!==false?"checked":"")+'> Show boundary and snap footings</label>'+
+ '<div class="row"><button class="bb del" id="bdDel">Clear</button><button class="bb" id="bdRed">Redraw</button><button class="bb" id="bdX">Cancel</button><button class="bb ok" id="bdOk">OK</button></div>',function(){
+ $("bdX").onclick=closeModal;$("bdRed").onclick=function(){closeModal();UI.bdPend=[];setTool("bound");toast("Tap the plot corners")};
+ $("bdDel").onclick=function(){snapshot();S.meta.bound={pts:[],on:true};clipAllFtgs();closeModal();changed()};
+ $("bdOk").onclick=function(){snapshot();b.on=$("bdOn").checked;clipAllFtgs();closeModal();changed()}})}
+
+var _ucB=updCtx;updCtx=function(){_ucB.apply(this,arguments);var c=$("ctx");if(!c||UI.clean)return;if(UI.tool!=="bound")return;
+ var h=CDV+'<span class="cnt">'+((UI.bdPend||[]).length)+' pts</span>'+cbI("bdclose","poly","Close plot")+cbI("bdundo","undo","Undo point")+cbI("bdedit","edit","Edit boundary");
+ c.insertAdjacentHTML("beforeend",h);c.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){ctxAction(b.dataset.c)}})};
+var _caB=ctxAction;ctxAction=function(k){if(k==="bdclose"){bdFinish(true);return}if(k==="bdundo"){(UI.bdPend||[]).pop();render();updCtx();return}if(k==="bdedit"){bdPopup();return}return _caB.apply(this,arguments)};
+
+var _pexB=planExtras;planExtras=function(d,R,k){_pexB.apply(this,arguments);var P=boundPoly();if(P&&P.length>=3)d.poly(P.map(function(p){return R(p.x,p.y)}),{w:0.25,c:"#0f766e",dash:[2,1.2],L:"BOUNDARY"});
+ try{if(typeof roofPlanPoly==="function"){var RP=roofPlanPoly();if(RP&&RP.length>=3)d.poly(RP.map(function(p){return R(p.x,p.y)}),{w:0.22,c:"#b45309",dash:[1.6,0.8],L:"ROOF"})}}catch(e){}};
+var _peB=planExt;planExt=function(ext){_peB(ext);var P=boundPoly();if(P)P.forEach(ext);try{var RP=typeof roofPlanPoly==="function"&&roofPlanPoly();if(RP)RP.forEach(ext)}catch(e){}};
+
+var _tuB=toolUp;toolUp=function(G,w){var r=_tuB.apply(this,arguments);if(G&&(G.kind==="dragsel"||G.kind==="dragpt")&&boundHas())clipAllFtgs();return r};
+
+/* roof outline from wall hull + per-side overhang (used by plan / 3D / quantities) */
+function convexHull(pts){var P=pts.map(function(p){return {x:p.x,y:p.y}}).sort(function(a,b){return a.x===b.x?a.y-b.y:a.x-b.x});if(P.length<3)return P;
+ function cr(o,a,b){return (a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x)}var low=[],up=[];
+ P.forEach(function(p){while(low.length>=2&&cr(low[low.length-2],low[low.length-1],p)<=0)low.pop();low.push(p)});
+ for(var i=P.length-1;i>=0;i--){var p=P[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p)}
+ low.pop();up.pop();return low.concat(up)}
+function edgeOvDist(a,b,outSign){var o=roofOvs(),L=Math.hypot(b.x-a.x,b.y-a.y)||1,nx=-(b.y-a.y)/L*outSign,ny=(b.x-a.x)/L*outSign;
+ if(Math.abs(nx)>=Math.abs(ny))return nx>=0?o.e:o.w;return ny>=0?o.s:o.n}
+function offsetByEdges(P,distFn){var n=P.length,s=polyArea(P)>0?1:-1,L=[];
+ for(var i=0;i<n;i++){var a=P[i],b=P[(i+1)%n],l=Math.hypot(b.x-a.x,b.y-a.y)||1,nx=-(b.y-a.y)/l*s,ny=(b.x-a.x)/l*s,d=distFn(a,b,s);
+  L.push({a:{x:a.x+nx*d,y:a.y+ny*d},u:{x:(b.x-a.x)/l,y:(b.y-a.y)/l}})}
+ return L.map(function(l,i){var m=L[(i-1+n)%n],den=m.u.x*l.u.y-m.u.y*l.u.x;if(Math.abs(den)<1e-9)return {x:l.a.x,y:l.a.y};
+  var t=((l.a.x-m.a.x)*l.u.y-(l.a.y-m.a.y)*l.u.x)/den;return {x:m.a.x+m.u.x*t,y:m.a.y+m.u.y*t}})}
+function wallHull(lv){lv=lv==null?topLevel():lv;return withLevel(lv,function(){var pts=[];S.pts.forEach(function(p){pts.push(p)});
+  if(S.meta.dbl)S.segs.forEach(function(s){var P=wallPoly(s);if(P)P.forEach(function(p){pts.push(p)})});return pts.length>=3?convexHull(pts):[]})}
+function roofPlanPoly(){var H=wallHull();if(!H||H.length<3)return null;if(!roofHasOv())return H;
+ var O=offsetByEdges(H,function(a,b,s){return -edgeOvDist(a,b,s)});if(Math.abs(polyArea(O))<Math.abs(polyArea(H)))O=offsetByEdges(H,function(a,b,s){return edgeOvDist(a,b,s)});return O}
+
+var _b3lR=build3DLevel;build3DLevel=function(P,i,ti,rc,M){var useOv=i===ti&&rc.type==="flat"&&roofHasOv()&&typeof roofPlanPoly==="function";
+ if(useOv){_b3lR(P,i,ti,Object.assign({},rc,{type:"hip"}),M);var poly=roofPlanPoly();if(poly)slab(poly,P.H-P.sl,P.H,M.roof,"ROOF3D");return}
+ _b3lR.apply(this,arguments)};
+if(typeof VGC!=="undefined"){[["bound","Site boundary"],["roof","Roof outline"],["elec","Electrical"],["mech","Mechanical"],["plumb","Plumbing"]].forEach(function(c){if(!VGC.some(function(x){return x[0]===c[0]}))VGC.push(c)})}
+
+/* ===== v2.1 MEP: one ribbon tab with Electrical, Mechanical and Plumbing groups ===== */
+["ewires","mech","ducts","plumb","plines"].forEach(function(k){if(LVK.indexOf(k)<0)LVK.push(k)});
+Object.assign(EK,{elec:"elec",ewire:"ewires",mech:"mech",duct:"ducts",plumb:"plumb",pline:"plines"});
+Object.assign(EKN,{elec:"Electrical point",ewire:"Wiring",mech:"Mechanical unit",duct:"Duct",plumb:"Plumbing fixture",pline:"Pipe"});
+Object.assign(EKV,{elec:"elec",ewire:"elec",mech:"mech",duct:"mech",plumb:"plumb",pline:"plumb"});
+LINE2.ewire=1;LINE2.duct=1;LINE2.pline=1;
+Object.assign(ICO,{
+ ewire:'<path d="M4 18h4l3-8 3 8h6"/><circle cx="7" cy="18" r="1.4"/><circle cx="17" cy="18" r="1.4"/>',
+ acunit:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h10M9 9v6M15 9v6"/>',
+ duct:'<rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 8v8M17 8v8"/>',
+ plumb:'<path d="M7 4h10v4H7z"/><path d="M12 8v6"/><path d="M8 20c0-3 8-3 8 0"/><path d="M8 14h8v3H8z"/>',
+ pline:'<path d="M4 16c4-10 12 4 16-6"/><circle cx="4" cy="16" r="1.5"/><circle cx="20" cy="10" r="1.5"/>'});
+Object.assign(TD14,{
+ elec:["Point","Electrical points: lights, fans, switches, sockets, DB","elec"],
+ ewire:["Wiring","Draw a wiring run (length used in takeoff / estimate)","ewire"],
+ acunit:["AC / Mech","Place AC indoor / outdoor units and mechanical equipment","acunit"],
+ duct:["Duct","Draw a duct run","duct"],
+ plumb:["Fixture","Plumbing fixtures: WC, basin, sink, trap, IC, tap","plumb"],
+ pline:["Pipe","Supply / drainage pipe run","pline"]});
+Object.assign(HINTS,{
+ elec:"Pick a point type, tap to place · drag to move · tap a point to change / delete",
+ ewire:"Drag (or tap 2 points) to draw a wiring run · length is measured for quantities",
+ acunit:"Pick a unit type, tap to place · drag to move",
+ duct:"Drag (or tap 2 points) to draw a duct",
+ plumb:"Pick a fixture, tap to place · drag to move",
+ pline:"Drag (or tap 2 points) for supply / drainage pipe"});
+Object.assign(RLAB,{elec:"Point",ewire:"Wiring",acunit:"AC",duct:"Duct",plumb:"Fixture",pline:"Pipe"});
+
+(function(){var n={};
+ Object.keys(PANELS).forEach(function(k){n[k]=PANELS[k];
+  if(k==="struct")n.mep=["MEP",[["Electrical","Elec.",["elec","ewire"]],["Mechanical","Mech.",["acunit","duct"]],["Plumbing","Plumb.",["plumb","pline"]]]]});
+ PANELS=n;PANELS.arch[1]=PANELS.arch[1].filter(function(p){return p[0]!=="Electrical"});
+ TABS={};Object.keys(PANELS).forEach(function(k){TABS[k]=[PANELS[k][0],panelTools(k)]})})();
+
+var MLT=[["ac_in","AC indoor"],["ac_out","AC outdoor"],["ahu","AHU / fan coil"],["exhfan","Exhaust fan"],["vent","Vent / grille"]];
+var PLT=[["wc","WC / closet"],["basin","Wash basin"],["sink","Kitchen sink"],["shower","Shower"],["tap","Tap / bibcock"],["ft","Floor trap"],["gully","Gully trap"],["ic","Inspection chamber"],["oh","OH tank"],["ug","UG sump"]];
+function mlName(t){var r=MLT.find(function(e){return e[0]===t});return r?r[1]:t}
+function plName(t){var r=PLT.find(function(e){return e[0]===t});return r?r[1]:t}
+
+function mepPrims(kind,t,r){var P=[];function c(x,y,rr,f){P.push({k:"c",x:x,y:y,r:rr,f:f})}function l(x1,y1,x2,y2){P.push({k:"l",a:[x1,y1],b:[x2,y2]})}function tx(s){P.push({k:"t",s:s})}function rec(w,h,f){P.push({k:"r",w:w,h:h,f:f})}
+ if(kind==="mech"){if(t==="ac_in"){rec(r*2.2,r*1.1);tx("AC")}else if(t==="ac_out"){rec(r*2.4,r*1.4,1);tx("ODU")}else if(t==="ahu"){rec(r*2.2,r*1.6);tx("AHU")}else if(t==="exhfan"){c(0,0,r);l(-r*0.6,-r*0.6,r*0.6,r*0.6);tx("EF")}else{rec(r*1.6,r*1.2);tx("V")}}
+ else{if(t==="wc"){c(0,r*0.2,r*0.7);rec(r*1.1,r*1.6);tx("WC")}else if(t==="basin"){c(0,0,r*0.8);tx("WB")}else if(t==="sink"){rec(r*2,r*1.2);tx("S")}else if(t==="shower"){c(0,0,r*0.5);l(0,-r,0,r);tx("SH")}else if(t==="tap"){l(-r,0,r,0);c(r,0,r*0.35,1)}else if(t==="ft"){c(0,0,r);c(0,0,r*0.4,1);tx("FT")}else if(t==="gully"){c(0,0,r);tx("GT")}else if(t==="ic"){rec(r*1.8,r*1.8);tx("IC")}else if(t==="oh"){rec(r*2.2,r*1.4,1);tx("OHT")}else{rec(r*2.2,r*1.4);tx("UG")}}
+ return P}
+function drawMepSym(e,col,sel){var q=w2s(e.x,e.y),r=Math.max(7,0.5*V.s);g.save();g.translate(q.x,q.y);g.strokeStyle=e.id===sel? "#2563eb":col;g.fillStyle=g.strokeStyle;g.lineWidth=1.6;
+ mepPrims(e._k,e.t,r).forEach(function(p){if(p.k==="c"){g.beginPath();g.arc(p.x,p.y,p.r,0,7);p.f?g.fill():g.stroke()}else if(p.k==="l"){g.beginPath();g.moveTo(p.a[0],p.a[1]);g.lineTo(p.b[0],p.b[1]);g.stroke()}else if(p.k==="r"){if(p.f){g.globalAlpha=0.25;g.fillRect(-p.w/2,-p.h/2,p.w,p.h);g.globalAlpha=1}g.strokeRect(-p.w/2,-p.h/2,p.w,p.h)}else if(p.k==="t"){g.font="bold "+Math.round(r*0.7)+"px Roboto,Arial";g.textAlign="center";g.textBaseline="middle";g.fillText(p.s,0,0)}});g.restore()}
+function drawMepLines(A,col,selId){(A||[]).forEach(function(m){var a=w2s(m.a.x,m.a.y),b=w2s(m.b.x,m.b.y);g.save();g.strokeStyle=m.id===selId?"#2563eb":col;g.lineWidth=m.id===selId?3:2;g.setLineDash(m.k==="drain"?[8,4]:m.k==="duct"?[10,3]:[]);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();g.setLineDash([]);
+  var c=w2s((m.a.x+m.b.x)/2,(m.a.y+m.b.y)/2);g.fillStyle=g.strokeStyle;g.font="bold 10px Roboto,Arial";g.textAlign="center";g.fillText(fi(Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)),c.x,c.y-6);g.restore()})}
+function drawMepCanvas(){if(UI.clean)return;
+ if(visOn("elec")!==false){drawMepLines(S.ewires||[],"#b45309",UI.mepSel);(S.elec||[]).forEach(function(e){e._k="elec"})}
+ if(visOn("mech")!==false){drawMepLines(S.ducts||[],"#7c3aed",UI.mepSel);(S.mech||[]).forEach(function(e){e._k="mech";drawMepSym(e,"#7c3aed",UI.mepSel)})}
+ if(visOn("plumb")!==false){drawMepLines(S.plines||[],"#0e7490",UI.mepSel);(S.plumb||[]).forEach(function(e){e._k="plumb";drawMepSym(e,"#0e7490",UI.mepSel)})}}
+var _dscM=drawStructCanvas;drawStructCanvas=function(){_dscM.apply(this,arguments);try{drawMepCanvas()}catch(e){console.warn(e)}};
+
+function mepHitPt(arr,w){var R=Math.max(0.8,12/V.s),best=null;(arr||[]).forEach(function(e){var d=Math.hypot(e.x-w.x,e.y-w.y);if(d<R){R=d;best=e}});return best}
+function mepHitLn(arr,w){var R=snapR()*1.1,best=null;(arr||[]).forEach(function(m){var d=d2seg(w,m.a,m.b);if(d<R){R=d;best=m}});return best}
+function mepPlace(arrKey,t,w){snapshot();var e={id:nid(),x:Math.round(w.x*4)/4,y:Math.round(w.y*4)/4,t:t};lvArr(arrKey).push(e);UI.mepSel=e.id;changed();return e}
+
+var _ttM=toolTap;toolTap=function(w){var t=UI.tool;
+ if(t==="acunit"){var h=mepHitPt(S.mech,w);if(h){UI.mepSel=h.id;mepPtPopup("mech",h,MLT,mlName);return true}var e=mepPlace("mech",UI.mlT||"ac_in",w);toast(mlName(e.t)+" placed");return true}
+ if(t==="plumb"){var h2=mepHitPt(S.plumb,w);if(h2){UI.mepSel=h2.id;mepPtPopup("plumb",h2,PLT,plName);return true}var e2=mepPlace("plumb",UI.plT||"wc",w);toast(plName(e2.t)+" placed");return true}
+ if(t==="ewire"){var hw=mepHitLn(S.ewires,w);if(hw&&!(UI.lpA)){UI.mepSel=hw.id;mepLnPopup(hw,"Wiring");return true}}
+ if(t==="duct"){var hd=mepHitLn(S.ducts,w);if(hd&&!(UI.lpA)){UI.mepSel=hd.id;mepLnPopup(hd,"Duct");return true}}
+ if(t==="pline"){var hp=mepHitLn(S.plines,w);if(hp&&!(UI.lpA)){UI.mepSel=hp.id;mepLnPopup(hp,"Pipe");return true}}
+ return _ttM.apply(this,arguments)};
+
+var _tdM=toolDown;toolDown=function(w,G){var t=UI.tool;
+ if(t==="acunit"){var h=mepHitPt(S.mech,w);if(h){G.kind="dragmep";G.arr="mech";G.eid=h.id;G.snap=false;return true}}
+ if(t==="plumb"){var h2=mepHitPt(S.plumb,w);if(h2){G.kind="dragmep";G.arr="plumb";G.eid=h2.id;G.snap=false;return true}}
+ return _tdM.apply(this,arguments)};
+var _tmM=toolMove;toolMove=function(w,G,p){if(G.kind==="dragmep"){if(G.moved){if(!G.snap){snapshot();G.snap=true}var e=(S[G.arr]||[]).find(function(x){return x.id===G.eid});if(e){e.x=Math.round(w.x*4)/4;e.y=Math.round(w.y*4)/4;SHEET=null;render()}}return true}return _tmM.apply(this,arguments)};
+var _tuM=toolUp;toolUp=function(G,w){if(G.kind==="dragmep"){if(G.snap)changed();else{var e=(S[G.arr]||[]).find(function(x){return x.id===G.eid});if(e){UI.mepSel=e.id;if(G.arr==="mech")mepPtPopup("mech",e,MLT,mlName);else mepPtPopup("plumb",e,PLT,plName)}}return true}return _tuM.apply(this,arguments)};
+
+var _clM=commitLine;commitLine=function(t,a,b){if(t==="ewire"||t==="duct"||t==="pline"){var L=Math.hypot(b.x-a.x,b.y-a.y);if(L<0.3){toast("Too short");return}snapshot();
+  var m={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y}};if(t==="pline")m.k=UI.plK||"supply";if(t==="duct")m.k="duct";
+  lvArr(t==="ewire"?"ewires":t==="duct"?"ducts":"plines").push(m);changed();toast((t==="ewire"?"Wiring":t==="duct"?"Duct":(m.k==="drain"?"Drain":"Supply"))+" "+fi(L));return}
+ return _clM.apply(this,arguments)};
+
+function mepPtPopup(arr,e,types,nameFn){modal('<div class="mt">'+esc(nameFn(e.t))+'</div><div class="grid2">'+types.map(function(t){return '<button class="bb'+(t[0]===e.t?" ok":"")+'" data-mt="'+t[0]+'">'+esc(t[1])+'</button>'}).join("")+'</div><div class="row"><button class="bb del" id="mpDel">Delete</button><button class="bb" id="mpX">Close</button></div>',function(b){
+ b.querySelectorAll("[data-mt]").forEach(function(x){x.onclick=function(){snapshot();e.t=x.dataset.mt;closeModal();changed()}});
+ $("mpX").onclick=closeModal;$("mpDel").onclick=function(){snapshot();S[arr]=S[arr].filter(function(x){return x!==e});closeModal();changed()}})}
+function mepLnPopup(m,title){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);modal('<div class="mt">'+esc(title)+'</div><div class="ms">Length <b>'+fi(L)+'</b> ('+(L*0.3048).toFixed(2)+' m)</div>'+
+ (title==="Pipe"?'<div class="row"><button class="bb'+(m.k!=="drain"?" on":"")+'" id="mpSup">Supply</button><button class="bb'+(m.k==="drain"?" on":"")+'" id="mpDr">Drainage</button></div>':'')+
+ '<div class="row"><button class="bb del" id="mlDel">Delete</button><button class="bb" id="mlX">Close</button></div>',function(){
+ $("mlX").onclick=closeModal;$("mlDel").onclick=function(){snapshot();["ewires","ducts","plines"].forEach(function(k){S[k]=(S[k]||[]).filter(function(x){return x!==m})});closeModal();changed()};
+ if($("mpSup"))$("mpSup").onclick=function(){snapshot();m.k="supply";closeModal();changed()};if($("mpDr"))$("mpDr").onclick=function(){snapshot();m.k="drain";closeModal();changed()}})}
+
+var _ucM=updCtx;updCtx=function(){_ucM.apply(this,arguments);var c=$("ctx");if(!c||UI.clean)return;var T=UI.tool,h="";
+ if(T==="acunit")h=CDV+MLT.map(function(t){return cb("mlt:"+t[0],esc(t[1]),"",(UI.mlT||"ac_in")===t[0])}).join("");
+ else if(T==="plumb")h=CDV+PLT.map(function(t){return cb("plt:"+t[0],esc(t[1]),"",(UI.plT||"wc")===t[0])}).join("");
+ else if(T==="pline")h=CDV+cb("plk:supply","Supply","", (UI.plK||"supply")==="supply")+cb("plk:drain","Drainage","",UI.plK==="drain")+cbI("ortho","angle",UI.ortho===90?"90°":UI.ortho===45?"45°":"Free","Angle snap",true);
+ else if(T==="ewire"||T==="duct")h=CDV+cbI("ortho","angle",UI.ortho===90?"90°":UI.ortho===45?"45°":"Free","Angle snap",true);
+ if(h){c.insertAdjacentHTML("beforeend",h);c.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){ctxAction(b.dataset.c)}})}};
+var _caM=ctxAction;ctxAction=function(k){
+ if(k.indexOf("mlt:")===0){UI.mlT=k.slice(4);updCtx();return}if(k.indexOf("plt:")===0){UI.plT=k.slice(4);updCtx();return}
+ if(k.indexOf("plk:")===0){UI.plK=k.slice(4);updCtx();return}return _caM.apply(this,arguments)};
+
+var _hlM=hitList;hitList=function(w,R){var out=_hlM.apply(this,arguments);
+ function add(k,id,d,pri){if(d<=R)out.push({k:k,id:id,d:d-pri*R*0.3})}
+ if(visOn("elec")!==false){(S.elec||[]).forEach(function(e){add("elec",e.id,Math.hypot(e.x-w.x,e.y-w.y),2)});(S.ewires||[]).forEach(function(m){add("ewire",m.id,d2seg(w,m.a,m.b),1)})}
+ if(visOn("mech")!==false){(S.mech||[]).forEach(function(e){add("mech",e.id,Math.hypot(e.x-w.x,e.y-w.y),2)});(S.ducts||[]).forEach(function(m){add("duct",m.id,d2seg(w,m.a,m.b),1)})}
+ if(visOn("plumb")!==false){(S.plumb||[]).forEach(function(e){add("plumb",e.id,Math.hypot(e.x-w.x,e.y-w.y),2)});(S.plines||[]).forEach(function(m){add("pline",m.id,d2seg(w,m.a,m.b),1)})}
+ out.sort(function(a,b){return a.d-b.d});return out};
+
+function mepSheetSym(d,x,y,kind,t,r,col){mepPrims(kind,t,r).forEach(function(p){if(p.k==="c")d.poly(circ(x+p.x,y+p.y,p.r,16),{w:0.2,c:col,fill:p.f?col:undefined,L:"ANNO"});
+ else if(p.k==="l")d.line(x+p.a[0],y+p.a[1],x+p.b[0],y+p.b[1],{w:0.2,c:col,L:"ANNO"});
+ else if(p.k==="r")d.rect(x-p.w/2,y-p.h/2,p.w,p.h,{w:0.2,c:col,fill:p.f?"#ede9fe":undefined,L:"ANNO"});
+ else if(p.k==="t")d.text(x,y,p.s,r*0.62,{a:"middle",v:"mid",bold:true,c:col,L:"ANNO"})})}
+function sh_mep(kind,sh,lab,RI){var lv=sh.slv,d=stFrame(),U=stSetup(d,lv,[PX,PY,PW,PH],{elec:true,mg:12}),R=U.R,col=kind==="mech"?"#7c3aed":"#0e7490",title=kind==="mech"?"MECHANICAL":"PLUMBING";
+ stWalls(d,R,lv,{fill:"#e5e7eb"});
+ var pts=kind==="mech"?S.L[lv].mech||[]:S.L[lv].plumb||[],lns=kind==="mech"?S.L[lv].ducts||[]:S.L[lv].plines||[],types=kind==="mech"?MLT:PLT,cnt={};
+ lns.forEach(function(m){var a=R(m.a.x,m.a.y),b=R(m.b.x,m.b.y);d.line(a[0],a[1],b[0],b[1],{w:0.35,c:col,dash:m.k==="drain"?[2,1.2]:undefined,L:"ANNO"})});
+ pts.forEach(function(e){var p=R(e.x,e.y);mepSheetSym(d,p[0],p[1],kind,e.t,1.8,col);cnt[e.t]=(cnt[e.t]||0)+1});
+ var rows=types.filter(function(t){return cnt[t[0]]}).map(function(t){return ["",t[1],cnt[t[0]]]}),y0=PY+12;
+ rows.push({0:"",1:"TOTAL",2:pts.length,bold:true});
+ var totL=lns.reduce(function(a,m){return a+Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)},0);
+ if(totL)rows.push({0:"",1:(kind==="mech"?"Duct":"Pipe")+" length",2:fi(totL)});
+ var y=table(d,TX,y0,[["Symbol",16],["Item",46],["Nos",16]],rows,{title:title+" LEGEND",rh:6});
+ types.filter(function(t){return cnt[t[0]]}).forEach(function(t,i){mepSheetSym(d,TX+8,y0+6+i*6+3,kind,t[0],1.6,col)});
+ stNote(d,TX,y+6,TW,"NOTES",kind==="mech"?["AC indoor units at high level; outdoor units as marked.","Duct sizes to be confirmed with the HVAC vendor."]:["Inspection chambers at drainage junctions.","Pipe runs are schematic; confirm invert levels on site."]);
+ stDone(d,sh,lab,RI,U.N,S.L[lv].name+" "+(kind==="mech"?"Mechanical":"Plumbing")+" Layout")}
+STB.mech=function(sh,lab,RI){sh_mep("mech",sh,lab,RI)};
+STB.plumb=function(sh,lab,RI){sh_mep("plumb",sh,lab,RI)};
+var _slM=sheetList;sheetList=function(){var L=_slM.apply(this,arguments);
+ S.L.forEach(function(Lv,i){if((Lv.mech||[]).length||(Lv.ducts||[]).length)L.push({key:"mech"+i,st:"mech",slv:i,no:"M1"+String(i+1).padStart(2,"0"),title:Lv.name+" Mechanical Layout",short:Lv.name.split(" ")[0]+" Mechanical"});
+  if((Lv.plumb||[]).length||(Lv.plines||[]).length)L.push({key:"plumb"+i,st:"plumb",slv:i,no:"P1"+String(i+1).padStart(2,"0"),title:Lv.name+" Plumbing Layout",short:Lv.name.split(" ")[0]+" Plumbing"})});
+ return L};
+
+var _pexM=planExtras;planExtras=function(d,R,k){_pexM.apply(this,arguments);function P(p){return R(p.x,p.y)}
+ if(visOn("elec")!==false)(S.ewires||[]).forEach(function(m){var a=P(m.a),b=P(m.b);d.line(a[0],a[1],b[0],b[1],{w:0.22,c:"#b45309",L:"ANNO"})});
+ if(visOn("mech")!==false){(S.ducts||[]).forEach(function(m){var a=P(m.a),b=P(m.b);d.line(a[0],a[1],b[0],b[1],{w:0.28,c:"#7c3aed",L:"ANNO"})});(S.mech||[]).forEach(function(e){var p=P(e);mepSheetSym(d,p[0],p[1],"mech",e.t,1.6,"#7c3aed")})}
+ if(visOn("plumb")!==false){(S.plines||[]).forEach(function(m){var a=P(m.a),b=P(m.b);d.line(a[0],a[1],b[0],b[1],{w:0.22,c:"#0e7490",dash:m.k==="drain"?[1.6,0.8]:undefined,L:"ANNO"})});(S.plumb||[]).forEach(function(e){var p=P(e);mepSheetSym(d,p[0],p[1],"plumb",e.t,1.6,"#0e7490")})}};
+var _peM=planExt;planExt=function(ext){_peM(ext);(S.ewires||[]).concat(S.ducts||[],S.plines||[]).forEach(function(m){ext(m.a);ext(m.b)});(S.mech||[]).concat(S.plumb||[]).forEach(ext)};
+
+/* ===== v2.1 file / autosave / quantities / estimate / crash recovery ===== */
+Object.assign(ICO,{
+ qty:'<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M7 9h10M7 13h10M7 17h6"/>',
+ est:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+ "a:new":'<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/>'});
+Object.assign(TD14,{"a:new":["New","New drawing (asks if unsaved)","a:new"],"a:qty":["Quantities","Automatic quantity takeoff from the drawing","qty"],"a:est":["Estimate","Cost estimate in rupees from takeoff quantities","est"]});
+Object.assign(RLAB,{"a:new":"New","a:qty":"Qty","a:est":"Estimate"});
+PANELS.view[1].forEach(function(p){if(p[0]==="File"){if(p[2].indexOf("a:new")<0)p[2].unshift("a:new");if(p[2].indexOf("a:qty")<0)p[2].push("a:qty");if(p[2].indexOf("a:est")<0)p[2].push("a:est")}});
+TABS={};Object.keys(PANELS).forEach(function(k){TABS[k]=[PANELS[k][0],panelTools(k)]});
+
+function asOn(){var v=LS.get("jksp_as_on",true);return v!==false}
+function asSet(on){LS.set("jksp_as_on",!!on);asInd(on?"saved":"off");if(on){DIRTY=true;autosave()}}
+function asInd(st){var el=$("asInd");if(!el)return;el.className="asind "+(st||"");el.textContent=st==="off"?"Autosave off":st==="saving"?"Saving…":st==="unsaved"?"Unsaved":"Saved"}
+function drawingEmpty(){return typeof fioEmpty==="function"?fioEmpty():!S.L.some(function(L){return LVK.some(function(k){return L[k]&&L[k].length})})}
+function hasUnsaved(){if(drawingEmpty())return false;if(typeof fioSig!=="function")return !!DIRTY;if(FIO&&FIO.sig&&FIO.sig===fioSig())return false;return true}
+
+/* ----- crash / close recovery ----- */
+function crashGet(){return LS.get("jksp_crash",null)}
+function crashList(){return LS.get("jksp_crash_list",[])}
+function crashWrite(){try{if(!asOn())return;if(drawingEmpty())return;var rec={id:CURID||null,name:(S.meta&&S.meta.name)||"Unsaved drawing",t:Date.now(),dirty:hasUnsaved(),doc:JSON.parse(JSON.stringify(S))};
+ LS.set("jksp_crash",rec);LS.set("jksp_sess",{alive:true,t:rec.t,id:rec.id});
+ var key=rec.id?("p"+rec.id):("c"+rec.t);
+ var L=crashList().filter(function(e){return e.k!==key && !(rec.id&&e.id===rec.id)});L.unshift({k:key,name:rec.name,t:rec.t,id:rec.id});LS.set("jksp_crash_list",L.slice(0,6));
+ try{localStorage.setItem("jksp_rf_"+key,JSON.stringify({format:"jksp",doc:rec.doc}))}catch(e){}}catch(e){}}
+function crashClear(){try{localStorage.removeItem("jksp_crash")}catch(e){}LS.set("jksp_sess",{alive:false,t:Date.now()})}
+function crashMarkSaved(){var c=crashGet();if(c){c.dirty=false;LS.set("jksp_crash",c)}LS.set("jksp_sess",{alive:false,t:Date.now()})}
+function needsRecover(c){if(!c||!c.doc)return false;var sess=LS.get("jksp_sess",null);if(sess&&sess.alive===false&&!c.dirty)return false;return !!c.dirty||(sess&&sess.alive===true)}
+function fmtWhen(t){try{return new Date(t).toLocaleString("en-IN",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return ""+t}}
+
+function unsavedAsk(next,opt){opt=opt||{};if(!hasUnsaved()){if(next)next("ok");return}
+ modal('<div class="mt">You have unsaved changes</div><div class="ms">Save this drawing before continuing? Autosave already keeps a recovery copy if the app closes or crashes.</div>'+
+  '<div class="ms"><b>'+esc((S.meta&&S.meta.name)||"Untitled")+'</b>'+(FIO&&FIO.hname?' · file '+esc(FIO.hname):"")+'</div>'+
+  '<div class="row"><button class="bb ok" id="usSave">Save</button><button class="bb del" id="usNo">Don\'t save</button><button class="bb" id="usX">Cancel</button></div>',function(){
+  $("usX").onclick=function(){closeModal();if(opt.onCancel)opt.onCancel()};
+  $("usNo").onclick=function(){if(typeof FIO!=="undefined"&&typeof fioSig==="function")FIO.sig=fioSig();crashClear();closeModal();if(next)next("discard")};
+  $("usSave").onclick=function(){closeModal();Promise.resolve(doExplicitSave()).then(function(){if(next)next("save")})}})}
+function doExplicitSave(){autosave();crashMarkSaved();if(typeof fileSave==="function")return fileSave(false);return null}
+function newDrawingAsk(){unsavedAsk(function(){newDrawing();if(typeof FIO!=="undefined"){FIO.handle=null;FIO.hname="";FIO.sig=typeof fioSig==="function"?fioSig():null}crashClear();if(typeof startDialog==="function")startDialog()})}
+
+function recoverDialog(c){c=c||crashGet();if(!c){startDialog();return}
+ modal('<div class="mt">Recover unsaved drawing</div><div class="ms">The app closed without a confirmed Save (tab close, back, crash or battery). A recovery copy from autosave is available.</div>'+
+  '<div class="file"><div><b>'+esc(c.name||"Unsaved drawing")+'</b><small>Last autosave '+esc(fmtWhen(c.t))+(c.id?" · project "+esc(c.id):"")+'</small></div></div>'+
+  recentsHTML({skipT:c.t,skipId:c.id})+
+  '<div class="row"><button class="bb ok" id="rcYes">Restore</button><button class="bb del" id="rcNo">Discard</button><button class="bb" id="rcSkip">Start menu</button></div>',function(box){
+  $("rcYes").onclick=function(){closeModal();loadRecovered(c)};
+  $("rcNo").onclick=function(){crashClear();closeModal();startDialog()};
+  $("rcSkip").onclick=function(){closeModal();startDialog()};
+  bindRecentRows(box)})}
+function loadRecovered(c){try{var D=JSON.parse(JSON.stringify(c.doc));D.meta=Object.assign(blank().meta,D.meta||{});S=docify(D);S.furn=S.furn||[];CURID=c.id||("d"+Date.now().toString(36));UNDO=[];REDO=[];UI.chain=null;UI.chainFree=null;UI.sel=[];
+  if(typeof setClean==="function")setClean(false);fitAll();changed();DIRTY=true;autosave();updTitle();if(typeof FIO!=="undefined")FIO.sig=null;crashClear();toast("Restored autosave from "+fmtWhen(c.t))}catch(e){toast("Could not restore");startDialog()}}
+function recentsHTML(opt){opt=opt||{};var R=(typeof fioRecent==="function"?fioRecent():[]),C=crashList().filter(function(e){if(opt.skipId&&e.id===opt.skipId)return false;if(opt.skipT&&e.t===opt.skipT)return false;return true});
+ var h='<div class="ms" style="margin-top:10px"><b>Recent / recovered files</b></div>';
+ if(!R.length&&!C.length)return h+'<p class="ms">None yet.</p>';
+ h+=C.slice(0,4).map(function(e){return '<div class="file"><div><b>'+esc(e.name)+'</b><small>Recovered · '+esc(fmtWhen(e.t))+'</small></div><button class="bb pri" data-rc="'+esc(e.k)+'">Open</button></div>'}).join("");
+ h+=R.slice(0,6).map(function(e){return '<div class="file"><div><b>'+esc(e.name)+'</b><small>Recent · '+esc(fmtWhen(e.t))+'</small></div><button class="bb pri" data-rf="'+esc(e.k)+'">Open</button></div>'}).join("");
+ return h}
+function bindRecentRows(box){box.querySelectorAll("[data-rf]").forEach(function(b){b.onclick=function(){if(typeof fioOpenRecent==="function")fioOpenRecent(b.dataset.rf);else closeModal()}});
+ box.querySelectorAll("[data-rc]").forEach(function(b){b.onclick=function(){var k=b.dataset.rc,t=null;try{t=localStorage.getItem("jksp_rf_"+k)}catch(e){}
+  if(!t){toast("That recovery copy is no longer stored");return}closeModal();if(typeof fioLoad==="function")fioLoad(t,"Recovered.jksp",null);else{try{var o=JSON.parse(t);loadRecovered({doc:o.doc||o,name:"Recovered",t:Date.now()})}catch(e){toast("Could not open")}}}})}
+
+function startDialog(){if(Date.now()-(startDialog._t||0)<400)return;startDialog._t=Date.now();var L=idxList(),crash=crashGet();
+ modal('<div class="mt">JK Sketch Plan</div><div class="ms">Start a new drawing, open a saved project, or pick up a recent / recovered file.</div>'+
+  '<div class="grid2"><button class="bb ok" id="stNew">New<small>blank drawing</small></button><button class="bb pri" id="stProj">Open project<small>saved in this browser</small></button>'+
+  '<button class="bb" id="stFile">Open file<small>.jksp / .json</small></button>'+(crash&&crash.doc?'<button class="bb on" id="stRec">Recover unsaved<small>'+esc(fmtWhen(crash.t))+'</small></button>':'')+'</div>'+
+  (L.length?'<div class="ms" style="margin-top:10px"><b>Saved projects</b></div>'+L.slice(0,8).map(function(e){return '<div class="file"><div><b>'+esc(e.name)+(e.id===CURID?" (open)":"")+'</b><small>'+sq(e.area||0)+' sq.ft · '+esc(fmtWhen(e.updated))+'</small></div><button class="bb pri" data-open="'+e.id+'">Open</button></div>'}).join(""):"")+
+  recentsHTML()+
+  '<div class="row"><button class="bb" id="stX">Close</button></div>',function(box){
+  $("stNew").onclick=function(){closeModal();unsavedAsk(function(){newDrawing()})};
+  $("stProj").onclick=function(){closeModal();filesPopup()};
+  $("stFile").onclick=function(){unsavedAsk(function(){if(typeof fileOpen==="function")fileOpen()})};
+  if($("stRec"))$("stRec").onclick=function(){closeModal();recoverDialog(crash)};
+  $("stX").onclick=closeModal;
+  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){closeModal();unsavedAsk(function(){openDrawing(b.dataset.open)})}});
+  bindRecentRows(box)})}
+
+function projectPopup(){var R=typeof fioRecent==="function"?fioRecent():[],canPick=!!window.showSaveFilePicker&&!window.Android,L=idxList();
+ modal('<div class="mt">Save / Open</div><div class="ms">'+(FIO&&FIO.hname?"Current file: <b>"+esc(FIO.hname)+"</b>":"Save as a named project (this browser) or as a .jksp file.")+(hasUnsaved()?" · <b>unsaved changes</b>":"")+'</div>'+
+  '<div class="grid2"><button class="bb ok" id="fiSave">Save<small>'+(FIO&&FIO.handle?"overwrite "+esc(FIO.hname):canPick?"choose where to save":"download .jksp")+'</small></button>'+
+  '<button class="bb" id="fiSaveAs">Save As…<small>named project or new file</small></button>'+
+  '<button class="bb pri" id="fiOpen">Open file<small>.jksp / .json</small></button><button class="bb pri" id="fiProj">Open project<small>saved drawings</small></button></div>'+
+  (L.length?'<div class="ms" style="margin-top:10px"><b>Projects in this browser</b></div>'+L.slice(0,8).map(function(e){return '<div class="file"><div><b>'+esc(e.name)+(e.id===CURID?" (open)":"")+'</b><small>'+esc(fmtWhen(e.updated))+'</small></div><button class="bb pri" data-open="'+e.id+'">Open</button></div>'}).join(""):"")+
+  recentsHTML()+
+  '<div class="row"><button class="bb" id="fiX">Close</button></div>',function(box){
+  $("fiSave").onclick=function(){closeModal();doExplicitSave()};
+  $("fiSaveAs").onclick=function(){closeModal();saveAsPopup()};
+  $("fiOpen").onclick=function(){unsavedAsk(function(){if(typeof fileOpen==="function")fileOpen()})};
+  $("fiProj").onclick=function(){closeModal();filesPopup()};
+  $("fiX").onclick=closeModal;
+  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){closeModal();unsavedAsk(function(){openDrawing(b.dataset.open)})}});
+  bindRecentRows(box)})}
+function saveAsPopup(){var n=(S.meta.name||defaultName());
+ modal('<div class="mt">Save As</div><label class="fld">Project name<input id="saN" value="'+escH(n)+'"></label>'+
+  '<div class="row"><button class="bb ok" id="saProj">Save project<small>this browser</small></button><button class="bb pri" id="saFile">Save file<small>.jksp</small></button><button class="bb" id="saX">Cancel</button></div>',function(){
+  $("saX").onclick=closeModal;
+  $("saProj").onclick=function(){var nm=$("saN").value.trim()||defaultName();S.meta.name=nm;if(!CURID)CURID="d"+Date.now().toString(36);DIRTY=true;autosave();if(typeof FIO!=="undefined"&&typeof fioSig==="function")FIO.sig=fioSig();crashMarkSaved();closeModal();updTitle();toast("Saved project: "+nm)};
+  $("saFile").onclick=function(){var nm=$("saN").value.trim();if(nm)S.meta.name=nm;closeModal();if(typeof fileSave==="function")fileSave(true);crashMarkSaved()}})}
+
+/* wrap autosave / changed / init / new / back */
+var _as0=autosave;autosave=function(){if(!asOn()){asInd("off");return}asInd("saving");_as0.apply(this,arguments);crashWrite();asInd(hasUnsaved()?"unsaved":"saved")};
+var _ch0=changed;changed=function(){_ch0.apply(this,arguments);if(!asOn())asInd("off");else asInd("unsaved")};
+var ASINT=setInterval(function(){if(asOn()&&DIRTY)autosave()},15000);
+var _nd0=newDrawing;newDrawing=function(){_nd0.apply(this,arguments);if(typeof FIO!=="undefined"){FIO.handle=null;FIO.hname="";FIO.sig=typeof fioSig==="function"?fioSig():""}asInd("saved")};
+var _od0=openDrawing;openDrawing=function(id){_od0(id);if(typeof FIO!=="undefined"&&typeof fioSig==="function")FIO.sig=fioSig();asInd("saved")};
+var _ob0=onBack;onBack=function(){if(window.V3&&V3.on){close3D();return 1}if($("modal")&&$("modal").classList.contains("show")){var t=($("mbox")&&$("mbox").querySelector(".mt"));if(t&&/unsaved changes/i.test(t.textContent||""))return 1;closeModal();return 1}
+ if(UI.clean){setClean(false);return 1}if(hasUnsaved()){unsavedAsk(function(how){crashWrite();if(how==="discard")crashClear();if(window.Android&&typeof window.Android.exitApp==="function")window.Android.exitApp();else if(window.Android&&typeof window.Android.close==="function")window.Android.close()});return 1}
+ autosave();crashMarkSaved();return _ob0.apply(this,arguments)};
+window.addEventListener("beforeunload",function(e){if(!hasUnsaved())return;crashWrite();e.preventDefault();e.returnValue="";return ""});
+var _ph=function(){if(asOn()){if(DIRTY)_as0();crashWrite();if(!hasUnsaved())crashMarkSaved()}};
+window.addEventListener("pagehide",_ph);document.addEventListener("visibilitychange",function(){if(document.hidden)_ph()});
+
+var BOOTING=true,FEAT21BOOTED=false;
+function feat21Boot(){if(FEAT21BOOTED)return;FEAT21BOOTED=true;BOOTING=false;
+ asInd(asOn()?(hasUnsaved()?"unsaved":"saved"):"off");
+ var b=$("bNew");if(b)b.onclick=function(){newDrawingAsk()};
+ var tog=$("asInd");if(tog)tog.onclick=function(){asSet(!asOn());toast("Autosave "+(asOn()?"ON":"OFF"))};
+ var crash=crashGet();
+ if(needsRecover(crash)){startDialog._t=Date.now();setTimeout(function(){recoverDialog(crash)},60);return}
+ if(drawingEmpty()&&typeof startDialog==="function")setTimeout(startDialog,80)}
+var _init0=init;init=function(){_init0.apply(this,arguments);feat21Boot()};
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",feat21Boot);
+else setTimeout(feat21Boot,0);
+
+var _ra21=railAction;railAction=function(a){if(a==="new"){newDrawingAsk();return}if(a==="qty"){qtyPopup();return}if(a==="est"){estPopup();return}if(a==="fsave"){doExplicitSave();return}if(a==="fopen"){projectPopup();return}return _ra21.apply(this,arguments)};
+document.addEventListener("keydown",function(e){if(!(e.ctrlKey||e.metaKey)||e.altKey)return;if((e.key||"").toLowerCase()!=="n")return;if(window.V3&&V3.on)return;if(/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||""))return;e.preventDefault();newDrawingAsk()},true);
+
+function hookFio(){if(typeof filePopup!=="function"){setTimeout(hookFio,20);return}
+ filePopup=projectPopup;
+ var _fs=fileSave;fileSave=function(){var r=_fs.apply(this,arguments);Promise.resolve(r).then(function(){if(typeof FIO!=="undefined"&&typeof fioSig==="function")FIO.sig=fioSig();crashMarkSaved();asInd("saved")});return r}}
+setTimeout(hookFio,0);
+if(window.JKS){JKS.onBack=onBack;JKS.newDrawing=newDrawingAsk;JKS.autosave=autosave;JKS.openDrawing=openDrawing;JKS.startDialog=startDialog;JKS.qtyPopup=qtyPopup;JKS.estPopup=estPopup}
+
+/* ----- beam: Match wall chip + Auto/Manual in beam popup ----- */
+var _ucFeat=updCtx;updCtx=function(){_ucFeat.apply(this,arguments);var c=$("ctx");if(!c||UI.clean||UI.tool!=="beam")return;
+ var h=CDV+cb("bmatch","Match wall","width = wall",!UI.beamMan)+cb("bman","Manual","override",!!UI.beamMan);
+ c.insertAdjacentHTML("beforeend",h);c.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){ctxAction(b.dataset.c)}})};
+var _caFeat=ctxAction;ctxAction=function(k){
+ if(k.indexOf("bs:")===0){UI.beamMan=1;UI.beamSz=k.slice(3).split("x").map(Number);updCtx();render();return _caFeat.apply(this,arguments)}
+ if(k==="bmatch"){UI.beamMan=false;var L=typeof selOf==="function"?selOf("beam"):[];L.forEach(function(m){delete m.wov;var th=wallThAlong(m.a,m.b);if(th)m.w=th});changed();updCtx();toast("Beam width matches the wall");return}
+ if(k==="bman"){UI.beamMan=true;updCtx();toast("New beams use the typed width");return}
+ return _caFeat.apply(this,arguments)};
+(function(){var _bp=beamPopup;beamPopup=function(){var sel=typeof selOf==="function"?selOf("beam"):[],m0=sel[0];
+ _bp.apply(this,arguments);setTimeout(function(){var box=$("mbox");if(!box||!box.querySelector("#bw"))return;
+  var bar=document.createElement("div");bar.className="ms";bar.innerHTML='<b>Width:</b> <label><input type="radio" name="bautoW" value="a" '+(UI.beamMan?"":"checked")+'> Auto (match wall)</label> · <label><input type="radio" name="bautoW" value="m" '+(UI.beamMan?"checked":"")+'> Manual override</label>';
+  var g=box.querySelector(".grid2");if(g)g.parentNode.insertBefore(bar,g);
+  var ok=$("bOk");if(!ok)return;var prev=ok.onclick;ok.onclick=function(){var r=document.querySelector('input[name="bautoW"]:checked');UI.beamMan=r&&r.value==="m";
+   if(!UI.beamMan){var L=document.querySelector('input[name="scp"]:checked');var sc=L?L.value:"all";var list=sc==="sel"?sel:sc==="all"?S.L.reduce(function(a,Lv){return a.concat(Lv.beams||[])},[]):[];
+    list.forEach(function(m){delete m.wov;var th=wallThAlong(m.a,m.b);if(th)m.w=th})}else{var list2=(document.querySelector('input[name="scp"]:checked')||{}).value==="sel"?sel:S.L.reduce(function(a,Lv){return a.concat(Lv.beams||[])},[]);list2.forEach(function(m){m.wov=1})}
+   if(prev)prev()};},0)};})();
+
+/* ===== quantities ===== */
+function cuFt(v){return Math.round(v*100)/100}
+function sqFt(v){return Math.round(v*10)/10}
+function kgR(v){return Math.round(v*10)/10}
+function qtySteel(){var kg=0,note=[];
+ S.L.forEach(function(Lv,i){withLevel(i,function(){
+  (S.cols||[]).forEach(function(c){var r=colRB(c),H=Lv.h+(i===0?(ftgOf(c).dep||5):0),lenM=H*0.3048,main=r.n*lenM*kgm(r.dia),peri=2*(c.w+c.d)/39.37,ties=Math.max(1,Math.ceil(H*304.8/r.sp))*(peri+0.05)*kgm(r.tie);kg+=main+ties});
+  (S.beams||[]).forEach(function(m){var r=beamRB(m),L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),Lm=L*0.3048,main=(r.top*kgm(r.td)+r.bot*kgm(r.bd))*Lm,stirr=Math.max(1,Math.ceil(L*304.8/r.sp))*(2*(m.w+m.d)/39.37+0.05)*kgm(r.st);kg+=main+stirr});
+  if(i===0)(S.cols||[]).forEach(function(c){var f=ftgOf(c),nx=Math.max(2,Math.ceil(f.l*304.8/f.sp)+1),ny=Math.max(2,Math.ceil(f.w*304.8/f.sp)+1);kg+=nx*(f.w*0.3048)*kgm(f.dia)+ny*(f.l*0.3048)*kgm(f.dia)});
+  var RI=roomsInfo(),sr=slabRB();RI.faces.forEach(function(f){var a=f.carpet!=null?f.carpet:f.area,md=sr.md,ms=sr.ms/1000,dd=sr.dd,ds=sr.ds/1000;kg+=(a*0.092903)*(kgm(md)/ms+kgm(dd)/ds)})})});
+ return kg}
+function qtyBuild(){var wallL=0,wallA=0,wallV=0,brick=0,opA=0,doors=0,wins=0,rails=0,floorA=0,wallTile=0,paintW=0,paintC=0,ftgN=0,ftgExc=0,ftgConc=0,colV=0,beamV=0,slabV=0,slabA=0,cent=0,wireL=0,ductL=0,pipeL=0,ePts=0,mPts=0,pPts=0,furnN=0,rooms=[];
+ S.L.forEach(function(Lv,i){withLevel(i,function(){var H=Lv.h,sl=(Lv.slab||5)/12,RI=roomsInfo();
+  (S.segs||[]).forEach(function(s){var L=segLen(s),t=wallT(s);wallL+=L;wallA+=L*H;wallV+=L*t*H;brick+=L*t*H});
+  (S.ops||[]).forEach(function(o){var w=o.w||3,h=opH(o);opA+=w*h;if(o.type==="D")doors++;else wins++;wallA=Math.max(0,wallA-w*h);paintW=paintW});
+  (S.rails||[]).forEach(function(m){rails+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
+  RI.faces.forEach(function(f){var a=f.carpet!=null?f.carpet:f.area,per=0;for(var k=0;k<f.pts.length;k++){var p=f.pts[k],q=f.pts[(k+1)%f.pts.length];per+=Math.hypot(q.x-p.x,q.y-p.y)}floorA+=a;paintC+=a;paintW+=per*(H-sl);wallTile+=per*4;slabA+=a;slabV+=a*sl;cent+=a+per*(H*0.15);
+   rooms.push({name:(S.L.length>1?Lv.name+": ":"")+(f.labels[0]?f.labels[0].name:"Room"),area:sqFt(a),level:Lv.name})});
+  (S.cols||[]).forEach(function(c){var w=c.w/12,d=c.d/12;colV+=w*d*H;cent+=2*(w+d)*H;if(i===0){var f=ftgOf(c),fw=f.w,fl=f.l,ft=f.t,dep=f.dep;ftgN++;ftgExc+=fw*fl*dep;ftgConc+=fw*fl*ft;cent+=2*(fw+fl)*ft}});
+  (S.beams||[]).forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),w=m.w/12,d=m.d/12;beamV+=L*w*d;cent+=L*(w+2*d)});
+  (S.ewires||[]).forEach(function(m){wireL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
+  (S.ducts||[]).forEach(function(m){ductL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
+  (S.plines||[]).forEach(function(m){pipeL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
+  ePts+=(S.elec||[]).length;mPts+=(S.mech||[]).length;pPts+=(S.plumb||[]).length;furnN+=(S.furn||[]).length})});
+ if(typeof roofPlanPoly==="function"){var RP=roofPlanPoly();if(RP&&RP.length>=3){var ra=Math.abs(polyArea(RP)),th=((S.L[topLevel()]||{}).slab||5)/12;if(ra>slabA){slabA=ra;slabV=ra*th}}}
+ var steel=qtySteel();
+ function row(id,name,unit,qty,note){return {id:id,name:name,unit:unit,qty:+(+qty).toFixed(2),note:note||""}}
+ return {rooms:rooms,sections:[
+  {id:"ftg",name:"Footing",rows:[row("ftg_n","Footings (nos)","nos",ftgN),row("ftg_exc","Excavation","cu.ft",ftgExc,"size × depth"),row("ftg_pcc","PCC bed (assumed 3\")","cu.ft",ftgN?ftgExc*0.05:0),row("ftg_rcc","RCC footing concrete","cu.ft",ftgConc)]},
+  {id:"conc",name:"Concrete (RCC)",rows:[row("c_ftg","Footing","cu.ft",ftgConc),row("c_col","Column","cu.ft",colV),row("c_beam","Beam","cu.ft",beamV),row("c_slab","Slab / roof (incl. overhang)","cu.ft",slabV),row("c_tot","Total RCC","cu.ft",ftgConc+colV+beamV+slabV)]},
+  {id:"cent",name:"Centering / shuttering",rows:[row("cent","Shuttering area","sq.ft",cent,"footing + column + beam + slab") ]},
+  {id:"stl",name:"Steel / reinforcement",rows:[row("stl","Rebar (from Kambi data)","kg",steel,"columns, beams, footing mesh, slab")]},
+  {id:"wall",name:"Walls / brickwork",rows:[row("w_len","Wall length","ft",wallL),row("w_area","Wall area (gross)","sq.ft",wallA),row("w_vol","Brickwork volume","cu.ft",brick)]},
+  {id:"tile",name:"Tiles",rows:[row("t_flr","Floor tiles","sq.ft",floorA,"per room carpet"),row("t_wall","Wall tiles (dado ~4')","sq.ft",wallTile)]},
+  {id:"paint",name:"Painting",rows:[row("p_wall","Wall painting","sq.ft",paintW),row("p_ceil","Ceiling painting","sq.ft",paintC)]},
+  {id:"op",name:"Doors / windows / rails",rows:[row("doors","Doors","nos",doors),row("wins","Windows / vents","nos",wins),row("rails","Handrails","ft",rails)]},
+  {id:"mep",name:"Electrical / MEP",rows:[row("e_pts","Electrical points","nos",ePts),row("e_wire","Wiring length","ft",wireL),row("m_pts","Mechanical units","nos",mPts),row("m_duct","Duct length","ft",ductL),row("p_pts","Plumbing fixtures","nos",pPts),row("p_pipe","Pipe length","ft",pipeL)]},
+  {id:"furn",name:"Furniture",rows:[row("furn","Furniture / fixtures","nos",furnN)]}
+ ]}}
+function qtyFlat(Q){var o={};(Q.sections||[]).forEach(function(s){(s.rows||[]).forEach(function(r){o[r.id]=r})});return o}
+
+function qtyTableHTML(Q){var h='<table class="qtbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Notes</th></tr></thead><tbody>';
+ Q.sections.forEach(function(s){h+='<tr class="qh"><td colspan="4">'+esc(s.name)+'</td></tr>';s.rows.forEach(function(r){h+='<tr><td>'+esc(r.name)+'</td><td class="qn">'+r.qty+'</td><td>'+esc(r.unit)+'</td><td class="ms">'+esc(r.note||"")+'</td></tr>'})});
+ if(Q.rooms&&Q.rooms.length){h+='<tr class="qh"><td colspan="4">Flooring per room</td></tr>';Q.rooms.forEach(function(r){h+='<tr><td>'+esc(r.name)+'</td><td class="qn">'+r.area+'</td><td>sq.ft</td><td>'+esc(r.level||"")+'</td></tr>'})}
+ return h+'</tbody></table>'}
+function qtyCSV(Q){var lines=[["Section","Item","Qty","Unit","Notes"].join(",")];
+ Q.sections.forEach(function(s){s.rows.forEach(function(r){lines.push([csvQ(s.name),csvQ(r.name),r.qty,csvQ(r.unit),csvQ(r.note||"")].join(","))})});
+ (Q.rooms||[]).forEach(function(r){lines.push([csvQ("Flooring"),csvQ(r.name),r.area,"sq.ft",csvQ(r.level||"")].join(","))});
+ return "\ufeff"+lines.join("\n")}
+function csvQ(s){s=String(s==null?"":s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+function qtyXLS(title,head,rows){var h='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>'+esc(title)+'</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1"><tr>'+head.map(function(c){return "<th>"+esc(c)+"</th>"}).join("")+"</tr>";
+ rows.forEach(function(r){h+="<tr>"+r.map(function(c){return "<td>"+esc(c)+"</td>"}).join("")+"</tr>"});return h+"</table></body></html>"}
+function qtyPDF(title,head,rows){var d=new Dwg();frame(d,title,(S.meta.name||"Drawing")+" · "+(S.meta.owner||""));
+ var y=40,cols=head.map(function(c,i){return [c,i===0?90:(i===head.length-1?70:40)]}),chunk=32,i=0;
+ while(i<rows.length){var part=rows.slice(i,i+chunk).map(function(r){return r.slice()});y=table(d,20,y,cols,part,{rh:5.2});i+=chunk;if(i<rows.length){y+=8;if(y>250){d.text(20,y,"(continued in CSV / Excel export for the full list)",2.4,{c:"#555"});break}}}
+ saveFile(fname("pdf").replace(/\.pdf$/,"_"+(title.replace(/\s+/g,"_"))+".pdf"),new Blob([bin(toPDF(d,S.meta.paper||"A3"))],{type:"application/pdf"}),"application/pdf")}
+function qtyPopup(){var Q=qtyBuild();
+ modal('<div class="mt">Quantity takeoff</div><div class="ms">Lengths, areas and volumes from the drawing (ft-in / cu.ft). Roof overhang and MEP runs are included.</div><div class="qwrap">'+qtyTableHTML(Q)+'</div>'+
+  '<div class="row"><button class="bb" id="qCsv">CSV</button><button class="bb" id="qXls">Excel</button><button class="bb" id="qPdf">PDF</button><button class="bb ok" id="qEst">Estimate</button><button class="bb" id="qX">Close</button></div>',function(){
+  $("qX").onclick=closeModal;$("qEst").onclick=function(){closeModal();estPopup()};
+  $("qCsv").onclick=function(){saveFile(fname("csv").replace(/\.csv$/,"_qty.csv"),new Blob([qtyCSV(Q)],{type:"text/csv"}),"text/csv")};
+  $("qXls").onclick=function(){var rows=[];Q.sections.forEach(function(s){s.rows.forEach(function(r){rows.push([s.name,r.name,r.qty,r.unit,r.note||""])})});saveFile(fname("xls").replace(/\.xls$/,"_qty.xls"),new Blob([qtyXLS("Quantities",["Section","Item","Qty","Unit","Notes"],rows)],{type:"application/vnd.ms-excel"}),"application/vnd.ms-excel")};
+  $("qPdf").onclick=function(){var rows=[];Q.sections.forEach(function(s){rows.push({0:s.name,1:"",2:"",3:"",bold:true});s.rows.forEach(function(r){rows.push([r.name,r.qty,r.unit,r.note||""])})});qtyPDF("Quantity takeoff",["Item","Qty","Unit","Notes"],rows)}});
+ $("mbox").classList.add("wide")}
+
+/* ===== cost estimate (INR) ===== */
+var EST_TPL_DEFAULT=[
+ {sec:"Footing",id:"ftg_exc",name:"Earthwork excavation",unit:"cu.ft",rate:28,src:"ftg_exc"},
+ {sec:"Footing",id:"ftg_pcc",name:"PCC 1:4:8 under footing",unit:"cu.ft",rate:160,src:"ftg_pcc"},
+ {sec:"Footing",id:"ftg_rcc",name:"RCC footing M20",unit:"cu.ft",rate:280,src:"ftg_rcc"},
+ {sec:"Concrete",id:"c_col",name:"RCC column M20",unit:"cu.ft",rate:310,src:"c_col"},
+ {sec:"Concrete",id:"c_beam",name:"RCC beam M20",unit:"cu.ft",rate:300,src:"c_beam"},
+ {sec:"Concrete",id:"c_slab",name:"RCC slab / roof M20",unit:"cu.ft",rate:290,src:"c_slab"},
+ {sec:"Centering",id:"cent",name:"Centering / shuttering",unit:"sq.ft",rate:48,src:"cent"},
+ {sec:"Steel",id:"stl",name:"TMT steel (from Kambi)",unit:"kg",rate:82,src:"stl"},
+ {sec:"Brickwork",id:"w_vol",name:"Brickwork in CM",unit:"cu.ft",rate:145,src:"w_vol"},
+ {sec:"Tiles",id:"t_flr",name:"Floor tiles laid",unit:"sq.ft",rate:95,src:"t_flr"},
+ {sec:"Tiles",id:"t_wall",name:"Wall tiles (dado)",unit:"sq.ft",rate:85,src:"t_wall"},
+ {sec:"Electrical",id:"e_pts",name:"Electrical points",unit:"nos",rate:480,src:"e_pts"},
+ {sec:"Electrical",id:"e_wire",name:"Concealed wiring",unit:"ft",rate:42,src:"e_wire"},
+ {sec:"Painting",id:"p_wall",name:"Wall painting (2 coats)",unit:"sq.ft",rate:18,src:"p_wall"},
+ {sec:"Painting",id:"p_ceil",name:"Ceiling painting",unit:"sq.ft",rate:16,src:"p_ceil"},
+ {sec:"Openings",id:"wins",name:"Windows",unit:"nos",rate:6500,src:"wins"},
+ {sec:"Openings",id:"doors",name:"Doors",unit:"nos",rate:9500,src:"doors"},
+ {sec:"Rails",id:"rails",name:"Handrails (running length)",unit:"ft",rate:380,src:"rails"}
+];
+function inr(n){n=Math.round(+n||0);var neg=n<0;n=Math.abs(n);var s=String(n),last=s.slice(-3),rest=s.slice(0,-3);if(rest)rest=rest.replace(/\B(?=(\d{2})+(?!\d))/g,",");return (neg?"-":"")+"₹"+(rest?rest+","+last:last)}
+function estTplLoad(){var t=LS.get("jksp_est_tpl",null);if(Array.isArray(t)&&t.length)return t.map(function(x){return Object.assign({},x)});return EST_TPL_DEFAULT.map(function(x){return Object.assign({},x)})}
+function estTplSave(tpl){LS.set("jksp_est_tpl",tpl)}
+function estLinesFrom(Q,tpl,saved){var map=qtyFlat(Q),used={};var lines=(saved&&saved.lines&&saved.lines.length?saved.lines:tpl).map(function(L,i){var q=L.qty;if(L.src&&map[L.src]&&(saved&&saved.lockQty&&saved.lockQty[L.id||L.src]))q=L.qty;
+  else if(L.src&&map[L.src])q=map[L.src].qty;var rate=+L.rate||0;q=+q||0;used[L.src||L.id]=1;return {id:L.id||L.src||("x"+i),sec:L.sec||"Other",name:L.name,unit:L.unit||"",qty:q,rate:rate,src:L.src||"",amt:q*rate}});
+ return lines}
+function estTotals(lines){var sec={},g=0;lines.forEach(function(L){sec[L.sec]=(sec[L.sec]||0)+L.amt;g+=L.amt});return {sec:sec,g:g}}
+function estState(){S.meta.est=S.meta.est||{lines:null,lockQty:{}};return S.meta.est}
+function estPopup(){var Q=qtyBuild(),tpl=estTplLoad(),st=estState(),lines=estLinesFrom(Q,tpl,st);
+ function body(){var T=estTotals(lines),h='<div class="mt">Cost estimate (INR)</div><div class="ms">Amount = qty × rate. Edit rates or quantities, add or remove lines, then save as the template for later drawings.</div><div class="qwrap"><table class="qtbl est"><thead><tr><th></th><th>Item</th><th>Qty</th><th>Unit</th><th>Rate ₹</th><th>Amount ₹</th></tr></thead><tbody>';
+  var last="";lines.forEach(function(L,i){if(L.sec!==last){last=L.sec;h+='<tr class="qh"><td colspan="5">'+esc(L.sec)+'</td><td class="qn">'+inr(T.sec[L.sec]||0)+'</td></tr>'}
+   h+='<tr data-i="'+i+'"><td><button class="bb del qdel" data-i="'+i+'">×</button></td><td><input class="en" value="'+escH(L.name)+'"></td><td><input class="eq" type="number" step="0.01" value="'+L.qty+'"></td><td><input class="eu" value="'+escH(L.unit)+'"></td><td><input class="er" type="number" step="1" value="'+L.rate+'"></td><td class="qn">'+inr(L.amt)+'</td></tr>'});
+  h+='<tr class="qh"><td colspan="5">Grand total</td><td class="qn">'+inr(T.g)+'</td></tr></tbody></table></div>';
+  h+='<div class="ms" style="font-size:17px;font-weight:800;text-align:right;margin:4px 0 8px">Grand total '+inr(T.g)+'</div>';
+  h+='<div class="row"><button class="bb" id="eAdd">+ Line</button><button class="bb" id="eTpl">Save as template</button><button class="bb" id="eRst">Reset rates</button></div>';
+  h+='<div class="row"><button class="bb" id="eCsv">CSV</button><button class="bb" id="eXls">Excel</button><button class="bb" id="ePdf">PDF</button><button class="bb ok" id="eOk">Save in project</button><button class="bb" id="eX">Close</button></div>';
+  return h}
+ function read(){var rows=$("mbox").querySelectorAll("tr[data-i]");rows.forEach(function(tr){var i=+tr.dataset.i,L=lines[i];if(!L)return;L.name=tr.querySelector(".en").value;L.qty=+tr.querySelector(".eq").value||0;L.unit=tr.querySelector(".eu").value;L.rate=+tr.querySelector(".er").value||0;L.amt=L.qty*L.rate})}
+ function re(){read();$("mbox").innerHTML=body();bind()}
+ function bind(){$("eX").onclick=closeModal;$("eAdd").onclick=function(){read();lines.push({id:"c"+Date.now(),sec:"Extra",name:"New item",unit:"nos",qty:1,rate:0,src:"",amt:0});re()};
+  $("mbox").querySelectorAll(".qdel").forEach(function(b){b.onclick=function(){read();lines.splice(+b.dataset.i,1);re()}});
+  $("mbox").querySelectorAll(".eq,.er,.en,.eu").forEach(function(inp){inp.onchange=function(){re()}});
+  $("eTpl").onclick=function(){read();estTplSave(lines.map(function(L){return {sec:L.sec,id:L.id,name:L.name,unit:L.unit,rate:L.rate,src:L.src}}));toast("Template saved — later drawings reuse these rates")};
+  $("eRst").onclick=function(){tpl=EST_TPL_DEFAULT.map(function(x){return Object.assign({},x)});lines=estLinesFrom(Q,tpl,null);re()};
+  $("eOk").onclick=function(){read();snapshot();S.meta.est={lines:lines,lockQty:{}};lines.forEach(function(L){S.meta.est.lockQty[L.id]=1});closeModal();changed();toast("Estimate saved with the project · "+inr(estTotals(lines).g))};
+  $("eCsv").onclick=function(){read();var t=estTotals(lines),out=["Section,Item,Qty,Unit,Rate INR,Amount INR"];lines.forEach(function(L){out.push([csvQ(L.sec),csvQ(L.name),L.qty,csvQ(L.unit),L.rate,Math.round(L.amt)].join(","))});out.push(["","","","","Grand total",Math.round(t.g)].join(","));saveFile(fname("csv").replace(/\.csv$/,"_estimate.csv"),new Blob(["\ufeff"+out.join("\n")],{type:"text/csv"}),"text/csv")};
+  $("eXls").onclick=function(){read();var t=estTotals(lines),rows=lines.map(function(L){return [L.sec,L.name,L.qty,L.unit,L.rate,Math.round(L.amt)]});rows.push(["","","","","Grand total",Math.round(t.g)]);saveFile(fname("xls").replace(/\.xls$/,"_estimate.xls"),new Blob([qtyXLS("Estimate",["Section","Item","Qty","Unit","Rate INR","Amount INR"],rows)],{type:"application/vnd.ms-excel"}),"application/vnd.ms-excel")};
+  $("ePdf").onclick=function(){read();var t=estTotals(lines),rows=[];var last="";lines.forEach(function(L){if(L.sec!==last){last=L.sec;rows.push({0:L.sec,1:"",2:"",3:"",4:inr(t.sec[L.sec]||0),bold:true})}rows.push([L.name,L.qty,L.unit,L.rate,inr(L.amt)])});rows.push({0:"GRAND TOTAL",1:"",2:"",3:"",4:inr(t.g),bold:true});qtyPDF("Cost estimate (INR)",["Item","Qty","Unit","Rate","Amount"],rows)};
+ }
+ modal(body(),bind);$("mbox").classList.add("wide")}
 
 /* ================= JK Sketch Plan Web - IFC / DXF import (parsers -> neutral model in feet) =================
    Model: {src, units, levels:[{name,elev,h,walls:[{a:{x,y},b:{x,y},th,h,name}],ops:[{x,y,w,h,sill,type,dk,name,host}]}], skipped:{reason:count}, notes:[]}
