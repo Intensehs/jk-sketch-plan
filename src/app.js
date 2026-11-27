@@ -1,5 +1,5 @@
-/* ================= JK Sketch Plan - hand drawing house plan ================= */
-var APP="JK Sketch Plan",SUBT="JK Construction - Hand Drawing House Plan",VERSION="2.1";
+/* ================= CTAK BIM Module - hand drawing house plan ================= */
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.1";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -35,7 +35,7 @@ var UI={tool:"draw",ortho:90,grid:1,penOnly:false,penSeen:false,kind:"O",chainOn
 var UNDO=[],REDO=[],CURID=null,SAVET=null,DIRTY=false;
 
 /* Stage: New drawing - empty plan, no tool-specific data yet (Wall tool active) */
-function blank(){return docify({v:1,nid:1,pts:[],segs:[],labels:[],ops:[],furn:[],meta:{name:"",owner:"",site:"",date:today(),dbl:true,tout:9,tin:4.5,paper:"A3",proj:"",ttl:"Ground Floor Plan",dno:"A101",drawn:"JK Construction",chk:"",revs:""}})}
+function blank(){return docify({v:1,nid:1,pts:[],segs:[],labels:[],ops:[],furn:[],meta:{name:"",owner:"",site:"",date:today(),dbl:true,tout:9,tin:4.5,paper:"A3",proj:"",ttl:"Ground Floor Plan",dno:"A101",drawn:"CTAK Construction",chk:"",revs:""}})}
 function nid(){return S.nid++}
 function pt(id){for(var i=0;i<S.pts.length;i++)if(S.pts[i].id===id)return S.pts[i];return null}
 function segById(id){for(var i=0;i<S.segs.length;i++)if(S.segs[i].id===id)return S.segs[i];return null}
@@ -630,7 +630,7 @@ function detailsPopup(){var m=S.meta;
   $("dDbl").onclick=function(){dbl=true;$("dDbl").classList.add("on");$("dSgl").classList.remove("on")};$("dSgl").onclick=function(){dbl=false;$("dSgl").classList.add("on");$("dDbl").classList.remove("on")};
   $("dX").onclick=closeModal;$("dOk").onclick=function(){snapshot();m.name=$("dN").value.trim()||defaultName();m.owner=$("dO").value.trim();m.site=$("dS").value.trim();m.date=$("dD").value||today();m.dbl=dbl;m.proj=$("dPr").value.trim();m.ttl=$("dTt").value.trim()||"Ground Floor Plan";m.dno=$("dNo").value.trim()||"A101";m.drawn=$("dBy").value.trim();m.chk=$("dCk").value.trim();m.revs=$("dRv").value;
    var to=parseFloat($("dTo").value),ti=parseFloat($("dTi").value);if(to>0&&to<36)m.tout=to;if(ti>0&&ti<36)m.tin=ti;m.paper=$("dP").value;var wh=parseFloat($("dWh").value);if(wh>=7&&wh<=30){m.wh=wh;curLv().h=wh}closeModal();changed();updTitle()}})}
-function helpPopup(){modal('<div class="mt">How to use</div><div class="ms" style="font-size:15px;line-height:1.5">'+
+function helpPopup(){modal('<div class="mt">'+esc(APP)+'</div><div class="ms">'+esc(SUBT)+' · v'+esc(VERSION)+'</div><div class="ms" style="font-size:15px;line-height:1.5">'+
  '<b>Draw</b>: drag the pen / finger along a wall. The length in feet shows on the line while you draw (1 grid = 1 ft). Lines snap straight (90°). Lift and drag again from the end to continue. A rough hand stroke with corners becomes straight walls.<br>'+
  '<b>Tap-tap</b>: in Draw, tap a point then tap the next corner.<br><b>Close</b> joins the last point to the first. <b>New line</b> starts a separate wall (inside walls).<br>'+
  '<b>Size</b>: tap a wall and type the real feet / inches. Connected walls move with it.<br><b>Room</b>: tap inside a closed room and pick the name - area and size are shown.<br>'+
