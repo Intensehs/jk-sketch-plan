@@ -36,6 +36,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#fff;font-family:Robot
 #stage{grid-area:stage;position:relative;overflow:hidden;background:#fff}
 #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 #hud{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#e8590c;color:#fff;font-weight:700;font-size:26px;padding:4px 16px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.25);pointer-events:none;display:none;white-space:nowrap}
+#dimtip{position:absolute;pointer-events:none;display:none;background:#e8590c;color:#fff;font-weight:700;font-size:18px;padding:5px 10px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.28);white-space:nowrap;z-index:6;transform:translate(-50%,-130%);letter-spacing:.2px}
 #info{position:absolute;left:8px;bottom:8px;background:rgba(255,255,255,.92);border:1px solid #d5deea;border-radius:10px;padding:4px 10px;font-size:13px;pointer-events:none;max-width:70%}
 #hint{position:absolute;left:8px;bottom:42px;text-align:left;background:rgba(22,54,92,.88);color:#fff;border-radius:10px;padding:4px 10px;font-size:12px;pointer-events:none;max-width:80%}
 #tools{grid-area:tools;min-width:0;display:flex;justify-content:space-around;gap:2px;padding:4px 2px calc(4px + env(safe-area-inset-bottom));background:#16365c}
@@ -160,10 +161,8 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #brand small{display:none}
 #brand i{font-size:11px;color:var(--ink2);font-style:normal;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #lvBadge{background:var(--accs);color:var(--acc);border-radius:4px;padding:0 5px;margin-left:5px;font-size:10.5px;font-weight:600}
-#tabs{display:flex;gap:0;align-self:stretch;margin:0;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
+#tabs{display:flex;gap:0;align-self:stretch;margin:0 0 0 14px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
-#qtabs{display:flex;flex:0 0 auto;align-self:stretch;align-items:stretch;margin:0 0 0 4px;border-right:1px solid var(--line)}
-#qtabs .tab{font-weight:650;color:var(--acc)}
 .tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--ink2);font-size:12.5px;font-weight:550;padding:0 11px;border-radius:0;height:100%;cursor:pointer;white-space:nowrap;letter-spacing:.1px}
 .tab:hover{color:var(--ink)}
 .tab.on{background:transparent;color:var(--acc);border-bottom-color:var(--acc);font-weight:650}
@@ -296,7 +295,7 @@ html,body{font-family:"Inter","Roboto","Noto Sans","Noto Sans Tamil",system-ui,-
 #v3rail .tool span{font-size:9px;max-width:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fxBar .tb{width:auto;height:40px;min-width:36px}
 #tools .rph{flex:0 0 auto}
-@media (max-width:600px){#tabs{min-width:0;margin-left:0}#qtabs{margin-left:2px}#qtabs .tab{padding:0 8px}#brand{max-width:36px}#btxt{display:none}#tbar{flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}#tbar::-webkit-scrollbar{display:none}.tb,#top .tb{min-width:32px;flex:0 0 auto}}
+@media (max-width:600px){#tabs{min-width:120px;margin-left:4px;flex:1 1 auto}#brand{max-width:36px}#btxt{display:none}#tbar{flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}#tbar::-webkit-scrollbar{display:none}.tb,#top .tb{min-width:32px;flex:0 0 auto}.tab{padding:0 7px;font-size:11px}#dimtip{font-size:16px;padding:4px 9px}}
 /* ===== Classic dark theme (vintage charcoal + brass). Light theme above is unchanged and the default. ===== */
 [data-theme=dark]{--ink:#e8e2d6;--ink2:#bdb3a2;--ink3:#8c8273;--line:#3a352f;--bg:#1d1b19;--acc:#c9a45c;--accs:#3a3226;--brand:#7a4e2d;--ok:#7fa36a;--bad:#d0705a;color-scheme:dark}
 html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)}
@@ -304,7 +303,6 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 [data-theme=dark] #bmark{background:#e4e4e4;box-shadow:none}
 [data-theme=dark] #brand b{color:#efe7d6;font-family:Georgia,"Times New Roman",serif;letter-spacing:.3px}
 [data-theme=dark] .tab{color:var(--ink2)}[data-theme=dark] .tab:hover{color:var(--ink)}[data-theme=dark] .tab.on{color:#d9b46a;border-bottom-color:#c9a45c}
-[data-theme=dark] #qtabs{border-right-color:#3a352f}[data-theme=dark] #qtabs .tab{color:#d9b46a}
 [data-theme=dark] .tb,[data-theme=dark] #top .tb,[data-theme=dark] #fxBar .tb{color:var(--ink2)}
 [data-theme=dark] .tb:hover,[data-theme=dark] #tools .tool:hover,[data-theme=dark] #tools .tool.act:hover,[data-theme=dark] .cb:hover{background:#2f2b27;color:var(--ink)}
 [data-theme=dark] .tb.on,[data-theme=dark] #tools .tool.on,[data-theme=dark] #v3rail .tool.on{background:#3a3226;color:#e0bd72;box-shadow:inset 0 0 0 1px #6b5733}
@@ -363,7 +361,6 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
 <div id="app">
  <div id="top">
   <div id="brand"><span id="bmark"><img src="icons/header-logo.png" alt=""></span><span id="btxt"><b>CTAK BIM Module</b><i><span id="dname"></span><span id="lvBadge"></span></i></span></div>
-  <div id="qtabs"></div>
   <div id="tabs"></div>
   <div id="tbar">
   <button class="tb" id="bNew" title="New drawing · Ctrl+N" data-tip="New">__newfile__<span>New</span></button>
@@ -389,7 +386,7 @@ html[data-theme=dark],[data-theme=dark] body{background:#121212;color:var(--ink)
   </div>
  </div>
  <div id="ctx"></div>
- <div id="stage"><canvas id="cv"></canvas><div id="hud"></div><div id="info"></div><div id="hint"></div><div id="fxBar"><button class="tb" id="fxUndo" title="Undo">__undo__<span>Undo</span></button><button class="tb" id="fxRedo" title="Redo">__redo__<span>Redo</span></button><button class="tb" id="fxFit" title="Fit">__fit__<span>Fit</span></button><button class="tb" id="fxExit" title="Exit focus mode">__unfocus__<span>Exit</span></button></div></div>
+ <div id="stage"><canvas id="cv"></canvas><div id="hud"></div><div id="dimtip"></div><div id="info"></div><div id="hint"></div><div id="fxBar"><button class="tb" id="fxUndo" title="Undo">__undo__<span>Undo</span></button><button class="tb" id="fxRedo" title="Redo">__redo__<span>Redo</span></button><button class="tb" id="fxFit" title="Fit">__fit__<span>Fit</span></button><button class="tb" id="fxExit" title="Exit focus mode">__unfocus__<span>Exit</span></button></div></div>
  <div id="tools"></div>
  <div id="props"></div>
 </div>

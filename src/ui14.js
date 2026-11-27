@@ -80,9 +80,7 @@ TABS={};Object.keys(PANELS).forEach(function(k){TABS[k]=[PANELS[k][0],panelTools
 function tabOf(t){return Object.keys(PANELS).find(function(k){return TABS[k][1].indexOf(t)>=0})}
 function showTool(t){var k=tabOf(t);if(k&&UI.tab!==k){UI.tab=k;buildRail()}return k}
 function buildTabs(){var t=$("tabs");t.innerHTML=Object.keys(PANELS).map(function(k){return '<button class="tab" data-tab="'+k+'">'+PANELS[k][0]+'</button>'}).join("");
- t.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){UI.tab=b.dataset.tab;buildRail();var L=TABS[UI.tab][1].filter(function(x){return x.indexOf("a:")<0});if(UI.tab!=="view"&&L.indexOf(UI.tool)<0&&L.length)setTool(L[0]);else{markRail();updCtx()}}});
- var q=$("qtabs");if(q){q.innerHTML='<button class="tab qtab" data-a="qty" title="Quantity takeoff">Qty</button><button class="tab qtab" data-a="est" title="Cost estimate (INR)">Estimate</button>';
-  q.querySelectorAll("[data-a]").forEach(function(b){b.onclick=function(){if(typeof railAction==="function")railAction(b.dataset.a)}})}}
+ t.querySelectorAll("[data-tab]").forEach(function(b){b.onclick=function(){UI.tab=b.dataset.tab;buildRail();var L=TABS[UI.tab][1].filter(function(x){return x.indexOf("a:")<0});if(UI.tab!=="view"&&UI.tab!=="qty"&&L.indexOf(UI.tool)<0&&L.length)setTool(L[0]);else{markRail();updCtx()}}})}
 /* Toolbar labels: short name shown under each rail icon (full name stays in the tooltip) */
 var RLAB={"a:fsave":"Save","a:fopen":"Open","a:vg":"Visibility","a:found":"Footing","a:ccopy":"Clip Copy","a:cpaste":"Paste",trim:"Trim",move:"Corners",wall:"Match",dline:"Detail",spot:"Spot","a:thin":"Thin","a:pdf":"PDF","a:elev":"Elev","a:plan":"Plan",furn:"Comp.",dim:"Dim","a:rtag":"Room Tag","a:v3d":"3D View","a:levels":"Level","a:xmir":"Mirror","a:xarr":"Array","a:xpin":"Pin","a:xrot":"Rotate","a:xcopy":"Copy","a:xmove":"Move","a:sheets":"Sheets","a:import":"Import","a:ceil":"Ceiling","a:area":"Area","a:tag":"Tag"};
 function railBtn(it){var d=TD14[it]||[it,"","draw"],tip=' title="'+escH(d[0]+(d[1]?" - "+d[1]:""))+'" data-tip="'+escH(d[0])+'" data-tips="'+escH(d[1])+'"';
@@ -113,7 +111,8 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
   h='<span class="ctl">'+svgI("sheets")+'Sheets</span>'+cbI("back","back","Back to drawing","",true)+cbI("pdf","pdf","PDF","all sheets")+cbI("dxf","dxf","DXF","this sheet")+cbI("png","img","PNG")+cbI("det","edit","Details","title block")+CDV+cb("pg1","Plan","Sheet 1",/^plan/.test(cur))+cb("pg2","Door & Window","details",cur==="dw")+
    L.filter(function(s){return s.key!=="dw"&&s.key!=="plan0"}).map(function(s){return cb("sh:"+s.key,esc(s.no)+" <span style=\"font-weight:400;color:#64748b\">"+esc(s.short)+"</span>","",s.key===cur)}).join("")+CDV+cbI("v3d","cube","3D View")+cbI("cad","cad","AutoCAD 3D")}
  else{var tl=toolLabel(T);h='<span class="ctl">'+svgI(tl[2])+tl[0]+'</span>'+cbI("lv","levels",esc(curLv().name),"Level "+lvl(lvElev(S.cur))+" - tap to switch",false,"lvb");
-  if(T==="draw")h+=CDV+typeBar("wall",curType("wall"))+cbI("wth","","Thickness "+thTxt(UI.wth||S.meta.tout),"Custom thickness for new walls")+CDV+cbI("new","plus","New line")+cbI("close","poly","Close")+cbI("ortho","angle",UI.ortho===90?"90°":UI.ortho===45?"45°":"Free","Angle snap",true)+cbI("chain","chain","Continue","Continue from last end",UI.chainOn);
+  if(T==="draw")h+=CDV+typeBar("wall",curType("wall"))+cbI("wth","","Thickness "+thTxt(UI.wth||S.meta.tout),"Custom thickness for new walls")+CDV+cbI("new","plus","New line")+cbI("close","poly","Close")+cbI("ortho","angle",UI.ortho===90?"90°":UI.ortho===45?"45°":"Free","Angle snap",true)+cbI("chain","chain","Continue","Continue from last end",UI.chainOn)+cbI("corners","corner","Corners","Pick a corner and drag to move it");
+  if(T==="move")h+=CDV+'<span class="cnt">'+(UI.vsel?"Corner selected":"Tap a corner")+'</span>'+cbI("nL","","← 1\"","Nudge left 1 inch")+cbI("nR","","1\" →","Nudge right 1 inch")+cbI("nU","","↑ 1\"","Nudge up 1 inch")+cbI("nD","","↓ 1\"","Nudge down 1 inch")+cbI("nL6","","← 6\"")+cbI("nR6","","6\" →")+cbI("nU6","","↑ 6\"")+cbI("nD6","","↓ 6\"")+cbI("nType","edit","Type","Type a nudge in inches");
   if(T==="open"){var f=UI.opFam||"D";h+=CDV+(f==="W"?typeBar("win",curType("win")):f==="OP"?typeBar("op",curType("op")):typeBar("door",curType("door")))}
   if(T==="col")h+=CDV+typeBar("col",curType("col"))+cbI("crot","rotate",(UI.colRot||0)+"°","Rotate new columns")+cbI("cauto","plus","Auto at corners","",false,"ok2")+cbI("cgrid","grid","At grid crossings","",false,"ok2");
   if(T==="furn"){var fs=furnSel();h+=CDV+cbI("fadd","plus","Add furniture","",true)+(fs?cbI("frot","rotate","Rotate 90°")+cbI("fdup","copy","Duplicate")+cbI("fdel","del","Delete","",false,"warn")+cbI("fdone","check","Done")+'<span class="cnt">'+esc(FURN[fs.type].n)+'</span>':'')}
@@ -142,6 +141,9 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
 var _ctx0=ctxAction;ctxAction=function(k){if(k.indexOf("tedit:")===0){editTypeFor(k.slice(6));return}
  if(k==="xsame"){selectSame();return}if(k==="fillc"){fillToggle();return}if(k==="fjoin"){fillJoinApply();return}if(k==="ccopy"){clipCopy();return}if(k==="cpaste"){clipPaste();return}
  if(k==="dval"){var e=selEls()[0];if(e&&e.k==="dim")dimValuePopup(elGet(e));return}if(k==="dlock"){var r=selEls()[0];if(r&&r.k==="dim"){var d=elGet(r);snapshot();d.lock=!d.lock;changed();updCtx();updProps();toast(d.lock?"Dimension locked":"Dimension unlocked")}return}
+ if(k==="corners"){setTool("move");toast("Tap a corner, then drag · 90° snaps green");return}
+ if(k==="nL"||k==="nR"||k==="nU"||k==="nD"||k==="nL6"||k==="nR6"||k==="nU6"||k==="nD6"){if(typeof nudgeVsel==="function")nudgeVsel(k);return}
+ if(k==="nType"){if(typeof nudgeVselPopup==="function")nudgeVselPopup();return}
  return _ctx0(k)};
 /* ---------- properties: slide-over with Type Selector ---------- */
 propsOpen=function(on){UI.props=!!on;$("app").classList.toggle("pr",UI.props);$("bProps").classList.toggle("on",UI.props);LS.set("jksp_props14",UI.props);updProps()};

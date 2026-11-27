@@ -1,5 +1,5 @@
 /* ================= CTAK BIM Module - hand drawing house plan ================= */
-var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.3";
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.4";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -87,9 +87,10 @@ function snapStep(cur,tgt,isLast){
  var dx=tgt.x-cur.x,dy=tgt.y-cur.y,L=Math.hypot(dx,dy),R=snapR();
  if(L<1e-9)return {x:cur.x,y:cur.y,len:0};
  if(UI.ortho===0){
-  if(isLast){var q=findPoint(tgt.x,tgt.y,R,cur.pid);if(q)return {x:q.x,y:q.y,pid:q.id,len:Math.hypot(q.x-cur.x,q.y-cur.y),snap:"pt"};
-   var sg=findSeg(tgt.x,tgt.y,R,cur.pid);if(sg)return {x:sg.x,y:sg.y,len:Math.hypot(sg.x-cur.x,sg.y-cur.y),snap:"seg"}}
-  var x=gsnap(tgt.x),y=gsnap(tgt.y);return {x:x,y:y,len:Math.hypot(x-cur.x,y-cur.y)}}
+  if(isLast){var q=findPoint(tgt.x,tgt.y,R,cur.pid);if(q)return {x:q.x,y:q.y,pid:q.id,len:Math.hypot(q.x-cur.x,q.y-cur.y),snap:"pt"}}
+  var x=gsnap(tgt.x),y=gsnap(tgt.y),res0={x:x,y:y,len:Math.hypot(x-cur.x,y-cur.y)};
+  if(typeof snapRel90==="function"){var prev0=cur.prev||(typeof incomingPt==="function"?incomingPt(cur.pid):null);if(prev0)snapRel90(prev0,cur,res0)}
+  return res0}
  var step=UI.ortho===45?Math.PI/4:Math.PI/2,ang=Math.round(Math.atan2(dy,dx)/step)*step,ux=Math.cos(ang),uy=Math.sin(ang);
  if(Math.abs(ux)<1e-9)ux=0;if(Math.abs(uy)<1e-9)uy=0;
  var len=dx*ux+dy*uy,e=Math.max(gsnap(len),0),res={len:e},best=null;
@@ -98,21 +99,21 @@ function snapStep(cur,tgt,isLast){
    var dEnd=Math.hypot(cur.x+ux*pr-tgt.x,cur.y+uy*pr-tgt.y);
    if(perp<0.02&&dEnd<R*1.5){if(!best||best.k>0||dEnd<best.d)best={k:0,len:pr,pid:q.id,d:dEnd,snap:"pt"}}
    else if(Math.abs(pr-len)<R*0.8&&(!best||best.k>1||(best.k===1&&Math.abs(pr-len)<best.d)))best={k:1,len:pr,d:Math.abs(pr-len),snap:"align",ax:q.x,ay:q.y}});
-  S.segs.forEach(function(s){if(s.a===cur.pid||s.b===cur.pid)return;var a=pt(s.a),b=pt(s.b),I=segIntersect(cur,{x:ux,y:uy},a,b);if(!I||I.t<=0.001||I.t>=0.999||I.r<=0.1)return;
-   if(Math.abs(I.r-len)<R&&(!best||best.k>0.5||(best.k===0.5&&Math.abs(I.r-len)<best.d)))best={k:0.5,len:I.r,d:Math.abs(I.r-len),snap:"seg"}});
+  /* crossings are allowed — do not snap the live segment onto another wall's interior */
  }
  if(best){res.len=best.len;res.snap=best.snap;if(best.pid)res.pid=best.pid;if(best.ax!==undefined){res.ax=best.ax;res.ay=best.ay}}
  res.x=cur.x+ux*res.len;res.y=cur.y+uy*res.len;
  if(res.pid){var P=pt(res.pid);res.x=P.x;res.y=P.y}
+ else if(typeof snapRel90==="function"){var prev=cur.prev||(typeof incomingPt==="function"?incomingPt(cur.pid):null);if(prev)snapRel90(prev,cur,res)}
  return res}
 
 /* Stage: v1.4 drawing tools - Wall tool: freehand stroke -> straight wall preview */
 function buildPreview(start,path){
  var eps=Math.max(0.6,16/V.s),simp=rdp(path,eps);simp[0]={x:start.x,y:start.y};
  if(simp.length<2)return [];
- var out=[],cur={x:start.x,y:start.y,pid:start.pid};
+ var out=[],cur={x:start.x,y:start.y,pid:start.pid,prev:start.prev||(typeof incomingPt==="function"?incomingPt(start.pid):null)};
  for(var i=1;i<simp.length;i++){var last=i===simp.length-1,r=snapStep(cur,simp[i],last);
-  if(r.len<0.25)continue;out.push({a:cur,b:r});cur={x:r.x,y:r.y,pid:r.pid}}
+  if(r.len<0.25)continue;out.push({a:cur,b:r});cur={x:r.x,y:r.y,pid:r.pid,prev:cur}}
  return out}
 
 /* ---------- topology ---------- */
@@ -122,7 +123,7 @@ function addSeg(a,b,k){if(a===b)return null;for(var i=0;i<S.segs.length;i++){var
 function ensurePoint(p){if(p.pid&&pt(p.pid))return p.pid;var q=findPoint(p.x,p.y,0.02);if(q)return q.id;var id=nid();S.pts.push({id:id,x:p.x,y:p.y});return id}
 function splitSeg(s,pid){var a=pt(s.a),b=pt(s.b),P=pt(pid),q=projSeg(P.x,P.y,a,b),t=q.t,s2={id:nid(),a:pid,b:s.b,k:s.k};if(s.th)s2.th=s.th;s.b=pid;S.segs.push(s2);
  S.ops.forEach(function(o){if(o.seg!==s.id)return;if(o.t<t)o.t=o.t/t;else{o.seg=s2.id;o.t=(o.t-t)/(1-t)}});return s2}
-/* Stage: v1.4 drawing tools - Wall tool / Import: joins walls at corners, T-junctions and crossings */
+/* Stage: v1.4 drawing tools - Wall tool / Import: joins walls at corners and T-junctions. Crossings are left as-is. */
 function planarize(){
  for(var guard=0;guard<2000;guard++){var did=false;
   // merge coincident points
@@ -135,11 +136,6 @@ function planarize(){
   // T-junctions: a point lying on a segment interior
   for(i=0;i<S.segs.length&&!did;i++){var s=S.segs[i],a=pt(s.a),b=pt(s.b);for(j=0;j<S.pts.length;j++){var P=S.pts[j];if(P.id===s.a||P.id===s.b)continue;var q=projSeg(P.x,P.y,a,b);
    if(q.t>1e-4&&q.t<1-1e-4&&q.d<0.02){splitSeg(s,P.id);did=true;break}}}
-  if(did)continue;
-  // crossings
-  for(i=0;i<S.segs.length&&!did;i++)for(j=i+1;j<S.segs.length&&!did;j++){var s1=S.segs[i],s2=S.segs[j];if(s1.a===s2.a||s1.a===s2.b||s1.b===s2.a||s1.b===s2.b)continue;
-   var a1=pt(s1.a),b1=pt(s1.b),a2=pt(s2.a),b2=pt(s2.b),L1=Math.hypot(b1.x-a1.x,b1.y-a1.y),u={x:(b1.x-a1.x)/L1,y:(b1.y-a1.y)/L1},I=segIntersect(a1,u,a2,b2);
-   if(I&&I.r>0.02&&I.r<L1-0.02&&I.t>1e-3&&I.t<1-1e-3){var id=nid();S.pts.push({id:id,x:a1.x+u.x*I.r,y:a1.y+u.y*I.r});splitSeg(s1,id);splitSeg(s2,id);did=true}}
   if(!did)break}
  cleanup()}
 function dropOps(sid){S.ops=S.ops.filter(function(o){return o.seg!==sid})}
@@ -228,7 +224,8 @@ function paint(){if(!g)return;g.setTransform(DPR,0,0,DPR,0,0);g.fillStyle="#ffff
  if(UI.mark){var q=w2s(UI.mark.x,UI.mark.y);g.beginPath();g.arc(q.x,q.y,10,0,7);g.fillStyle="rgba(232,89,12,.35)";g.fill();g.strokeStyle="#e8590c";g.lineWidth=2;g.stroke()}
  // preview
  var pv=UI.preview;if(pv&&pv.length){pv.forEach(function(sg){var a=w2s(sg.a.x,sg.a.y),b=w2s(sg.b.x,sg.b.y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.strokeStyle="#e8590c";g.lineWidth=4;g.lineCap="round";g.stroke()});
-  pv.forEach(function(sg,i){var I=pvInner(pv,i);lenLabel(I.a,I.b,fi(I.L),true)});
+  pv.forEach(function(sg,i){var I=pvInner(pv,i),extra=(typeof dhSegAngTxt==="function")?dhSegAngTxt(pv,i):"";lenLabel(I.a,I.b,fi(I.L)+extra,true)});
+  if(typeof dhMarkPreview==="function")dhMarkPreview(pv);
   var e=pv[pv.length-1].b,q=w2s(e.x,e.y);
   if(e.snap){g.beginPath();if(e.snap==="pt")g.arc(q.x,q.y,10,0,7);else g.rect(q.x-8,q.y-8,16,16);g.strokeStyle="#1c7c43";g.lineWidth=2.5;g.stroke()}
   if(e.snap==="align"){var A=w2s(e.ax,e.ay);g.beginPath();g.moveTo(A.x,A.y);g.lineTo(q.x,q.y);g.strokeStyle="#1c7c43";g.setLineDash([5,4]);g.lineWidth=1;g.stroke();g.setLineDash([])}}
@@ -435,7 +432,7 @@ function onMove(e){if(!PT[e.pointerId])return;e.preventDefault();var p=lp(e);PT[
  if(toolMove(w,GS,p))return;
  if(GS.kind==="stroke"){var last=GS.path[GS.path.length-1];if(Math.hypot(w.x-last.x,w.y-last.y)*V.s>2)GS.path.push(w);
   if(GS.moved){UI.rawPath=GS.path;UI.preview=buildPreview(GS.start,GS.path);var pv=UI.preview;showHud(pv.length?fi(pvInner(pv,pv.length-1).L):"0'-0\"");render()}return}
- if(GS.kind==="dragpt"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var P=pt(GS.pid),q=findPoint(w.x,w.y,snapR(),GS.pid);P.x=q?q.x:gsnap(w.x);P.y=q?q.y:gsnap(w.y);SHEET=null;render();return}
+ if(GS.kind==="dragpt"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var P=pt(GS.pid);if(P){var c=typeof snapCornerMove==="function"?snapCornerMove(P,w):null,q=findPoint(w.x,w.y,snapR(),GS.pid);if(c){P.x=c.x;P.y=c.y}else{P.x=q?q.x:gsnap(w.x);P.y=q?q.y:gsnap(w.y)}UI.vsel=P.id}SHEET=null;if(typeof dhLiveFromPt==="function")dhLiveFromPt(P||pt(GS.pid),w);render();return}
  if(GS.kind==="dragfurn"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var F2=furnSel();if(F2){F2.x=Math.round((w.x+GS.dx)*4)/4;F2.y=Math.round((w.y+GS.dy)*4)/4;snapFurn(F2,false);SHEET=null;render()}return}
  if(GS.kind==="draglab"&&GS.moved){if(!GS.snap){snapshot();GS.snap=true}var L=S.labels.find(function(l){return l.id===GS.lab});L.x=w.x;L.y=w.y;render();return}
  if(GS.kind==="press"&&GS.moved){GS.kind="pan";GS.lx=p.x;GS.ly=p.y}}
@@ -446,7 +443,7 @@ function onUp(e){UI.lastUp=Date.now();var rec=PT[e.pointerId];delete PT[e.pointe
  var w=s2w(rec.x,rec.y);
  if(toolUp(G,w))return;
  if(G.kind==="stroke"){var pv=G.moved?buildPreview(G.start,G.path):null;UI.preview=null;UI.rawPath=null;if(pv&&pv.length)commitStroke(G.start,pv);else if(!G.moved)tapDraw(w);render();return}
- if(G.kind==="dragpt"){if(G.snap){planarize();changed()}else tapTool(w);return}
+ if(G.kind==="dragpt"){if(G.snap){planarize();changed()}else{UI.vsel=G.pid;if(typeof updCtx==="function")updCtx();render()}return}
  if(G.kind==="dragfurn"){if(G.snap)changed();return}
  if(G.kind==="draglab"){if(G.snap)changed();else tapTool(w);return}
  if(G.kind==="press"&&!G.moved)tapTool(w)}
@@ -640,7 +637,7 @@ function helpPopup(){modal('<div class="mt">'+esc(APP)+'</div><div class="ms">'+
 
 /* ================= toolbar ================= */
 function setTool(t){UI.tool=t;document.querySelectorAll(".tool").forEach(function(b){b.classList.toggle("on",b.dataset.t===t)});if(UI.clean)setClean(false);updCtx();render()}
-var HINTS={wall:"Tap a wall to set its thickness · colour = thickness (4½\" teal, 6\" purple, 8\" brown, 9\" slate)",furn:"Tap empty floor to add furniture · drag to move · snaps to walls",draw:"Draw walls with pen / finger · length shows live",move:"Drag corners or room names · tap wall for type",size:"Tap a wall to type its real size",room:"Tap inside a room to name it",open:"Tap a wall to add door / window",del:"Tap a wall, label or opening to delete"};
+var HINTS={wall:"Tap a wall to set its thickness · colour = thickness (4½\" teal, 6\" purple, 8\" brown, 9\" slate)",furn:"Tap empty floor to add furniture · drag to move · snaps to walls",draw:"Draw walls with pen / finger · length and angle show live · green square = 90°",move:"Tap a corner to select it, then drag · connected walls follow · 90° snaps green · Undo works",size:"Tap a wall to type its real size",room:"Tap inside a room to name it",open:"Tap a wall to add door / window",del:"Tap a wall, label or opening to delete"};
 function updCtx(){var c=$("ctx"),h="";
  if(UI.clean)h='<button class="cb on" data-c="back">✎ Back to drawing<small>வரைபடம்</small></button><button class="cb" data-c="pdf">PDF</button><button class="cb" data-c="dxf">DXF<small>AutoCAD</small></button><button class="cb" data-c="png">PNG</button><button class="cb" data-c="det">Details<small>Owner / site</small></button><button class="cb '+(UI.page!==2?"on":"")+'" data-c="pg1">Sheet 1<small>Plan</small></button><button class="cb '+(UI.page===2?"on":"")+'" data-c="pg2">Sheet 2<small>Door &amp; Window</small></button><button class="cb on" data-c="v3d">3D View<small>முப்பரிமாணம்</small></button><button class="cb" data-c="cad">AutoCAD 3D</button>';
  else{if(UI.tool==="draw")h+='<button class="cb" data-c="new">＋ New line<small>புதிய கோடு</small></button><button class="cb" data-c="close">⬠ Close<small>மூடு</small></button><button class="cb on" data-c="ortho">'+(UI.ortho===90?"90° Straight":UI.ortho===45?"45° Angles":"Free angle")+'<small>snap</small></button><button class="cb on" data-c="wth">Wall '+thTxt(UI.wth||S.meta.tout)+'<small>new walls · thickness</small></button>';
