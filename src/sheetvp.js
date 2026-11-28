@@ -87,6 +87,7 @@ function textObstacles(skip){var O=[],pmw=planN()/304.8,dbl=S.meta.dbl;
  S.segs.forEach(function(s){var P=dbl?wallPoly(s):null;O.push(P?obP(P):obLine(pt(s.a),pt(s.b),0.2))});
  (S.furn||[]).forEach(function(f){var X=fXform(f),D=fdims(f);O.push(obP([X(-D.w/2,-D.d/2),X(D.w/2,-D.d/2),X(D.w/2,D.d/2),X(-D.w/2,D.d/2)]))});
  (S.cols||[]).forEach(function(c){try{O.push(obP(colPoly(c)))}catch(e){}});
+ if(typeof colsFromBelow==="function")colsFromBelow(S.cur).forEach(function(gh){try{O.push(obP(colPoly(gh.c)))}catch(e){}});
  (S.stairs||[]).forEach(function(st){try{if(typeof stairPts==="function")O.push(obP(stairPts(st)))}catch(e){}});
  (S.kcs||[]).forEach(function(k){try{if(typeof kcPoly==="function")O.push(obP(kcPoly(k)))}catch(e){}});
  S.notes.forEach(function(n){if(skip&&skip.indexOf(n)>=0)return;var b=noteBox(n);O.push(obRect(b[0],b[1],b[2],b[3]))});

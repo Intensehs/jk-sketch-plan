@@ -2,11 +2,38 @@
 Object.assign(ICO,{
  qty:'<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M7 9h10M7 13h10M7 17h6"/>',
  est:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/>',
- "a:new":'<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/>'});
-Object.assign(TD14,{"a:new":["New","New drawing (asks if unsaved)","a:new"],"a:qty":["Quantities","Automatic quantity takeoff from the drawing","qty"],"a:est":["Estimate","Cost estimate in rupees from takeoff quantities","est"]});
-Object.assign(RLAB,{"a:new":"New","a:qty":"Qty","a:est":"Estimate"});
-PANELS.view[1].forEach(function(p){if(p[0]==="File"){if(p[2].indexOf("a:new")<0)p[2].unshift("a:new");if(p[2].indexOf("a:qty")<0)p[2].push("a:qty");if(p[2].indexOf("a:est")<0)p[2].push("a:est")}});
-TABS={};Object.keys(PANELS).forEach(function(k){TABS[k]=[PANELS[k][0],panelTools(k)]});
+ "a:new":'<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M9 14h6M12 11v6"/>',
+ qcsv:'<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 4v16"/>',
+ qxls:'<path d="M4 3h16v18H4z"/><path d="M8 8l8 8M16 8l-8 8"/>',
+ qtpl:'<path d="M5 3h9l5 5v13H5z"/><path d="M14 3v5h5"/><path d="M8 13h8"/>',
+ qprint:'<rect x="6" y="3" width="12" height="7" rx="1"/><path d="M6 14h12v7H6z"/><path d="M4 10h16v6H4z"/>'});
+Object.assign(TD14,{
+ "a:new":["New","New drawing (asks if unsaved)","a:new"],
+ "a:qty":["Quantities","Automatic quantity takeoff from the drawing","qty"],
+ "a:est":["Estimate","Cost estimate in rupees from takeoff quantities","est"],
+ "a:qcsv":["Qty CSV","Download quantity takeoff as CSV","qcsv"],
+ "a:qxls":["Qty Excel","Download quantity takeoff as Excel","qxls"],
+ "a:qpdf":["Qty PDF","Download quantity takeoff as PDF","pdf"],
+ "a:qshare":["Qty Share","Share quantity takeoff (WhatsApp / Files)","wa"],
+ "a:qprint":["Qty Print","Print the quantity takeoff table","qprint"],
+ "a:qtpl":["Save template","Save current estimate rates as the default template","qtpl"],
+ "a:qrst":["Reset rates","Reset estimate rates to the built-in template","rotate"],
+ "a:ecsv":["Est. CSV","Download cost estimate as CSV","qcsv"],
+ "a:exls":["Est. Excel","Download cost estimate as Excel","qxls"],
+ "a:epdf":["Est. PDF","Download cost estimate as PDF","pdf"],
+ "a:eshare":["Est. Share","Share cost estimate (WhatsApp / Files)","wa"],
+ "a:eprint":["Est. Print","Print the cost estimate","qprint"]});
+Object.assign(RLAB,{"a:new":"New","a:qty":"Qty","a:est":"Estimate","a:qcsv":"CSV","a:qxls":"Excel","a:qpdf":"PDF","a:qshare":"Share","a:qprint":"Print","a:qtpl":"Save tpl","a:qrst":"Reset","a:ecsv":"CSV","a:exls":"Excel","a:epdf":"PDF","a:eshare":"Share","a:eprint":"Print"});
+(function(){var n={};
+ Object.keys(PANELS).forEach(function(k){n[k]=PANELS[k];
+  if(k==="anno")n.qty=["Qty Takeoff",[
+   ["Takeoff","Qty",["a:qty","a:area","a:qcsv","a:qxls","a:qpdf","a:qshare","a:qprint"]],
+   ["Estimate","Est.",["a:est","a:qtpl","a:qrst"]],
+   ["Est. export","Export",["a:ecsv","a:exls","a:epdf","a:eshare","a:eprint"]]
+  ]]});
+ PANELS=n;
+ PANELS.view[1].forEach(function(p){if(p[0]==="File"){if(p[2].indexOf("a:new")<0)p[2].unshift("a:new");p[2]=p[2].filter(function(x){return x!=="a:qty"&&x!=="a:est"})}});
+ TABS={};Object.keys(PANELS).forEach(function(k){TABS[k]=[PANELS[k][0],panelTools(k)]})})();
 
 function asOn(){var v=LS.get("jksp_as_on",true);return v!==false}
 function asSet(on){LS.set("jksp_as_on",!!on);asInd(on?"saved":"off");if(on){DIRTY=true;autosave()}}
@@ -120,7 +147,15 @@ var _init0=init;init=function(){_init0.apply(this,arguments);feat21Boot()};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",feat21Boot);
 else setTimeout(feat21Boot,0);
 
-var _ra21=railAction;railAction=function(a){if(a==="new"){newDrawingAsk();return}if(a==="qty"){qtyPopup();return}if(a==="est"){estPopup();return}if(a==="fsave"){doExplicitSave();return}if(a==="fopen"){projectPopup();return}return _ra21.apply(this,arguments)};
+var _ra21=railAction;railAction=function(a){
+ if(a==="new"){newDrawingAsk();return}if(a==="qty"){qtyPopup();return}if(a==="est"){estPopup();return}
+ if(a==="fsave"){doExplicitSave();return}if(a==="fopen"){projectPopup();return}
+ if(a==="qcsv"){qtyDoExport("csv");return}if(a==="qxls"){qtyDoExport("xls");return}if(a==="qpdf"){qtyDoExport("pdf");return}
+ if(a==="qshare"){qtyDoExport("share");return}if(a==="qprint"){qtyDoExport("print");return}
+ if(a==="qtpl"){qtySaveTpl();return}if(a==="qrst"){qtyResetTpl();return}
+ if(a==="ecsv"){estDoExport("csv");return}if(a==="exls"){estDoExport("xls");return}if(a==="epdf"){estDoExport("pdf");return}
+ if(a==="eshare"){estDoExport("share");return}if(a==="eprint"){estDoExport("print");return}
+ return _ra21.apply(this,arguments)};
 document.addEventListener("keydown",function(e){if(!(e.ctrlKey||e.metaKey)||e.altKey)return;if((e.key||"").toLowerCase()!=="n")return;if(window.V3&&V3.on)return;if(/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||""))return;e.preventDefault();newDrawingAsk()},true);
 
 function hookFio(){if(typeof filePopup!=="function"){setTimeout(hookFio,20);return}
@@ -153,7 +188,7 @@ function sqFt(v){return Math.round(v*10)/10}
 function kgR(v){return Math.round(v*10)/10}
 function qtySteel(){var kg=0,note=[];
  S.L.forEach(function(Lv,i){withLevel(i,function(){
-  (S.cols||[]).forEach(function(c){var r=colRB(c),H=Lv.h+(i===0?(ftgOf(c).dep||5):0),lenM=H*0.3048,main=r.n*lenM*kgm(r.dia),peri=2*(c.w+c.d)/39.37,ties=Math.max(1,Math.ceil(H*304.8/r.sp))*(peri+0.05)*kgm(r.tie);kg+=main+ties});
+  (typeof colsOnFloor==="function"?colsOnFloor(i,{all:true}):(S.cols||[])).forEach(function(c){var r=colRB(c),H=Lv.h+(i===0?(ftgOf(c).dep||5):0),lenM=H*0.3048,main=r.n*lenM*kgm(r.dia),peri=2*(c.w+c.d)/39.37,ties=Math.max(1,Math.ceil(H*304.8/r.sp))*(peri+0.05)*kgm(r.tie);kg+=main+ties});
   (S.beams||[]).forEach(function(m){var r=beamRB(m),L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),Lm=L*0.3048,main=(r.top*kgm(r.td)+r.bot*kgm(r.bd))*Lm,stirr=Math.max(1,Math.ceil(L*304.8/r.sp))*(2*(m.w+m.d)/39.37+0.05)*kgm(r.st);kg+=main+stirr});
   if(i===0)(S.cols||[]).forEach(function(c){var f=ftgOf(c),nx=Math.max(2,Math.ceil(f.l*304.8/f.sp)+1),ny=Math.max(2,Math.ceil(f.w*304.8/f.sp)+1);kg+=nx*(f.w*0.3048)*kgm(f.dia)+ny*(f.l*0.3048)*kgm(f.dia)});
   var RI=roomsInfo(),sr=slabRB();RI.faces.forEach(function(f){var a=f.carpet!=null?f.carpet:f.area,md=sr.md,ms=sr.ms/1000,dd=sr.dd,ds=sr.ds/1000;kg+=(a*0.092903)*(kgm(md)/ms+kgm(dd)/ds)})})});
@@ -165,7 +200,8 @@ function qtyBuild(){var wallL=0,wallA=0,wallV=0,brick=0,opA=0,doors=0,wins=0,rai
   (S.rails||[]).forEach(function(m){rails+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
   RI.faces.forEach(function(f){var a=f.carpet!=null?f.carpet:f.area,per=0;for(var k=0;k<f.pts.length;k++){var p=f.pts[k],q=f.pts[(k+1)%f.pts.length];per+=Math.hypot(q.x-p.x,q.y-p.y)}floorA+=a;paintC+=a;paintW+=per*(H-sl);wallTile+=per*4;slabA+=a;slabV+=a*sl;cent+=a+per*(H*0.15);
    rooms.push({name:(S.L.length>1?Lv.name+": ":"")+(f.labels[0]?f.labels[0].name:"Room"),area:sqFt(a),level:Lv.name})});
-  (S.cols||[]).forEach(function(c){var w=c.w/12,d=c.d/12;colV+=w*d*H;cent+=2*(w+d)*H;if(i===0){var f=ftgOf(c),fw=f.w,fl=f.l,ft=f.t,dep=f.dep;ftgN++;ftgExc+=fw*fl*dep;ftgConc+=fw*fl*ft;cent+=2*(fw+fl)*ft}});
+  (typeof colsOnFloor==="function"?colsOnFloor(i,{all:true}):(S.cols||[])).forEach(function(c){var w=c.w/12,d=c.d/12;colV+=w*d*H;cent+=2*(w+d)*H});
+  if(i===0)(S.cols||[]).forEach(function(c){var f=ftgOf(c),fw=f.w,fl=f.l,ft=f.t,dep=f.dep;ftgN++;ftgExc+=fw*fl*dep;ftgConc+=fw*fl*ft;cent+=2*(fw+fl)*ft});
   (S.beams||[]).forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y),w=m.w/12,d=m.d/12;beamV+=L*w*d;cent+=L*(w+2*d)});
   (S.ewires||[]).forEach(function(m){wireL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
   (S.ducts||[]).forEach(function(m){ductL+=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)});
@@ -176,7 +212,7 @@ function qtyBuild(){var wallL=0,wallA=0,wallV=0,brick=0,opA=0,doors=0,wins=0,rai
  function row(id,name,unit,qty,note){return {id:id,name:name,unit:unit,qty:+(+qty).toFixed(2),note:note||""}}
  return {rooms:rooms,sections:[
   {id:"ftg",name:"Footing",rows:[row("ftg_n","Footings (nos)","nos",ftgN),row("ftg_exc","Excavation","cu.ft",ftgExc,"size × depth"),row("ftg_pcc","PCC bed (assumed 3\")","cu.ft",ftgN?ftgExc*0.05:0),row("ftg_rcc","RCC footing concrete","cu.ft",ftgConc)]},
-  {id:"conc",name:"Concrete (RCC)",rows:[row("c_ftg","Footing","cu.ft",ftgConc),row("c_col","Column","cu.ft",colV),row("c_beam","Beam","cu.ft",beamV),row("c_slab","Slab / roof (incl. overhang)","cu.ft",slabV),row("c_tot","Total RCC","cu.ft",ftgConc+colV+beamV+slabV)]},
+  {id:"conc",name:"Concrete (RCC)",rows:[row("c_ftg","Footing","cu.ft",ftgConc),row("c_col","Column","cu.ft",colV,"volume on each floor a column stands on; dashed projections are not extra columns"),row("c_beam","Beam","cu.ft",beamV),row("c_slab","Slab / roof (incl. overhang)","cu.ft",slabV),row("c_tot","Total RCC","cu.ft",ftgConc+colV+beamV+slabV)]},
   {id:"cent",name:"Centering / shuttering",rows:[row("cent","Shuttering area","sq.ft",cent,"footing + column + beam + slab") ]},
   {id:"stl",name:"Steel / reinforcement",rows:[row("stl","Rebar (from Kambi data)","kg",steel,"columns, beams, footing mesh, slab")]},
   {id:"wall",name:"Walls / brickwork",rows:[row("w_len","Wall length","ft",wallL),row("w_area","Wall area (gross)","sq.ft",wallA),row("w_vol","Brickwork volume","cu.ft",brick)]},
@@ -204,13 +240,36 @@ function qtyPDF(title,head,rows){var d=new Dwg();frame(d,title,(S.meta.name||"Dr
  while(i<rows.length){var part=rows.slice(i,i+chunk).map(function(r){return r.slice()});y=table(d,20,y,cols,part,{rh:5.2});i+=chunk;if(i<rows.length){y+=8;if(y>250){d.text(20,y,"(continued in CSV / Excel export for the full list)",2.4,{c:"#555"});break}}}
  saveFile(fname("pdf").replace(/\.pdf$/,"_"+(title.replace(/\s+/g,"_"))+".pdf"),new Blob([bin(toPDF(d,S.meta.paper||"A3"))],{type:"application/pdf"}),"application/pdf")}
 function qtyPopup(){var Q=qtyBuild();
- modal('<div class="mt">Quantity takeoff</div><div class="ms">Lengths, areas and volumes from the drawing (ft-in / cu.ft). Roof overhang and MEP runs are included.</div><div class="qwrap">'+qtyTableHTML(Q)+'</div>'+
+ modal('<div class="mt">Quantity takeoff</div><div class="ms">Lengths, areas and volumes from the drawing (ft-in / cu.ft). Roof overhang and MEP runs are included. Columns that continue up are counted on each floor they stand on; dashed projections are not extra columns.</div><div class="qwrap">'+qtyTableHTML(Q)+'</div>'+
   '<div class="row"><button class="bb" id="qCsv">CSV</button><button class="bb" id="qXls">Excel</button><button class="bb" id="qPdf">PDF</button><button class="bb ok" id="qEst">Estimate</button><button class="bb" id="qX">Close</button></div>',function(){
   $("qX").onclick=closeModal;$("qEst").onclick=function(){closeModal();estPopup()};
   $("qCsv").onclick=function(){saveFile(fname("csv").replace(/\.csv$/,"_qty.csv"),new Blob([qtyCSV(Q)],{type:"text/csv"}),"text/csv")};
   $("qXls").onclick=function(){var rows=[];Q.sections.forEach(function(s){s.rows.forEach(function(r){rows.push([s.name,r.name,r.qty,r.unit,r.note||""])})});saveFile(fname("xls").replace(/\.xls$/,"_qty.xls"),new Blob([qtyXLS("Quantities",["Section","Item","Qty","Unit","Notes"],rows)],{type:"application/vnd.ms-excel"}),"application/vnd.ms-excel")};
   $("qPdf").onclick=function(){var rows=[];Q.sections.forEach(function(s){rows.push({0:s.name,1:"",2:"",3:"",bold:true});s.rows.forEach(function(r){rows.push([r.name,r.qty,r.unit,r.note||""])})});qtyPDF("Quantity takeoff",["Item","Qty","Unit","Notes"],rows)}});
  $("mbox").classList.add("wide")}
+function qtyRows(Q){var rows=[];Q.sections.forEach(function(s){s.rows.forEach(function(r){rows.push([s.name,r.name,r.qty,r.unit,r.note||""])});});(Q.rooms||[]).forEach(function(r){rows.push(["Flooring",r.name,r.area,"sq.ft",r.level||""])});return rows}
+function qtyPdfBlob(title,head,rows){var d=new Dwg();frame(d,title,(S.meta.name||"Drawing")+" · "+(S.meta.owner||""));
+ var y=40,cols=head.map(function(c,i){return [c,i===0?90:(i===head.length-1?70:40)]}),chunk=32,i=0;
+ while(i<rows.length){var part=rows.slice(i,i+chunk).map(function(r){return r.slice()});y=table(d,20,y,cols,part,{rh:5.2});i+=chunk;if(i<rows.length){y+=8;if(y>250){d.text(20,y,"(continued in CSV / Excel export for the full list)",2.4,{c:"#555"});break}}}
+ return new Blob([bin(toPDF(d,S.meta.paper||"A3"))],{type:"application/pdf"})}
+function qtyPrintHTML(title,html){var w=window.open("","qtyprint");if(!w){toast("Allow pop-ups to print, or use PDF");return}
+ w.document.write('<html><head><title>'+esc(title)+'</title><style>body{font-family:sans-serif;padding:16px}h1{font-size:18px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:5px 8px;text-align:left}.qn{text-align:right}.qh td{background:#eef3f9;font-weight:700}</style></head><body><h1>'+esc(title)+' · '+esc((S.meta&&S.meta.name)||"Drawing")+'</h1>'+html+'</body></html>');
+ w.document.close();setTimeout(function(){try{w.focus();w.print()}catch(e){}},200)}
+function qtyDoExport(kind){var Q=qtyBuild(),rows=qtyRows(Q),nm=fname("csv").replace(/\.csv$/,"_qty");
+ if(kind==="csv"){saveFile(nm+".csv",new Blob([qtyCSV(Q)],{type:"text/csv"}),"text/csv");toast("Quantities CSV")}
+ else if(kind==="xls"){saveFile(nm.replace(/_qty$/,"_qty")+".xls",new Blob([qtyXLS("Quantities",["Section","Item","Qty","Unit","Notes"],rows)],{type:"application/vnd.ms-excel"}),"application/vnd.ms-excel");toast("Quantities Excel")}
+ else if(kind==="pdf"){saveFile(fname("pdf").replace(/\.pdf$/,"_Quantity_takeoff.pdf"),qtyPdfBlob("Quantity takeoff",["Section","Item","Qty","Unit"],rows.map(function(r){return [r[1],r[2],r[3],r[4]]})),"application/pdf");toast("Quantities PDF")}
+ else if(kind==="share"){if(typeof shareBlob==="function")shareBlob(new Blob([qtyCSV(Q)],{type:"text/csv"}),nm+".csv",(S.meta.name||"Drawing")+" — quantity takeoff");else saveFile(nm+".csv",new Blob([qtyCSV(Q)],{type:"text/csv"}),"text/csv")}
+ else if(kind==="print"){qtyPrintHTML("Quantity takeoff",qtyTableHTML(Q))}}
+function estCurLines(){var Q=qtyBuild(),tpl=estTplLoad(),st=estState();return estLinesFrom(Q,tpl,st)}
+function qtySaveTpl(){var lines=estCurLines();estTplSave(lines.map(function(L){return {sec:L.sec,id:L.id,name:L.name,unit:L.unit,rate:L.rate,src:L.src}}));toast("Template saved — later drawings reuse these rates")}
+function qtyResetTpl(){estTplSave(EST_TPL_DEFAULT.map(function(x){return Object.assign({},x)}));toast("Rates reset to defaults")}
+function estDoExport(kind){var lines=estCurLines(),t=estTotals(lines),nm=fname("csv").replace(/\.csv$/,"_estimate");
+ if(kind==="csv"){var out=["Section,Item,Qty,Unit,Rate INR,Amount INR"];lines.forEach(function(L){out.push([csvQ(L.sec),csvQ(L.name),L.qty,csvQ(L.unit),L.rate,Math.round(L.amt)].join(","))});out.push(["","","","","Grand total",Math.round(t.g)].join(","));saveFile(nm+".csv",new Blob(["\ufeff"+out.join("\n")],{type:"text/csv"}),"text/csv");toast("Estimate CSV")}
+ else if(kind==="xls"){var rows=lines.map(function(L){return [L.sec,L.name,L.qty,L.unit,L.rate,Math.round(L.amt)]});rows.push(["","","","","Grand total",Math.round(t.g)]);saveFile(nm+".xls",new Blob([qtyXLS("Estimate",["Section","Item","Qty","Unit","Rate INR","Amount INR"],rows)],{type:"application/vnd.ms-excel"}),"application/vnd.ms-excel");toast("Estimate Excel")}
+ else if(kind==="pdf"){var rows2=[],last="";lines.forEach(function(L){if(L.sec!==last){last=L.sec;rows2.push({0:L.sec,1:"",2:"",3:"",4:inr(t.sec[L.sec]||0),bold:true})}rows2.push([L.name,L.qty,L.unit,L.rate,inr(L.amt)])});rows2.push({0:"GRAND TOTAL",1:"",2:"",3:"",4:inr(t.g),bold:true});qtyPDF("Cost estimate (INR)",["Item","Qty","Unit","Rate","Amount"],rows2)}
+ else if(kind==="share"){var out2=["Section,Item,Qty,Unit,Rate INR,Amount INR"];lines.forEach(function(L){out2.push([csvQ(L.sec),csvQ(L.name),L.qty,csvQ(L.unit),L.rate,Math.round(L.amt)].join(","))});out2.push(["","","","","Grand total",Math.round(t.g)].join(","));if(typeof shareBlob==="function")shareBlob(new Blob(["\ufeff"+out2.join("\n")],{type:"text/csv"}),nm+".csv",(S.meta.name||"Drawing")+" — cost estimate "+inr(t.g));else saveFile(nm+".csv",new Blob(["\ufeff"+out2.join("\n")],{type:"text/csv"}),"text/csv")}
+ else if(kind==="print"){var h='<table class="qtbl est"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Rate ₹</th><th>Amount ₹</th></tr></thead><tbody>';var last2="";lines.forEach(function(L){if(L.sec!==last2){last2=L.sec;h+='<tr class="qh"><td colspan="4">'+esc(L.sec)+'</td><td class="qn">'+inr(t.sec[L.sec]||0)+'</td></tr>'}h+='<tr><td>'+esc(L.name)+'</td><td class="qn">'+L.qty+'</td><td>'+esc(L.unit)+'</td><td class="qn">'+L.rate+'</td><td class="qn">'+inr(L.amt)+'</td></tr>'});h+='<tr class="qh"><td colspan="4">Grand total</td><td class="qn">'+inr(t.g)+'</td></tr></tbody></table>';qtyPrintHTML("Cost estimate (INR)",h)}}
 
 /* ===== cost estimate (INR) ===== */
 var EST_TPL_DEFAULT=[

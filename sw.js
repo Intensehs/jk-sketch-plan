@@ -1,5 +1,5 @@
-/* CTAK BIM Module offline cache - v2.1.3 */
-var C="jksp-ctak-213-qtytab",F=["./","index.html","manifest.webmanifest","icons/favicon.ico","icons/icon-16.png","icons/icon-32.png","icons/icon-48.png","icons/icon-192.png","icons/icon-512.png","icons/icon-192-maskable.png","icons/icon-512-maskable.png","icons/apple-touch-icon.png","icons/header-logo.png"];
+/* CTAK BIM Module offline cache - v2.1.6 */
+var C="jksp-ctak-216-elib",F=["./","index.html","manifest.webmanifest","icons/favicon.ico","icons/icon-16.png","icons/icon-32.png","icons/icon-48.png","icons/icon-192.png","icons/icon-512.png","icons/icon-192-maskable.png","icons/icon-512-maskable.png","icons/apple-touch-icon.png","icons/header-logo.png"];
 self.addEventListener("install",function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(F)}).then(function(){return self.skipWaiting()}))});
 self.addEventListener("activate",function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.filter(function(x){return x!==C}).map(function(x){return caches.delete(x)}))}).then(function(){return self.clients.claim()}))});
 self.addEventListener("fetch",function(e){if(e.request.method!=="GET")return;e.respondWith(fetch(e.request).then(function(r){if(r&&r.ok&&new URL(e.request.url).origin===location.origin){var cp=r.clone();caches.open(C).then(function(c){c.put(e.request,cp)})}return r}).catch(function(){return caches.match(e.request,{ignoreSearch:true}).then(function(m){return m||caches.match("index.html")})}))});
