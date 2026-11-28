@@ -17,10 +17,10 @@ function opItems(items,o,h0,h1,s0,s1,dep,ext,light){var k=opKind(o),c=light?"#8a
  if(o.type==="D"){if(k==="OP"){items.push({p:rect(h0,s0,h1,s1),fill:"#6b7280",c:c,w:0.2,dep:dep,L:"DOORS"});return}
   var it={p:rect(h0,s0,h1,s1),fill:light?"#f2e8dc":(k==="MD"?"#b9875a":(k==="TD"?"#dfe7e5":"#d9b48c")),c:c,w:0.25,dep:dep,L:"DOORS",lines:[]},fr=0.25,ih0=h0+fr,ih1=h1-fr;
   var np=k==="MD"?2:1;for(var i=0;i<np;i++){var a=ih0+(ih1-ih0)*i/np+0.12,b=ih0+(ih1-ih0)*(i+1)/np-0.12;[[s0+0.4,s0+(s1-s0)*0.45],[s0+(s1-s0)*0.5,s1-0.35]].forEach(function(z){it.lines.push([a,z[0],b,z[0]],[b,z[0],b,z[1]],[b,z[1],a,z[1]],[a,z[1],a,z[0]])})}items.push(it);return}
- var it2={p:rect(h0,s0,h1,s1),fill:light?"#f4f8fc":"#cfe3f5",c:c,w:0.25,dep:dep,L:"WINDOWS",lines:[]},hm=(h0+h1)/2;
+ var it2={p:rect(h0,s0,h1,s1),fill:light?"#f4f8fc":"#9ec9e8",c:c,w:0.25,dep:dep,L:"WINDOWS",lines:[]},hm=(h0+h1)/2;
  if(o.type==="W"){if(h1-h0>2.4)it2.lines.push([hm,s0,hm,s1]);it2.lines.push([h0+0.17,s0+0.17,h1-0.17,s0+0.17],[h1-0.17,s0+0.17,h1-0.17,s1-0.17],[h1-0.17,s1-0.17,h0+0.17,s1-0.17],[h0+0.17,s1-0.17,h0+0.17,s0+0.17])}
  else for(var z=s0+0.25;z<s1-0.1;z+=0.25)it2.lines.push([h0+0.12,z,h1-0.12,z]);
- items.push(it2);if(ext&&!light){items.push({p:rect(h0-0.15,s0-0.12,h1+0.15,s0),fill:"#cfcac0",c:c,w:0.15,dep:dep-0.0001,L:"WINDOWS"});if(o.type==="W")items.push({p:rect(h0-0.5,s1+0.25,h1+0.5,s1+0.5),fill:"#bdb7ab",c:c,w:0.18,dep:dep-0.0002,L:"WINDOWS"})}}
+ items.push(it2);if(ext&&!light){items.push({p:rect(h0-0.15,s0-0.12,h1+0.15,s0),fill:"#cfcac0",c:c,w:0.15,dep:dep-0.0001,L:"WINDOWS"});if(typeof opWinDress==="function")opWinDress(items,o,h0,h1,s0,s1,dep,c)}}
 var EDIR={N:{h:function(p){return -p.x},d:function(p){return p.y},v:{x:0,y:1},t:"NORTH ELEVATION"},S:{h:function(p){return p.x},d:function(p){return -p.y},v:{x:0,y:-1},t:"SOUTH ELEVATION"},
  E:{h:function(p){return -p.y},d:function(p){return -p.x},v:{x:-1,y:0},t:"EAST ELEVATION"},W:{h:function(p){return p.y},d:function(p){return p.x},v:{x:1,y:0},t:"WEST ELEVATION"}};
 function levelMarks(PK){var out=[];PK.forEach(function(P,i){if(i===0||P.walls.length||PK[i-1].walls.length)out.push({z:P.zb,t:ascii(P.L.name).toUpperCase()})});var ti=topLevel(),T=PK[ti];if(T)out.push({z:T.zb+T.H,t:roofCfg().type==="flat"?"TERRACE / ROOF":"ROOF EAVE"});return out}

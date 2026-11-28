@@ -114,7 +114,8 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
  else{var tl=toolLabel(T);h='<span class="ctl">'+svgI(tl[2])+tl[0]+'</span>'+cbI("lv","levels",esc(curLv().name),"Level "+lvl(lvElev(S.cur))+" - tap to switch",false,"lvb");
   if(T==="draw")h+=CDV+typeBar("wall",curType("wall"))+cbI("wth","","Thickness "+thTxt(UI.wth||S.meta.tout),"Custom thickness for new walls")+CDV+cbI("new","plus","New line")+cbI("close","poly","Close")+cbI("ortho","angle",UI.ortho===90?"90°":UI.ortho===45?"45°":"Free","Angle snap",true)+cbI("chain","chain","Continue","Continue from last end",UI.chainOn)+cbI("corners","corner","Corners","Pick a corner and drag to move it");
   if(T==="move")h+=CDV+'<span class="cnt">'+(UI.vsel?"Corner selected":"Tap a corner")+'</span>'+cbI("nL","","← 1\"","Nudge left 1 inch")+cbI("nR","","1\" →","Nudge right 1 inch")+cbI("nU","","↑ 1\"","Nudge up 1 inch")+cbI("nD","","↓ 1\"","Nudge down 1 inch")+cbI("nL6","","← 6\"")+cbI("nR6","","6\" →")+cbI("nU6","","↑ 6\"")+cbI("nD6","","↓ 6\"")+cbI("nType","edit","Type","Type a nudge in inches");
-  if(T==="open"){var f=UI.opFam||"D";h+=CDV+(f==="W"?typeBar("win",curType("win")):f==="OP"?typeBar("op",curType("op")):typeBar("door",curType("door")))}
+  if(T==="open"){var f=UI.opFam||"D";h+=CDV+(f==="W"?typeBar("win",curType("win")):f==="OP"?typeBar("op",curType("op")):typeBar("door",curType("door")));
+   if(f==="W"){var ws=winStyleNew();h+=CDV+'<span class="tlab">Top</span>'+cb("ws:plain","Plain","flat opening",ws==="plain")+cb("ws:shade","Sunshade","chajja above",ws==="shade")+cb("ws:box","Box frame","frame all around",ws==="box")+cbI("wsdim","dim",ws==="box"?"Frame "+fi(UI.wsW||0.5)+" × "+fi(UI.wsB||0.75):ws==="shade"?"Shade "+fi(UI.wsD||1.5)+" × "+fi(UI.wsT||0.5):"Plain","typed ft-in",true)}}
   if(T==="col")h+=CDV+(S.cur>0?cbI("cbelow","levels",colShowBelow(S.cur)?"From below ON":"From below OFF","Show columns from the floor below as a dashed projection",colShowBelow(S.cur)):"")+typeBar("col",curType("col"))+cbI("crot","rotate",(UI.colRot||0)+"°","Rotate new columns")+cbI("cauto","plus","Auto at corners","",false,"ok2")+cbI("cgrid","grid","At grid crossings","",false,"ok2");
   if(T==="furn"){var fs=furnSel();h+=CDV+cbI("fadd","plus","Add furniture","",true)+(fs?cbI("frot","rotate","Rotate 90°")+cbI("fdup","copy","Duplicate")+cbI("fdel","del","Delete","",false,"warn")+cbI("fdone","check","Done")+'<span class="cnt">'+esc(FURN[fs.type].n)+'</span>':'')}
   if(T==="wall")h+=CDV+cbI("wdef","wall","Defaults: outer "+thTxt(S.meta.tout)+" · inner "+thTxt(S.meta.tin),"",true)+TY("wall").map(function(t){return '<span class="cb" style="pointer-events:none"><i style="width:10px;height:10px;border-radius:3px;background:'+thCol(t.th)+'"></i>'+esc(tName("wall",t))+'</span>'}).join("");
@@ -145,6 +146,8 @@ var _ctx0=ctxAction;ctxAction=function(k){if(k.indexOf("tedit:")===0){editTypeFo
  if(k==="corners"){setTool("move");toast("Tap a corner, then drag · 90° snaps green");return}
  if(k==="nL"||k==="nR"||k==="nU"||k==="nD"||k==="nL6"||k==="nR6"||k==="nU6"||k==="nD6"){if(typeof nudgeVsel==="function")nudgeVsel(k);return}
  if(k==="nType"){if(typeof nudgeVselPopup==="function")nudgeVselPopup();return}
+ if(k==="ws:plain"||k==="ws:shade"||k==="ws:box"){UI.ws=k.slice(3);if(S&&S.meta){S.meta.ws=S.meta.ws||{};S.meta.ws.k=UI.ws}toast(({plain:"Plain window",shade:"Sunshade / chajja",box:"Box frame"}[UI.ws]));return}
+ if(k==="wsdim"){if(typeof winStyleDimPopup==="function")winStyleDimPopup();return}
  return _ctx0(k)};
 /* ---------- properties: slide-over with Type Selector ---------- */
 propsOpen=function(on){UI.props=!!on;$("app").classList.toggle("pr",UI.props);$("bProps").classList.toggle("on",UI.props);LS.set("jksp_props14",UI.props);updProps()};
