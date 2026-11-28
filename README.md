@@ -4,6 +4,7 @@ Static, offline-capable web version of CTAK BIM Module (formerly JK Sketch Plan;
 Open `index.html` from any static host. Everything is in one file (three.js, dxf-parser inlined); no backend, no WebAssembly.
 
 - Drawing tools of v1.4 (walls, doors, windows, levels, structure, annotate, modify), 3D view (all levels stacked, elevations, sections, mouse / one-finger orbit)
+- v2.1.7: Beam default size is the thickness of the wall it sits on by 18 inch depth (Width = wall thickness is on by default; 9 inch fallback when there is no wall). Existing drawings are unchanged.
 - v2.1.6: Added Elevation Design with wall projection, offset lines, sill/lintel levels, and an elevation element library (frames, balconies, louvers, cladding, lights, porch, gate). Each window can be Plain, Sunshade, or Box frame.
 - Export PDF / DXF / PNG as browser downloads (Share button on phones)
 - Import IFC (IFC2x3 / IFC4) and DXF exported from Revit -> editable walls, doors, windows, levels
@@ -21,7 +22,7 @@ Release APKs live in `releases/`. They must be zipaligned and signed with APK Si
 ```bash
 export JKSP_KEYSTORE=/path/to/jksp.keystore   # PKCS12, alias jksp; do not commit
 export JKSP_STOREPASS=...                     # do not commit
-scripts/sign_apk.sh unsigned.apk releases/CTAK_BIM_Module_v2.1.6.apk
+scripts/sign_apk.sh unsigned.apk releases/CTAK_BIM_Module_v2.1.7.apk
 ```
 
 The script strips any previous JAR signature, runs `zipalign -p 4`, then `apksigner sign --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true`, and verifies. Needs Android SDK build-tools on `PATH` or `ANDROID_HOME`. Keep `jksp_*` web storage keys unchanged.

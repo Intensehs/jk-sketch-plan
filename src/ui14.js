@@ -124,7 +124,7 @@ function updCtx(){var c=$("ctx");if(!c)return;var h="",T=UI.tool;
    if(typeof dsCtxHTML==="function")h+=dsCtxHTML();
    if(n===1&&UI.sel[0].k==="dim"){var de=elGet(UI.sel[0]);h+=CDV+cbI("dval","edit","Edit value","Type a new dimension value - moves the attached wall")+cbI("dlock",de.lock?"lock":"unlock",de.lock?"Locked":"Lock","Lock this dimension",!!de.lock)}
    h+=CDV+cbI("xmove","mv","Move")+cbI("xcopy","copy","Copy")+cbI("xrot","rotate","Rotate")+cbI("xmir","mirror","Mirror")+cbI("xarr","array","Array")+cbI("xpin","pin",n&&selEls().every(isPinned)?"Unpin":"Pin")+cbI("xdel","del","Delete","",false,"warn")+CDV+cbI("xfil","filter","Filter")+cbI("xall","selall","All")+cbI("xadd","plus","Add","Multi-select",UI.addSel)+cbI("xclr","x","Clear")+CDV+cbI("ccopy","clipcopy","","Copy to clipboard")+cbI("cpaste","paste","","Paste aligned",false)}
-  if(T==="beam")h+=CDV+BEAMSZ.map(function(z){var on=(UI.beamSz||[9,18])[0]===z[0]&&(UI.beamSz||[9,18])[1]===z[1];return cb("bs:"+z[0]+"x"+z[1],z[0]+'"×'+z[1]+'"',"width x depth",on)}).join("")+cbI("bauto","plus","Auto on walls","",false,"ok2");
+  if(T==="beam"){var sz=UI.beamSz||[9,18],man=!!UI.beamMan;h+=CDV+cb("bmatch","Width = wall thickness","9\" wall → 9\" · 4½\" → 4½\"",!man)+cb("bman","Manual width","typed / size chip",man)+CDV+BEAMSZ.map(function(z){var on=sz[1]===z[1]&&(man?sz[0]===z[0]:true);return cb("bs:"+z[0]+"x"+z[1],z[0]+'"×'+z[1]+'"',man?"width x depth":"depth (width follows wall)",on)}).join("")+cbI("bauto","plus","Auto on walls","",false,"ok2")}
   if(T==="grid")h+=CDV+cbI("gauto","plus","Auto grids","from walls",false,"ok2")+cbI("cgrid","col","Columns at crossings");
   if(T==="dim"||T==="beam"||T==="rail"||T==="dline"||T==="sec"||T==="grid"||T==="meas")h+=cbI("ortho","angle",UI.ortho===90?"90°":UI.ortho===45?"45°":"Free","Angle snap",true);
   if(T==="dline")h+=cb("dls","Solid","",(UI.dlSt||"solid")==="solid")+cb("dld","Dashed","",UI.dlSt==="dash");
@@ -148,6 +148,8 @@ var _ctx0=ctxAction;ctxAction=function(k){if(k.indexOf("tedit:")===0){editTypeFo
  if(k==="nType"){if(typeof nudgeVselPopup==="function")nudgeVselPopup();return}
  if(k==="ws:plain"||k==="ws:shade"||k==="ws:box"){UI.ws=k.slice(3);if(S&&S.meta){S.meta.ws=S.meta.ws||{};S.meta.ws.k=UI.ws}toast(({plain:"Plain window",shade:"Sunshade / chajja",box:"Box frame"}[UI.ws]));return}
  if(k==="wsdim"){if(typeof winStyleDimPopup==="function")winStyleDimPopup();return}
+ if(k==="bmatch"){UI.beamMan=false;var L=typeof selOf==="function"?selOf("beam"):[];if(L.length){L.forEach(function(m){if(typeof beamMatchOne==="function")beamMatchOne(m)});changed()}updCtx();toast(L.length?"Beam width matches the wall":"New beams: width = wall thickness, depth 18\"");return}
+ if(k==="bman"){UI.beamMan=true;updCtx();toast("New beams use the typed / chip width");return}
  return _ctx0(k)};
 /* ---------- properties: slide-over with Type Selector ---------- */
 propsOpen=function(on){UI.props=!!on;$("app").classList.toggle("pr",UI.props);$("bProps").classList.toggle("on",UI.props);LS.set("jksp_props14",UI.props);updProps()};

@@ -1,5 +1,5 @@
 /* ================= CTAK BIM Module - hand drawing house plan ================= */
-var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.6";
+var APP="CTAK BIM Module",SUBT="CTAK Construction — BIM Module",VERSION="2.1.7";
 var ROOMS=["Bedroom","Hall","Kitchen","Toilet","Pooja Room","Staircase","Dining","Portico/Parking","Sit-out","Utility"];
 var TAM={"Bedroom":"படுக்கை அறை","Hall":"ஹால்","Kitchen":"சமையலறை","Toilet":"கழிவறை","Pooja Room":"பூஜை அறை","Staircase":"படிக்கட்டு","Dining":"சாப்பாட்டு அறை","Portico/Parking":"போர்டிகோ","Sit-out":"சிட்-அவுட்","Utility":"யூட்டிலிட்டி"};
 var OPN={D:"Door",W:"Window",V:"Ventilator"},OPC={D:"#8a4b14",W:"#1f5fa8",V:"#3f6f5a"},OPDEF={D:3,W:4,V:2};
@@ -44,7 +44,7 @@ var S,cv,g,CW=0,CH=0,DPR=1;
 var V={s:20,ox:40,oy:40};          // plan view: px per ft
 var SV={s:2,ox:0,oy:0};            // clean view: px per mm of the A3 sheet
 /* Stage: v1.4 drawing tools - UI.tool holds the active tool; default is the Wall tool ("draw") */
-var UI={tool:"draw",ortho:90,grid:1,penOnly:false,penSeen:false,kind:"O",chainOn:true,chain:null,runStart:null,clean:false,preview:null,snap:null,mark:null,selSeg:null,ws:"shade"};
+var UI={tool:"draw",ortho:90,grid:1,penOnly:false,penSeen:false,kind:"O",chainOn:true,chain:null,runStart:null,clean:false,preview:null,snap:null,mark:null,selSeg:null,ws:"shade",beamSz:[9,18],beamMan:false};
 var UNDO=[],REDO=[],CURID=null,SAVET=null,DIRTY=false;
 
 /* Stage: New drawing - empty plan, no tool-specific data yet (Wall tool active) */
@@ -656,6 +656,7 @@ function detailsPopup(){var m=S.meta;
   $("dX").onclick=closeModal;$("dOk").onclick=function(){snapshot();m.name=$("dN").value.trim()||defaultName();m.owner=$("dO").value.trim();m.site=$("dS").value.trim();m.date=$("dD").value||today();m.dbl=dbl;m.proj=$("dPr").value.trim();m.ttl=$("dTt").value.trim()||"Ground Floor Plan";m.dno=$("dNo").value.trim()||"A101";m.drawn=$("dBy").value.trim();m.chk=$("dCk").value.trim();m.revs=$("dRv").value;
    var to=parseFloat($("dTo").value),ti=parseFloat($("dTi").value);if(to>0&&to<36)m.tout=to;if(ti>0&&ti<36)m.tin=ti;m.paper=$("dP").value;var wh=parseFloat($("dWh").value);if(wh>=7&&wh<=30){m.wh=wh;curLv().h=wh}closeModal();changed();updTitle()}})}
 function helpPopup(){modal('<div class="mt">'+esc(APP)+'</div><div class="ms">'+esc(SUBT)+' · v'+esc(VERSION)+'</div><div class="ms" style="font-size:15px;line-height:1.5">'+
+ '<b>v2.1.7</b>: Beam default size is the thickness of the wall it sits on by 18 inch depth (Width = wall thickness is on by default; 9 inch fallback when there is no wall). Existing drawings are unchanged.<br>'+
  '<b>v2.1.6</b>: Added Elevation Design with wall projection, offset lines, sill/lintel levels, and an elevation element library (frames, balconies, louvers, cladding, lights, porch, gate). Each window can be Plain, Sunshade, or Box frame.<br>'+
  '<b>Draw</b>: drag the pen / finger along a wall. The length in feet shows on the line while you draw (1 grid = 1 ft). Lines snap straight (90°). Lift and drag again from the end to continue. A rough hand stroke with corners becomes straight walls.<br>'+
  '<b>Tap-tap</b>: in Draw, tap a point then tap the next corner.<br><b>Close</b> joins the last point to the first. <b>New line</b> starts a separate wall (inside walls).<br>'+
