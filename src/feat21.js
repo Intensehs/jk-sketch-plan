@@ -164,24 +164,6 @@ function hookFio(){if(typeof filePopup!=="function"){setTimeout(hookFio,20);retu
 setTimeout(hookFio,0);
 if(window.JKS){JKS.onBack=onBack;JKS.newDrawing=newDrawingAsk;JKS.autosave=autosave;JKS.openDrawing=openDrawing;JKS.startDialog=startDialog;JKS.qtyPopup=qtyPopup;JKS.estPopup=estPopup}
 
-/* ----- beam: Match wall chip + Auto/Manual in beam popup ----- */
-var _ucFeat=updCtx;updCtx=function(){_ucFeat.apply(this,arguments);var c=$("ctx");if(!c||UI.clean||UI.tool!=="beam")return;
- var h=CDV+cb("bmatch","Match wall","width = wall",!UI.beamMan)+cb("bman","Manual","override",!!UI.beamMan);
- c.insertAdjacentHTML("beforeend",h);c.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){ctxAction(b.dataset.c)}})};
-var _caFeat=ctxAction;ctxAction=function(k){
- if(k.indexOf("bs:")===0){UI.beamMan=1;UI.beamSz=k.slice(3).split("x").map(Number);updCtx();render();return _caFeat.apply(this,arguments)}
- if(k==="bmatch"){UI.beamMan=false;var L=typeof selOf==="function"?selOf("beam"):[];L.forEach(function(m){delete m.wov;var th=wallThAlong(m.a,m.b);if(th)m.w=th});changed();updCtx();toast("Beam width matches the wall");return}
- if(k==="bman"){UI.beamMan=true;updCtx();toast("New beams use the typed width");return}
- return _caFeat.apply(this,arguments)};
-(function(){var _bp=beamPopup;beamPopup=function(){var sel=typeof selOf==="function"?selOf("beam"):[],m0=sel[0];
- _bp.apply(this,arguments);setTimeout(function(){var box=$("mbox");if(!box||!box.querySelector("#bw"))return;
-  var bar=document.createElement("div");bar.className="ms";bar.innerHTML='<b>Width:</b> <label><input type="radio" name="bautoW" value="a" '+(UI.beamMan?"":"checked")+'> Auto (match wall)</label> · <label><input type="radio" name="bautoW" value="m" '+(UI.beamMan?"checked":"")+'> Manual override</label>';
-  var g=box.querySelector(".grid2");if(g)g.parentNode.insertBefore(bar,g);
-  var ok=$("bOk");if(!ok)return;var prev=ok.onclick;ok.onclick=function(){var r=document.querySelector('input[name="bautoW"]:checked');UI.beamMan=r&&r.value==="m";
-   if(!UI.beamMan){var L=document.querySelector('input[name="scp"]:checked');var sc=L?L.value:"all";var list=sc==="sel"?sel:sc==="all"?S.L.reduce(function(a,Lv){return a.concat(Lv.beams||[])},[]):[];
-    list.forEach(function(m){delete m.wov;var th=wallThAlong(m.a,m.b);if(th)m.w=th})}else{var list2=(document.querySelector('input[name="scp"]:checked')||{}).value==="sel"?sel:S.L.reduce(function(a,Lv){return a.concat(Lv.beams||[])},[]);list2.forEach(function(m){m.wov=1})}
-   if(prev)prev()};},0)};})();
-
 /* ===== quantities ===== */
 function cuFt(v){return Math.round(v*100)/100}
 function sqFt(v){return Math.round(v*10)/10}

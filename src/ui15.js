@@ -51,14 +51,24 @@ function kambiPopup(){var sel=selOf("col"),c0=sel[0]||S.cols[0],r=colRB(c0),n=se
   var L=sc==="sel"?sel:sc==="all"?allCols():[];L.forEach(function(c){c.w=w;c.d=d;c.rb=Object.assign({},rb)});stMeta().col=Object.assign({},rb);UI.colSz=[w,d];closeModal();changed();toast("Column "+w+'" x '+d+'" · '+rb.n+" - "+rb.dia+" mm · ties "+rb.tie+" @ "+rb.sp+(L.length?" ("+L.length+" columns)":" (new columns)"))}
  $("kOk").onclick=save;$("kV").onclick=function(){save();openDwg("kambi")}})}
 /* Beam (size + concealed + rebar) */
-function beamPopup(){var sel=selOf("beam"),m0=sel[0]||{w:(UI.beamSz||[9,18])[0],d:(UI.beamSz||[9,18])[1],cb:UI.beamCB,rb:UI.beamRB},r=beamRB(m0),n=sel.length;
- modal('<div class="mt">Beam (பீம்)</div><div class="ms">Size width x depth in inches, Normal or Concealed (கன்சீல்டு - hidden inside the slab), and rebar.</div><div class="row">'+[[9,12],[9,15],[9,18],[9,24],[12,18],[23,6],[30,6]].map(function(z){return '<button class="bb" data-bz="'+z[0]+'x'+z[1]+'">'+z[0]+'" x '+z[1]+'"</button>'}).join("")+'</div>'+
- '<div class="grid2"><label class="fld">Width (in)<input id="bw" type="number" step="0.5" value="'+m0.w+'"></label><label class="fld">Depth (in)<input id="bdp" type="number" step="0.5" value="'+m0.d+'"></label></div>'+
+function beamPopup(){var sel=selOf("beam"),sz=UI.beamSz||[9,18],man=!!UI.beamMan,m0=sel[0]||{w:man?sz[0]:9,d:sz[1]||18,cb:UI.beamCB,rb:UI.beamRB},r=beamRB(m0),n=sel.length;
+ modal('<div class="mt">Beam (பீம்)</div><div class="ms">Size width x depth in inches, Normal or Concealed (கன்சீல்டு - hidden inside the slab), and rebar. New beams default to wall thickness × 18". Concealed beams keep the depth you set here.</div>'+
+ '<div class="ms"><label><input type="checkbox" id="bww" '+(man?"":"checked")+' > Width = wall thickness</label> <span style="color:#64748b">9" wall → 9" beam · 4½" wall → 4½" · no wall → 9".</span></div>'+
+ '<div class="row">'+[[9,12],[9,15],[9,18],[9,24],[12,18],[23,6],[30,6]].map(function(z){return '<button class="bb" data-bz="'+z[0]+'x'+z[1]+'">'+z[0]+'" x '+z[1]+'"</button>'}).join("")+'</div>'+
+ '<div class="grid2"><label class="fld">Width (in)<input id="bw" type="number" step="0.5" value="'+m0.w+'"'+(man?"":" disabled")+'></label><label class="fld">Depth (in)<input id="bdp" type="number" step="0.5" value="'+m0.d+'"></label></div>'+
  '<div class="ms"><label><input type="radio" name="bk" value="n" '+(m0.cb?"":"checked")+'> Normal (drop) beam</label> <label><input type="radio" name="bk" value="c" '+(m0.cb?"checked":"")+'> Concealed beam</label></div>'+
  '<div class="grid2"><label class="fld">Top bars (nos)<input id="btn" type="number" value="'+r.top+'"></label><label class="fld">Top size'+optSel("btd",RBD,r.td," mm")+'</label><label class="fld">Bottom bars (nos)<input id="bbn" type="number" value="'+r.bot+'"></label><label class="fld">Bottom size'+optSel("bbd",RBD,r.bd," mm")+'</label><label class="fld">Stirrup size'+optSel("bst",STD,r.st," mm")+'</label><label class="fld">Stirrup spacing (mm)<input id="bsp" type="number" step="25" value="'+r.sp+'"></label></div>'+scopeHTML(n,"beams")+
- '<div class="row"><button class="bb" id="bX">Cancel</button><button class="bb ok" id="bOk">Save</button></div>',function(b){b.querySelectorAll("[data-bz]").forEach(function(x){x.onclick=function(){var z=x.dataset.bz.split("x");$("bw").value=z[0];$("bdp").value=z[1];if(+z[1]<=8)document.querySelector('input[name="bk"][value="c"]').checked=true}});$("bX").onclick=closeModal;
- $("bOk").onclick=function(){var w=+$("bw").value||9,d=+$("bdp").value||18,cb=document.querySelector('input[name="bk"]:checked').value==="c",rb={top:+$("btn").value||2,td:+$("btd").value,bot:+$("bbn").value||2,bd:+$("bbd").value,st:+$("bst").value,sp:+$("bsp").value||150},sc=scopeVal();snapshot();
-  UI.beamSz=[w,d];UI.beamCB=cb;UI.beamRB=rb;var L=sc==="sel"?sel:sc==="all"?S.L.reduce(function(a,Lv){return a.concat(Lv.beams||[])},[]):[];L.forEach(function(m){m.w=w;m.d=d;if(cb)m.cb=1;else delete m.cb;m.rb=Object.assign({},rb)});stMeta().beam=Object.assign({},rb);closeModal();changed();updCtx();if(UI.tool!=="beam")setTool("beam");toast((cb?"Concealed":"Normal")+" beam "+w+'" x '+d+'"'+(L.length?" applied to "+L.length:" - draw beams now"))}})}
+ '<div class="row"><button class="bb" id="bX">Cancel</button><button class="bb ok" id="bOk">Save</button></div>',function(b){
+  function syncW(){var on=$("bww")&&$("bww").checked;if($("bw"))$("bw").disabled=!!on}
+  if($("bww"))$("bww").onchange=syncW;syncW();
+  b.querySelectorAll("[data-bz]").forEach(function(x){x.onclick=function(){var z=x.dataset.bz.split("x");if($("bw")&&!($("bww")&&$("bww").checked))$("bw").value=z[0];$("bdp").value=z[1];if(+z[1]<=8){var c=document.querySelector('input[name="bk"][value="c"]');if(c)c.checked=true}}});
+  $("bX").onclick=closeModal;
+  $("bOk").onclick=function(){var match=$("bww")&&$("bww").checked,w=+$("bw").value||9,d=+$("bdp").value,cb=document.querySelector('input[name="bk"]:checked').value==="c",rb={top:+$("btn").value||2,td:+$("btd").value,bot:+$("bbn").value||2,bd:+$("bbd").value,st:+$("bst").value,sp:+$("bsp").value||150},sc=scopeVal();
+   if(!(d>0))d=cb?6:18;snapshot();UI.beamMan=!match;UI.beamSz=[match?9:w,d];UI.beamCB=cb;UI.beamRB=rb;
+   var L=sc==="sel"?sel:sc==="all"?S.L.reduce(function(a,Lv){return a.concat(Lv.beams||[])},[]):[];
+   L.forEach(function(m){if(cb)m.cb=1;else delete m.cb;m.rb=Object.assign({},rb);m.d=d;if(match)beamMatchOne(m);else{m.w=w;m.wov=1}});
+   stMeta().beam=Object.assign({},rb);closeModal();changed();updCtx();if(UI.tool!=="beam")setTool("beam");
+   toast((cb?"Concealed":"Normal")+" beam "+(match?"width = wall thickness":w+'"')+" × "+d+'"'+(L.length?" applied to "+L.length:" — draw beams now"))}})}
 /* Footing size */
 function ftgPopup(){var sel=selOf("col"),f=ftgOf(sel[0]),n=sel.length,P=[[3,3],[3.5,3.5],[4,4],[4,5],[5,5],[6,6]];
  modal('<div class="mt">Footing (புட்டிங்) size</div><div class="row">'+P.map(function(z){return '<button class="bb" data-fz="'+z[0]+'x'+z[1]+'">'+fi(z[0])+' x '+fi(z[1])+'</button>'}).join("")+'</div>'+

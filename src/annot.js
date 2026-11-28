@@ -23,7 +23,7 @@ function W2(p){return w2s(p.x,p.y)}
 function cline(a,b,col,lw,dash){var A=W2(a),B=W2(b);g.beginPath();g.moveTo(A.x,A.y);g.lineTo(B.x,B.y);g.strokeStyle=col;g.lineWidth=lw;g.setLineDash(dash||[]);g.stroke();g.setLineDash([])}
 function drawStructCanvas(){
  if(visOn("beams"))S.beams.forEach(function(m){var P=beamPoly(m);g.beginPath();P.forEach(function(p,i){var q=W2(p);i?g.lineTo(q.x,q.y):g.moveTo(q.x,q.y)});g.closePath();g.strokeStyle="#9a3412";g.lineWidth=1.6;g.setLineDash([8,5]);g.stroke();g.setLineDash([]);
-  var c=W2({x:(m.a.x+m.b.x)/2,y:(m.a.y+m.b.y)/2});if(Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)*V.s>70)pill(c.x,c.y-12,"B "+m.w+"x"+m.d,"rgba(154,52,18,.85)","#fff",11)});
+  var c=W2({x:(m.a.x+m.b.x)/2,y:(m.a.y+m.b.y)/2});if(Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)*V.s>70)pill(c.x,c.y-12,"B "+(typeof beamSzLabel==="function"?beamSzLabel(m):m.w+"x"+m.d),"rgba(154,52,18,.85)","#fff",11)});
  if(visOn("rails"))S.rails.forEach(function(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y);if(L<0.01)return;var u={x:(m.b.x-m.a.x)/L,y:(m.b.y-m.a.y)/L},n={x:-u.y*0.12,y:u.x*0.12};
   cline({x:m.a.x+n.x,y:m.a.y+n.y},{x:m.b.x+n.x,y:m.b.y+n.y},"#0f766e",1.6);cline({x:m.a.x-n.x,y:m.a.y-n.y},{x:m.b.x-n.x,y:m.b.y-n.y},"#0f766e",1.6);
   for(var t=0;t<=L+1e-6;t+=Math.max(L/Math.ceil(L/4),0.5)){var q=W2({x:m.a.x+u.x*t,y:m.a.y+u.y*t});g.fillStyle="#0f766e";g.fillRect(q.x-3,q.y-3,6,6)}});
@@ -58,7 +58,7 @@ function snapLine(w,a){var p=snapPick(w,{face:UI.tool==="dim",fine:UI.tool==="di
 function commitLine(t,a,b){var L=Math.hypot(b.x-a.x,b.y-a.y);if(L<0.3){toast("Too short");return}
  if(t==="dim"){UI.dimPend={a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},off:2};toast("Now tap where the dimension line should sit");render();return}
  snapshot();var A={x:a.x,y:a.y},B={x:b.x,y:b.y};
- if(t==="beam"){addBeam(A,B);toast("Beam "+fi(L))}else if(t==="rail"){S.rails.push({id:nid(),a:A,b:B,h:3});toast("Railing "+fi(L)+" (3'-0\" high)")}
+ if(t==="beam"){var bm=addBeam(A,B);toast("Beam "+(bm&&typeof beamSzLabel==="function"?beamSzLabel(bm)+" · ":"")+fi(L))}else if(t==="rail"){S.rails.push({id:nid(),a:A,b:B,h:3});toast("Railing "+fi(L)+" (3'-0\" high)")}
  else if(t==="grid"){var m={id:nid(),a:A,b:B};m.name=nextGridName(m);S.grids.push(m);toast("Grid "+m.name)}
  else if(t==="dline"){S.dlines.push({id:nid(),a:A,b:B,st:UI.dlSt||"solid"})}
  else if(t==="sec"){var n=S.secs.length+1;S.secs.push({id:nid(),a:A,b:B,name:String(n),flip:false});toast("Section "+n+" - see View → Sheets / Section");setTimeout(function(){changed();openSheetBy("sec",S.secs.length-1)},50)}

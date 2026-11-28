@@ -88,10 +88,18 @@ function gridCols(){var X=gridXs();if(!X.length){toast("No grid intersections - 
 /* ---------- beams ---------- */
 /* Stage: Structure - Beam tool */
 function wallThAlong(a,b){if(!a||!b||!S.segs||!S.segs.length)return 0;var best=0,bd=0.55;S.segs.forEach(function(s){var A=pt(s.a),B=pt(s.b);if(!A||!B)return;var d=(d2seg(a,A,B)+d2seg(b,A,B))/2;if(d<bd){bd=d;best=wallIn(s)}});return best}
-function addBeam(a,b){var z=UI.beamSz||[9,18],wt=wallThAlong(a,b),man=!!UI.beamMan,w=man?z[0]:(wt||z[0]),bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:w,d:z[1]};if(man)bm.wov=1;S.beams.push(bm);return bm}
+/* v2.1.7: new beams default to wall thickness × 18". UI.beamMan = typed/chip width. Concealed keep their own depth. Existing .jksp beams are not rewritten. */
+function beamWDef(){return 9}
+function beamDDef(cb){cb=cb!=null?!!cb:!!(UI&&UI.beamCB);var z=UI&&UI.beamSz,d=z&&+z[1];
+ if(cb)return (d>0&&d<=10)?d:6;return d>0?d:18}
+function beamManOn(){return !!(UI&&UI.beamMan)}
+function beamWidthAt(a,b){if(beamManOn())return (UI.beamSz&&+UI.beamSz[0])||beamWDef();return wallThAlong(a,b)||beamWDef()}
+function beamMatchOne(m){if(!m)return;delete m.wov;m.w=wallThAlong(m.a,m.b)||beamWDef()}
+function beamSzLabel(m){return (typeof thTxt==="function"?thTxt(m.w):m.w+'"')+" × "+(typeof thTxt==="function"?thTxt(m.d):m.d+'"')}
+function addBeam(a,b){var w=beamWidthAt(a,b),d=beamDDef(),bm={id:nid(),a:{x:a.x,y:a.y},b:{x:b.x,y:b.y},w:w,d:d};if(beamManOn())bm.wov=1;S.beams.push(bm);return bm}
 function autoBeams(){snapshot();var n=0,done={};S.segs.forEach(function(s){var r=wallRun(s),k=r.ids.slice().sort().join(",");if(done[k])return;done[k]=1;var a=pt(r.a),b=pt(r.b);
   if(S.beams.some(function(m){return (Math.hypot(m.a.x-a.x,m.a.y-a.y)<0.1&&Math.hypot(m.b.x-b.x,m.b.y-b.y)<0.1)||(Math.hypot(m.a.x-b.x,m.a.y-b.y)<0.1&&Math.hypot(m.b.x-a.x,m.b.y-a.y)<0.1)}))return;var bm=addBeam(a,b);if(!bm.wov)bm.w=wallIn(s);n++});
- changed();toast(n+" beams placed over the walls (width matches wall)")}
+ changed();toast(n+" beams placed over the walls (width = wall thickness, depth "+beamDDef()+'")')}
 function syncBeamsOnWall(s){if(!s||!S.beams)return;var a=pt(s.a),b=pt(s.b),th=wallIn(s);S.beams.forEach(function(m){if(m.wov)return;if(d2seg(m.a,a,b)<0.45&&d2seg(m.b,a,b)<0.45)m.w=th})}
 function beamPoly(m){var L=Math.hypot(m.b.x-m.a.x,m.b.y-m.a.y)||1,nx=-(m.b.y-m.a.y)/L*m.w/24,ny=(m.b.x-m.a.x)/L*m.w/24;return [{x:m.a.x+nx,y:m.a.y+ny},{x:m.b.x+nx,y:m.b.y+ny},{x:m.b.x-nx,y:m.b.y-ny},{x:m.a.x-nx,y:m.a.y-ny}]}
 /* ---------- roof (top level): flat slab + parapet, gable, hip ---------- */
